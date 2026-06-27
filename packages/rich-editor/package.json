@@ -1,0 +1,56 @@
+{
+  "name": "@rinsvent/rich-editor",
+  "version": "0.1.0",
+  "description": "Rich text editor and viewer for React (Lexical-based)",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@lexical/code": "^0.44.0",
+    "@lexical/html": "^0.44.0",
+    "@lexical/link": "^0.44.0",
+    "@lexical/list": "^0.44.0",
+    "@lexical/markdown": "^0.44.0",
+    "@lexical/react": "^0.44.0",
+    "@lexical/rich-text": "^0.44.0",
+    "@lexical/selection": "^0.44.0",
+    "@lexical/utils": "^0.44.0",
+    "dompurify": "^3.4.5",
+    "highlight.js": "^11.11.1",
+    "lexical": "^0.44.0",
+    "marked": "^18.0.4"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.2.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,89 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0e1621;
+  color: #f5f5f5;
+}
+
+a {
+  color: #2aabee;
+}
+
+.demo-layout {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.demo-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.demo-nav a {
+  text-decoration: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.demo-nav a.active {
+  background: rgba(42, 171, 238, 0.25);
+}
+
+.demo-card {
+  background: #17212b;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.demo-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.demo-split {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .demo-split {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.demo-output {
+  background: #242f3d;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.demo-menu-item {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.demo-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}

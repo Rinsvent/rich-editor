@@ -1,43 +1,14 @@
 {
-  "name": "smart-messenger-web",
-  "version": "0.1.0",
+  "name": "rich-editor-monorepo",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "next dev --port 3000",
-    "build": "next build",
-    "start": "npx serve out",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@lexical/code": "^0.44.0",
-    "@lexical/html": "^0.44.0",
-    "@lexical/link": "^0.44.0",
-    "@lexical/list": "^0.44.0",
-    "@lexical/markdown": "^0.44.0",
-    "@lexical/react": "^0.44.0",
-    "@lexical/rich-text": "^0.44.0",
-    "@lexical/selection": "^0.44.0",
-    "@lexical/utils": "^0.44.0",
-    "@types/pouchdb": "^6.4.2",
-    "centrifuge": "^5.3.5",
-    "clsx": "^2.1.1",
-    "dompurify": "^3.4.5",
-    "highlight.js": "^11.11.1",
-    "lexical": "^0.44.0",
-    "marked": "^18.0.4",
-    "next": "^15.1.0",
-    "pouchdb": "^9.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@types/dompurify": "^3.2.0",
-    "@types/node": "^22.10.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.16",
-    "typescript": "^5.7.2"
+    "dev": "npm run dev --prefix apps/demo",
+    "build": "npm run build --prefix packages/rich-editor && npm run build --prefix apps/demo",
+    "build:lib": "npm run build --prefix packages/rich-editor",
+    "lint": "npm run lint --prefix packages/rich-editor"
   }
 }
