@@ -179,6 +179,26 @@
   font-size: 0.85em;
 }
 
+.re-editor-input .re-text-bold {
+  font-weight: 700;
+}
+
+.re-editor-input .re-text-italic {
+  font-style: italic;
+}
+
+.re-editor-input .re-text-bold.re-text-italic {
+  font-weight: 700;
+  font-style: italic;
+}
+
+/* Lexical may nest format spans when both are applied sequentially */
+.re-editor-input .re-text-bold .re-text-italic,
+.re-editor-input .re-text-italic .re-text-bold {
+  font-weight: 700;
+  font-style: italic;
+}
+
 .re-heading-h1 { font-size: 1.5em; font-weight: 700; margin: 0.25rem 0; }
 .re-heading-h2 { font-size: 1.3em; font-weight: 700; margin: 0.25rem 0; }
 .re-heading-h3 { font-size: 1.15em; font-weight: 600; margin: 0.25rem 0; }
@@ -198,6 +218,16 @@
 
 .re-viewer p { margin: 0 0 0.25rem; }
 .re-viewer p:last-child { margin-bottom: 0; }
+
+.re-viewer b,
+.re-viewer strong {
+  font-weight: 700;
+}
+
+.re-viewer i,
+.re-viewer em {
+  font-style: italic;
+}
 
 .re-viewer blockquote {
   margin: 0.25rem 0;
