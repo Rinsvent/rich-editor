@@ -51,12 +51,19 @@ export function collectSlots(children: ReactNode): SlotMap {
 }
 
 export function hasToolbar(
-  features: { bold: boolean; italic: boolean; code: boolean; quote: boolean },
+  features: {
+    bold: boolean;
+    italic: boolean;
+    strikethrough: boolean;
+    code: boolean;
+    quote: boolean;
+  },
   slots: SlotMap,
 ): boolean {
   return (
     features.bold ||
     features.italic ||
+    features.strikethrough ||
     features.code ||
     features.quote ||
     !!slots.toolbarStart ||

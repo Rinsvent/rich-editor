@@ -44,7 +44,31 @@ function App() {
 
 Use `useRichTextEditor()` inside slot components for editor API access.
 
-## Demo
+### Features
+
+```tsx
+<RichTextEditor
+  features={{
+    strikethrough: true,      // default: false
+    keyboardShortcuts: true,  // Ctrl+B/I/E, Ctrl+Shift+X
+  }}
+/>
+```
+
+Keyboard shortcuts (when `keyboardShortcuts` is enabled):
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl/Cmd+B | Bold |
+| Ctrl/Cmd+I | Italic |
+| Ctrl/Cmd+E | Inline code |
+| Ctrl/Cmd+Shift+X | Strikethrough |
+
+## Tests
+
+```bash
+npm test
+```
 
 ```bash
 npm install

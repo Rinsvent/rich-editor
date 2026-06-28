@@ -7,6 +7,9 @@ const ALLOWED_TAGS = [
   "b",
   "em",
   "i",
+  "s",
+  "del",
+  "strike",
   "code",
   "pre",
   "blockquote",
@@ -43,7 +46,7 @@ export function plainTextFromHtml(html: string): string {
   return el.textContent?.replace(/\s+/g, " ").trim() ?? "";
 }
 
-/** Normalize Lexical HTML export to our API subset (b/i, no nested duplicates). */
+/** Normalize Lexical HTML export to our API subset (b/i/s, no nested duplicates). */
 export function normalizeHtml(html: string): string {
   if (typeof document === "undefined") {
     return html
@@ -52,6 +55,12 @@ export function normalizeHtml(html: string): string {
       )
       .replace(/<\/?em\b[^>]*>/gi, (tag) =>
         tag.startsWith("</") ? "</i>" : "<i>",
+      )
+      .replace(/<\/?del\b[^>]*>/gi, (tag) =>
+        tag.startsWith("</") ? "</s>" : "<s>",
+      )
+      .replace(/<\/?strike\b[^>]*>/gi, (tag) =>
+        tag.startsWith("</") ? "</s>" : "<s>",
       );
   }
 
@@ -70,6 +79,21 @@ export function normalizeHtml(html: string): string {
     node.replaceWith(i);
   });
 
+  for (const tag of ["del", "strike"] as const) {
+    container.querySelectorAll(tag).forEach((node) => {
+      const s = document.createElement("s");
+      s.innerHTML = node.innerHTML;
+      node.replaceWith(s);
+    });
+  }
+
+  container.querySelectorAll('[style*="line-through"]').forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    const s = document.createElement("s");
+    s.innerHTML = node.innerHTML;
+    node.replaceWith(s);
+  });
+
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
@@ -81,6 +105,7 @@ export function normalizeHtml(html: string): string {
 
   flattenTag(container, "b");
   flattenTag(container, "i");
+  flattenTag(container, "s");
 
   return container.innerHTML.trim();
 }

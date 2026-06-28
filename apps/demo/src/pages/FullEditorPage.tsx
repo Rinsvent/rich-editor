@@ -11,10 +11,12 @@ export function FullEditorPage() {
         <RichTextEditor
           features={{
             headings: true,
+            strikethrough: true,
           }}
           labels={{
             bold: "Жирный",
             italic: "Курсив",
+            strikethrough: "Зачёркнутый",
             code: "Код",
             quote: "Цитата",
             submit: "Отправить",

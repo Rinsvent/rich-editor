@@ -12,6 +12,7 @@ export const editorTheme = {
   text: {
     bold: "re-text-bold",
     italic: "re-text-italic",
+    strikethrough: "re-text-strike",
     code: "re-text-code",
   },
   code: "re-block-code",

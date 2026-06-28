@@ -145,3 +145,4 @@ export function EmptyStatePlugin({
 
 export { EnterPlugin } from "./EnterPlugin";
 export { MarkdownPastePlugin } from "./MarkdownPastePlugin";
+export { KeyboardShortcutsPlugin } from "./KeyboardShortcutsPlugin";

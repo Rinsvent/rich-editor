@@ -10,6 +10,7 @@ import type { EditorLabels, EditorFeatures } from "../core/features";
 export type FormatState = {
   bold: boolean;
   italic: boolean;
+  strikethrough: boolean;
   code: boolean;
   quote: boolean;
 };
@@ -25,6 +26,7 @@ export type RichTextEditorContextValue = {
   format: {
     bold: () => void;
     italic: () => void;
+    strikethrough: () => void;
     code: () => void;
     quote: () => void;
   };

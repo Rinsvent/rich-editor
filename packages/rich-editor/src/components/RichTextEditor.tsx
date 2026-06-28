@@ -50,6 +50,7 @@ import {
   EnterPlugin,
   FocusPlugin,
   InitialHtmlPlugin,
+  KeyboardShortcutsPlugin,
   MarkdownPastePlugin,
   SetHtmlPlugin,
 } from "./plugins";
@@ -384,6 +385,7 @@ function RichTextEditorInner(
               <MarkdownShortcutPlugin transformers={transformers} />
             )}
             <MarkdownPastePlugin features={features} />
+            <KeyboardShortcutsPlugin features={features} disabled={disabled} />
             {onSubmit && (
               <EnterPlugin
                 behavior={enterBehavior}

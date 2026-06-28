@@ -199,6 +199,10 @@
   font-style: italic;
 }
 
+.re-editor-input .re-text-strike {
+  text-decoration: line-through;
+}
+
 .re-heading-h1 { font-size: 1.5em; font-weight: 700; margin: 0.25rem 0; }
 .re-heading-h2 { font-size: 1.3em; font-weight: 700; margin: 0.25rem 0; }
 .re-heading-h3 { font-size: 1.15em; font-weight: 600; margin: 0.25rem 0; }
@@ -227,6 +231,12 @@
 .re-viewer i,
 .re-viewer em {
   font-style: italic;
+}
+
+.re-viewer s,
+.re-viewer del,
+.re-viewer strike {
+  text-decoration: line-through;
 }
 
 .re-viewer blockquote {

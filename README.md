@@ -8,7 +8,6 @@ Monorepo for **@rinsvent/rich-editor** — React rich text editor/viewer on Lexi
 packages/rich-editor/   # library
 apps/demo/              # Vite demo
 docs/DESIGN.md          # design doc
-src/                    # legacy messenger code (reference, to be removed)
 ```
 
 ## Development

@@ -8,6 +8,7 @@ type SlotName = "toolbarStart" | "toolbarEnd" | "toolbarMenu" | "submitButton" |
 type EditorFeatures = {
     bold: boolean;
     italic: boolean;
+    strikethrough: boolean;
     code: boolean;
     quote: boolean;
     lists: boolean;
@@ -16,11 +17,13 @@ type EditorFeatures = {
     headings: boolean;
     markdownShortcuts: boolean;
     markdownPaste: boolean;
+    keyboardShortcuts: boolean;
 };
 declare const defaultFeatures: EditorFeatures;
 type EditorLabels = {
     bold: string;
     italic: string;
+    strikethrough: string;
     code: string;
     quote: string;
     submit: string;
@@ -97,6 +100,7 @@ declare function RichTextViewer({ content, features: featuresProp, className, th
 type FormatState = {
     bold: boolean;
     italic: boolean;
+    strikethrough: boolean;
     code: boolean;
     quote: boolean;
 };
@@ -111,6 +115,7 @@ type RichTextEditorContextValue = {
     format: {
         bold: () => void;
         italic: () => void;
+        strikethrough: () => void;
         code: () => void;
         quote: () => void;
     };
@@ -123,7 +128,7 @@ declare function useRichTextEditor(): RichTextEditorContextValue;
 declare function sanitizeHtml(html: string): string;
 declare function isHtmlContent(content: string): boolean;
 declare function plainTextFromHtml(html: string): string;
-/** Normalize Lexical HTML export to our API subset (b/i, no nested duplicates). */
+/** Normalize Lexical HTML export to our API subset (b/i/s, no nested duplicates). */
 declare function normalizeHtml(html: string): string;
 
 declare function buildMarkdownTransformers(features: EditorFeatures): Transformer[];

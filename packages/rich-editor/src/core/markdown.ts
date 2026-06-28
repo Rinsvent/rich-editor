@@ -9,6 +9,7 @@ import {
   LINK,
   ORDERED_LIST,
   QUOTE,
+  STRIKETHROUGH,
   UNORDERED_LIST,
   type Transformer,
 } from "@lexical/markdown";
@@ -27,6 +28,10 @@ marked.use({
     em({ tokens }) {
       const text = this.parser.parseInline(tokens);
       return `<i>${text}</i>`;
+    },
+    del({ tokens }) {
+      const text = this.parser.parseInline(tokens);
+      return `<s>${text}</s>`;
     },
   },
 });
@@ -49,6 +54,7 @@ export function buildMarkdownTransformers(
   if (features.italic) {
     transformers.push(ITALIC_STAR, ITALIC_UNDERSCORE);
   }
+  if (features.strikethrough) transformers.push(STRIKETHROUGH);
   if (features.links) transformers.push(LINK);
 
   return transformers;
@@ -66,6 +72,7 @@ export function looksLikeMarkdown(text: string): boolean {
     /\*\*[^*\n]+\*\*/.test(t) ||
     /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) ||
     /`[^`\n]+`/.test(t) ||
+    /~~[^~\n]+~~/.test(t) ||
     /\[[^\]]+\]\([^)]+\)/.test(t)
   );
 }

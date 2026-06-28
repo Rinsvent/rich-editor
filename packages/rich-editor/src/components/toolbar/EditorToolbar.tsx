@@ -67,6 +67,15 @@ export function EditorToolbar({
             I
           </ToolbarButton>
         )}
+        {features.strikethrough && (
+          <ToolbarButton
+            label={labels.strikethrough}
+            active={active.strikethrough}
+            onClick={format.strikethrough}
+          >
+            S
+          </ToolbarButton>
+        )}
         {features.code && (
           <ToolbarButton
             label={labels.code}

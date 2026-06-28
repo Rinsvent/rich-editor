@@ -20,7 +20,10 @@ const samples = [
       '<pre><code class="language-javascript">const x = 1;\nconsole.log(x);</code></pre>',
   },
   {
-    title: "Link",
+    title: "Strikethrough",
+    content: "<p><s>deleted text</s> and <b><s>bold strike</s></b></p>",
+  },
+  {
     content: '<p>Ссылка: <a href="https://example.com">example.com</a></p>',
   },
 ];

@@ -1,6 +1,7 @@
 export type EditorFeatures = {
   bold: boolean;
   italic: boolean;
+  strikethrough: boolean;
   code: boolean;
   quote: boolean;
   lists: boolean;
@@ -9,11 +10,13 @@ export type EditorFeatures = {
   headings: boolean;
   markdownShortcuts: boolean;
   markdownPaste: boolean;
+  keyboardShortcuts: boolean;
 };
 
 export const defaultFeatures: EditorFeatures = {
   bold: true,
   italic: true,
+  strikethrough: false,
   code: true,
   quote: true,
   lists: true,
@@ -22,6 +25,7 @@ export const defaultFeatures: EditorFeatures = {
   headings: false,
   markdownShortcuts: true,
   markdownPaste: true,
+  keyboardShortcuts: true,
 };
 
 export function resolveFeatures(
@@ -33,6 +37,7 @@ export function resolveFeatures(
 export type EditorLabels = {
   bold: string;
   italic: string;
+  strikethrough: string;
   code: string;
   quote: string;
   submit: string;
@@ -42,6 +47,7 @@ export type EditorLabels = {
 export const defaultLabels: EditorLabels = {
   bold: "Bold",
   italic: "Italic",
+  strikethrough: "Strikethrough",
   code: "Code",
   quote: "Quote",
   submit: "Submit",

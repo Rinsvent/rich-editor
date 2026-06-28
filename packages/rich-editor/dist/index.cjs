@@ -54,7 +54,7 @@ var import_code = require("@lexical/code");
 var import_link = require("@lexical/link");
 var import_list = require("@lexical/list");
 var import_LexicalComposer = require("@lexical/react/LexicalComposer");
-var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
+var import_LexicalComposerContext6 = require("@lexical/react/LexicalComposerContext");
 var import_LexicalContentEditable = require("@lexical/react/LexicalContentEditable");
 var import_LexicalErrorBoundary = require("@lexical/react/LexicalErrorBoundary");
 var import_LexicalHistoryPlugin = require("@lexical/react/LexicalHistoryPlugin");
@@ -63,7 +63,7 @@ var import_LexicalListPlugin = require("@lexical/react/LexicalListPlugin");
 var import_LexicalMarkdownShortcutPlugin = require("@lexical/react/LexicalMarkdownShortcutPlugin");
 var import_LexicalRichTextPlugin = require("@lexical/react/LexicalRichTextPlugin");
 var import_rich_text2 = require("@lexical/rich-text");
-var import_react8 = require("react");
+var import_react9 = require("react");
 
 // src/context/EditorContext.tsx
 var import_react = require("react");
@@ -89,6 +89,7 @@ function useRichTextEditor() {
 var defaultFeatures = {
   bold: true,
   italic: true,
+  strikethrough: false,
   code: true,
   quote: true,
   lists: true,
@@ -96,7 +97,8 @@ var defaultFeatures = {
   codeBlock: true,
   headings: false,
   markdownShortcuts: true,
-  markdownPaste: true
+  markdownPaste: true,
+  keyboardShortcuts: true
 };
 function resolveFeatures(partial) {
   return { ...defaultFeatures, ...partial };
@@ -104,6 +106,7 @@ function resolveFeatures(partial) {
 var defaultLabels = {
   bold: "Bold",
   italic: "Italic",
+  strikethrough: "Strikethrough",
   code: "Code",
   quote: "Quote",
   submit: "Submit",
@@ -130,6 +133,9 @@ var ALLOWED_TAGS = [
   "b",
   "em",
   "i",
+  "s",
+  "del",
+  "strike",
   "code",
   "pre",
   "blockquote",
@@ -170,6 +176,12 @@ function normalizeHtml(html) {
     ).replace(
       /<\/?em\b[^>]*>/gi,
       (tag) => tag.startsWith("</") ? "</i>" : "<i>"
+    ).replace(
+      /<\/?del\b[^>]*>/gi,
+      (tag) => tag.startsWith("</") ? "</s>" : "<s>"
+    ).replace(
+      /<\/?strike\b[^>]*>/gi,
+      (tag) => tag.startsWith("</") ? "</s>" : "<s>"
     );
   }
   const container = document.createElement("div");
@@ -184,6 +196,19 @@ function normalizeHtml(html) {
     i.innerHTML = node.innerHTML;
     node.replaceWith(i);
   });
+  for (const tag of ["del", "strike"]) {
+    container.querySelectorAll(tag).forEach((node) => {
+      const s = document.createElement("s");
+      s.innerHTML = node.innerHTML;
+      node.replaceWith(s);
+    });
+  }
+  container.querySelectorAll('[style*="line-through"]').forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    const s = document.createElement("s");
+    s.innerHTML = node.innerHTML;
+    node.replaceWith(s);
+  });
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
@@ -194,6 +219,7 @@ function normalizeHtml(html) {
   });
   flattenTag(container, "b");
   flattenTag(container, "i");
+  flattenTag(container, "s");
   return container.innerHTML.trim();
 }
 function flattenTag(container, tagName) {
@@ -227,6 +253,10 @@ import_marked.marked.use({
     em({ tokens }) {
       const text = this.parser.parseInline(tokens);
       return `<i>${text}</i>`;
+    },
+    del({ tokens }) {
+      const text = this.parser.parseInline(tokens);
+      return `<s>${text}</s>`;
     }
   }
 });
@@ -245,13 +275,14 @@ function buildMarkdownTransformers(features) {
   if (features.italic) {
     transformers.push(import_markdown.ITALIC_STAR, import_markdown.ITALIC_UNDERSCORE);
   }
+  if (features.strikethrough) transformers.push(import_markdown.STRIKETHROUGH);
   if (features.links) transformers.push(import_markdown.LINK);
   return transformers;
 }
 function looksLikeMarkdown(text) {
   const t = text.trim();
   if (t.length < 2) return false;
-  return /^#{1,6}\s/m.test(t) || /^>\s/m.test(t) || /^[-*+]\s/m.test(t) || /^\d+\.\s/m.test(t) || /```[\s\S]*?```/.test(t) || /\*\*[^*\n]+\*\*/.test(t) || /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) || /`[^`\n]+`/.test(t) || /\[[^\]]+\]\([^)]+\)/.test(t);
+  return /^#{1,6}\s/m.test(t) || /^>\s/m.test(t) || /^[-*+]\s/m.test(t) || /^\d+\.\s/m.test(t) || /```[\s\S]*?```/.test(t) || /\*\*[^*\n]+\*\*/.test(t) || /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) || /`[^`\n]+`/.test(t) || /~~[^~\n]+~~/.test(t) || /\[[^\]]+\]\([^)]+\)/.test(t);
 }
 function markdownToHtml(markdown) {
   const raw = import_marked.marked.parse(markdown, { async: false });
@@ -273,6 +304,7 @@ var editorTheme = {
   text: {
     bold: "re-text-bold",
     italic: "re-text-italic",
+    strikethrough: "re-text-strike",
     code: "re-text-code"
   },
   code: "re-block-code",
@@ -290,10 +322,10 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-var import_react4 = require("react");
+var import_react5 = require("react");
 var import_html4 = require("@lexical/html");
-var import_LexicalComposerContext3 = require("@lexical/react/LexicalComposerContext");
-var import_lexical3 = require("lexical");
+var import_LexicalComposerContext4 = require("@lexical/react/LexicalComposerContext");
+var import_lexical4 = require("lexical");
 
 // src/components/plugins/EnterPlugin.tsx
 var import_react2 = require("react");
@@ -415,14 +447,63 @@ function MarkdownPastePlugin({
   return null;
 }
 
+// src/components/plugins/KeyboardShortcutsPlugin.tsx
+var import_react4 = require("react");
+var import_LexicalComposerContext3 = require("@lexical/react/LexicalComposerContext");
+var import_lexical3 = require("lexical");
+function isModKey(event) {
+  return event.metaKey || event.ctrlKey;
+}
+function KeyboardShortcutsPlugin({
+  features,
+  disabled
+}) {
+  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
+  (0, import_react4.useEffect)(() => {
+    if (!features.keyboardShortcuts || disabled) return;
+    return editor.registerCommand(
+      import_lexical3.KEY_DOWN_COMMAND,
+      (event) => {
+        if (!(event instanceof KeyboardEvent) || !isModKey(event)) {
+          return false;
+        }
+        const key = event.key.toLowerCase();
+        if (key === "b" && features.bold) {
+          event.preventDefault();
+          editor.dispatchCommand(import_lexical3.FORMAT_TEXT_COMMAND, "bold");
+          return true;
+        }
+        if (key === "i" && features.italic) {
+          event.preventDefault();
+          editor.dispatchCommand(import_lexical3.FORMAT_TEXT_COMMAND, "italic");
+          return true;
+        }
+        if (key === "e" && features.code && !event.shiftKey) {
+          event.preventDefault();
+          editor.dispatchCommand(import_lexical3.FORMAT_TEXT_COMMAND, "code");
+          return true;
+        }
+        if (event.shiftKey && key === "x" && features.strikethrough) {
+          event.preventDefault();
+          editor.dispatchCommand(import_lexical3.FORMAT_TEXT_COMMAND, "strikethrough");
+          return true;
+        }
+        return false;
+      },
+      import_lexical3.COMMAND_PRIORITY_LOW
+    );
+  }, [disabled, editor, features]);
+  return null;
+}
+
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
-  const lastApplied = (0, import_react4.useRef)(void 0);
-  (0, import_react4.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  const lastApplied = (0, import_react5.useRef)(void 0);
+  (0, import_react5.useEffect)(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
-      const root = (0, import_lexical3.$getRoot)();
+      const root = (0, import_lexical4.$getRoot)();
       root.clear();
       if (!html?.trim()) {
         lastApplied.current = html;
@@ -442,8 +523,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
-  (0, import_react4.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  (0, import_react5.useEffect)(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -460,8 +541,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
-  (0, import_react4.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  (0, import_react5.useEffect)(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -472,11 +553,11 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
-  (0, import_react4.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  (0, import_react5.useEffect)(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
-        const root = (0, import_lexical3.$getRoot)();
+        const root = (0, import_lexical4.$getRoot)();
         root.clear();
         if (!html.trim()) return;
         const parser = new DOMParser();
@@ -494,11 +575,11 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
-  (0, import_react4.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  (0, import_react5.useEffect)(() => {
     clearRef.current = () => {
       editor.update(() => {
-        (0, import_lexical3.$getRoot)().clear();
+        (0, import_lexical4.$getRoot)().clear();
       });
     };
     return () => {
@@ -510,11 +591,11 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
-  (0, import_react4.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  (0, import_react5.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        onEmptyChange((0, import_lexical3.$getRoot)().getTextContent().trim() === "");
+        onEmptyChange((0, import_lexical4.$getRoot)().getTextContent().trim() === "");
       });
     };
     update();
@@ -524,35 +605,37 @@ function EmptyStatePlugin({
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-var import_react6 = require("react");
+var import_react7 = require("react");
 
 // src/components/toolbar/useFormatState.ts
-var import_react5 = require("react");
-var import_LexicalComposerContext4 = require("@lexical/react/LexicalComposerContext");
+var import_react6 = require("react");
+var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
 var import_rich_text = require("@lexical/rich-text");
 var import_selection = require("@lexical/selection");
 var import_utils = require("@lexical/utils");
-var import_lexical4 = require("lexical");
+var import_lexical5 = require("lexical");
 var emptyFormat = {
   bold: false,
   italic: false,
+  strikethrough: false,
   code: false,
   quote: false
 };
 function useFormatState() {
-  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
-  const [state, setState] = (0, import_react5.useState)(emptyFormat);
-  (0, import_react5.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
+  const [state, setState] = (0, import_react6.useState)(emptyFormat);
+  (0, import_react6.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = (0, import_lexical4.$getSelection)();
-        if (!(0, import_lexical4.$isRangeSelection)(selection)) {
+        const selection = (0, import_lexical5.$getSelection)();
+        if (!(0, import_lexical5.$isRangeSelection)(selection)) {
           setState(emptyFormat);
           return;
         }
         setState({
           bold: selection.hasFormat("bold"),
           italic: selection.hasFormat("italic"),
+          strikethrough: selection.hasFormat("strikethrough"),
           code: selection.hasFormat("code"),
           quote: !!(0, import_utils.$findMatchingParent)(
             selection.anchor.getNode(),
@@ -563,12 +646,12 @@ function useFormatState() {
     };
     const removeUpdate = editor.registerUpdateListener(() => update());
     const removeSelection = editor.registerCommand(
-      import_lexical4.SELECTION_CHANGE_COMMAND,
+      import_lexical5.SELECTION_CHANGE_COMMAND,
       () => {
         update();
         return false;
       },
-      import_lexical4.COMMAND_PRIORITY_LOW
+      import_lexical5.COMMAND_PRIORITY_LOW
     );
     return () => {
       removeUpdate();
@@ -578,21 +661,22 @@ function useFormatState() {
   return state;
 }
 function useFormatActions() {
-  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
   return {
-    bold: () => editor.dispatchCommand(import_lexical4.FORMAT_TEXT_COMMAND, "bold"),
-    italic: () => editor.dispatchCommand(import_lexical4.FORMAT_TEXT_COMMAND, "italic"),
-    code: () => editor.dispatchCommand(import_lexical4.FORMAT_TEXT_COMMAND, "code"),
+    bold: () => editor.dispatchCommand(import_lexical5.FORMAT_TEXT_COMMAND, "bold"),
+    italic: () => editor.dispatchCommand(import_lexical5.FORMAT_TEXT_COMMAND, "italic"),
+    strikethrough: () => editor.dispatchCommand(import_lexical5.FORMAT_TEXT_COMMAND, "strikethrough"),
+    code: () => editor.dispatchCommand(import_lexical5.FORMAT_TEXT_COMMAND, "code"),
     quote: () => {
       editor.update(() => {
-        const selection = (0, import_lexical4.$getSelection)();
-        if (!(0, import_lexical4.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical5.$getSelection)();
+        if (!(0, import_lexical5.$isRangeSelection)(selection)) return;
         const inQuote = !!(0, import_utils.$findMatchingParent)(
           selection.anchor.getNode(),
           import_rich_text.$isQuoteNode
         );
         if (inQuote) {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical4.$createParagraphNode)());
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical5.$createParagraphNode)());
         } else {
           (0, import_selection.$setBlocksType)(selection, () => new import_rich_text.QuoteNode());
         }
@@ -629,7 +713,7 @@ function EditorToolbar({
 }) {
   const active = useFormatState();
   const format = useFormatActions();
-  const [menuOpen, setMenuOpen] = (0, import_react6.useState)(false);
+  const [menuOpen, setMenuOpen] = (0, import_react7.useState)(false);
   const hasMenu = !!slots.toolbarMenu;
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "re-toolbar", children: [
     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "re-toolbar-group", children: [
@@ -650,6 +734,15 @@ function EditorToolbar({
           active: active.italic,
           onClick: format.italic,
           children: "I"
+        }
+      ),
+      features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        ToolbarButton,
+        {
+          label: labels.strikethrough,
+          active: active.strikethrough,
+          onClick: format.strikethrough,
+          children: "S"
         }
       ),
       features.code && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -708,7 +801,7 @@ function EditorToolbar({
 }
 
 // src/components/slots/createSlot.tsx
-var import_react7 = require("react");
+var import_react8 = require("react");
 function createSlot(name) {
   const Slot = ({ children }) => null;
   Slot.slotName = name;
@@ -716,11 +809,11 @@ function createSlot(name) {
   return Slot;
 }
 function isSlotComponent(child) {
-  return (0, import_react7.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
+  return (0, import_react8.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
 }
 function collectSlots(children) {
   const slots = {};
-  import_react7.Children.forEach(children, (child) => {
+  import_react8.Children.forEach(children, (child) => {
     if (!isSlotComponent(child)) return;
     const name = child.type.slotName;
     slots[name] = child.props.children;
@@ -728,7 +821,7 @@ function collectSlots(children) {
   return slots;
 }
 function hasToolbar(features, slots) {
-  return features.bold || features.italic || features.code || features.quote || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
+  return features.bold || features.italic || features.strikethrough || features.code || features.quote || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
 }
 
 // src/components/RichTextEditor.tsx
@@ -746,8 +839,8 @@ function exportEditorHtml(editor) {
 function EditorRefPlugin({
   getHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
-  (0, import_react8.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext6.useLexicalComposerContext)();
+  (0, import_react9.useEffect)(() => {
     getHtmlRef.current = () => exportEditorHtml(editor);
     return () => {
       getHtmlRef.current = null;
@@ -810,7 +903,7 @@ function ContextBridge({
 }) {
   const formatState = useFormatState();
   const format = useFormatActions();
-  const ctx = (0, import_react8.useMemo)(
+  const ctx = (0, import_react9.useMemo)(
     () => ({
       getHtml: () => getHtmlRef.current?.() ?? "",
       setHtml: (html) => setHtmlRef.current?.(html),
@@ -856,25 +949,25 @@ function RichTextEditorInner({
   maxRows = 8,
   children
 }, ref) {
-  const features = (0, import_react8.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
-  const labels = (0, import_react8.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
-  const slots = (0, import_react8.useMemo)(() => collectSlots(children), [children]);
-  const rootId = (0, import_react8.useId)();
-  const rootRef = (0, import_react8.useRef)(null);
-  const getHtmlRef = (0, import_react8.useRef)(null);
-  const setHtmlRef = (0, import_react8.useRef)(null);
-  const clearRef = (0, import_react8.useRef)(null);
-  const focusRef = (0, import_react8.useRef)(null);
-  const [isEmpty, setIsEmpty] = (0, import_react8.useState)(true);
-  const [sending, setSending] = (0, import_react8.useState)(false);
-  const inputStyle = (0, import_react8.useMemo)(
+  const features = (0, import_react9.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
+  const labels = (0, import_react9.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
+  const slots = (0, import_react9.useMemo)(() => collectSlots(children), [children]);
+  const rootId = (0, import_react9.useId)();
+  const rootRef = (0, import_react9.useRef)(null);
+  const getHtmlRef = (0, import_react9.useRef)(null);
+  const setHtmlRef = (0, import_react9.useRef)(null);
+  const clearRef = (0, import_react9.useRef)(null);
+  const focusRef = (0, import_react9.useRef)(null);
+  const [isEmpty, setIsEmpty] = (0, import_react9.useState)(true);
+  const [sending, setSending] = (0, import_react9.useState)(false);
+  const inputStyle = (0, import_react9.useMemo)(
     () => ({
       minHeight: `${minRows * EDITOR_LINE_HEIGHT_PX}px`,
       maxHeight: `${maxRows * EDITOR_LINE_HEIGHT_PX}px`
     }),
     [minRows, maxRows]
   );
-  const initialConfig = (0, import_react8.useMemo)(
+  const initialConfig = (0, import_react9.useMemo)(
     () => ({
       namespace: "RichTextEditor",
       theme: editorTheme,
@@ -893,12 +986,12 @@ function RichTextEditorInner({
     }),
     [disabled]
   );
-  const transformers = (0, import_react8.useMemo)(
+  const transformers = (0, import_react9.useMemo)(
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
-  const getHtml = (0, import_react8.useCallback)(() => getHtmlRef.current?.() ?? "", []);
-  const submit = (0, import_react8.useCallback)(async () => {
+  const getHtml = (0, import_react9.useCallback)(() => getHtmlRef.current?.() ?? "", []);
+  const submit = (0, import_react9.useCallback)(async () => {
     if (disabled || sending || isEmpty || !onSubmit) return;
     const html = getHtml();
     if (!html) return;
@@ -912,7 +1005,7 @@ function RichTextEditorInner({
       setSending(false);
     }
   }, [clearOnSubmit, disabled, getHtml, isEmpty, onSubmit, sending]);
-  (0, import_react8.useImperativeHandle)(
+  (0, import_react9.useImperativeHandle)(
     ref,
     () => ({
       getHtml,
@@ -981,6 +1074,7 @@ function RichTextEditorInner({
                 features.links && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
                 transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
                 onSubmit && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                   EnterPlugin,
                   {
@@ -1008,7 +1102,7 @@ function RichTextEditorInner({
     )
   ] });
 }
-var RichTextEditorBase = (0, import_react8.forwardRef)(RichTextEditorInner);
+var RichTextEditorBase = (0, import_react9.forwardRef)(RichTextEditorInner);
 var ToolbarStart = createSlot("toolbarStart");
 var ToolbarEnd = createSlot("toolbarEnd");
 var ToolbarMenu = createSlot("toolbarMenu");
@@ -1023,7 +1117,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-var import_react9 = require("react");
+var import_react10 = require("react");
 var import_core = __toESM(require("highlight.js/lib/core"), 1);
 var import_javascript = __toESM(require("highlight.js/lib/languages/javascript"), 1);
 var import_json = __toESM(require("highlight.js/lib/languages/json"), 1);
@@ -1043,10 +1137,10 @@ function RichTextViewer({
   theme = "dark"
 }) {
   const features = resolveViewerFeatures(featuresProp);
-  const ref = (0, import_react9.useRef)(null);
+  const ref = (0, import_react10.useRef)(null);
   const isHtml = isHtmlContent(content);
   const html = isHtml ? sanitizeHtml(content) : "";
-  (0, import_react9.useEffect)(() => {
+  (0, import_react10.useEffect)(() => {
     if (!isHtml || !features.codeHighlight) return;
     const root = ref.current;
     if (!root) return;
@@ -1054,7 +1148,7 @@ function RichTextViewer({
       import_core.default.highlightElement(el);
     });
   }, [content, features.codeHighlight, isHtml]);
-  (0, import_react9.useEffect)(() => {
+  (0, import_react10.useEffect)(() => {
     if (!isHtml || !features.linkTarget) return;
     const root = ref.current;
     if (!root) return;

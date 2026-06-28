@@ -6,7 +6,7 @@ import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { useLexicalComposerContext as useLexicalComposerContext5 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext6 } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
@@ -18,7 +18,7 @@ import { HeadingNode, QuoteNode as QuoteNode2 } from "@lexical/rich-text";
 import {
   forwardRef,
   useCallback,
-  useEffect as useEffect5,
+  useEffect as useEffect6,
   useId,
   useImperativeHandle,
   useMemo,
@@ -53,6 +53,7 @@ function useRichTextEditor() {
 var defaultFeatures = {
   bold: true,
   italic: true,
+  strikethrough: false,
   code: true,
   quote: true,
   lists: true,
@@ -60,7 +61,8 @@ var defaultFeatures = {
   codeBlock: true,
   headings: false,
   markdownShortcuts: true,
-  markdownPaste: true
+  markdownPaste: true,
+  keyboardShortcuts: true
 };
 function resolveFeatures(partial) {
   return { ...defaultFeatures, ...partial };
@@ -68,6 +70,7 @@ function resolveFeatures(partial) {
 var defaultLabels = {
   bold: "Bold",
   italic: "Italic",
+  strikethrough: "Strikethrough",
   code: "Code",
   quote: "Quote",
   submit: "Submit",
@@ -94,6 +97,9 @@ var ALLOWED_TAGS = [
   "b",
   "em",
   "i",
+  "s",
+  "del",
+  "strike",
   "code",
   "pre",
   "blockquote",
@@ -134,6 +140,12 @@ function normalizeHtml(html) {
     ).replace(
       /<\/?em\b[^>]*>/gi,
       (tag) => tag.startsWith("</") ? "</i>" : "<i>"
+    ).replace(
+      /<\/?del\b[^>]*>/gi,
+      (tag) => tag.startsWith("</") ? "</s>" : "<s>"
+    ).replace(
+      /<\/?strike\b[^>]*>/gi,
+      (tag) => tag.startsWith("</") ? "</s>" : "<s>"
     );
   }
   const container = document.createElement("div");
@@ -148,6 +160,19 @@ function normalizeHtml(html) {
     i.innerHTML = node.innerHTML;
     node.replaceWith(i);
   });
+  for (const tag of ["del", "strike"]) {
+    container.querySelectorAll(tag).forEach((node) => {
+      const s = document.createElement("s");
+      s.innerHTML = node.innerHTML;
+      node.replaceWith(s);
+    });
+  }
+  container.querySelectorAll('[style*="line-through"]').forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    const s = document.createElement("s");
+    s.innerHTML = node.innerHTML;
+    node.replaceWith(s);
+  });
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
@@ -158,6 +183,7 @@ function normalizeHtml(html) {
   });
   flattenTag(container, "b");
   flattenTag(container, "i");
+  flattenTag(container, "s");
   return container.innerHTML.trim();
 }
 function flattenTag(container, tagName) {
@@ -190,6 +216,7 @@ import {
   LINK,
   ORDERED_LIST,
   QUOTE,
+  STRIKETHROUGH,
   UNORDERED_LIST
 } from "@lexical/markdown";
 import { marked } from "marked";
@@ -203,6 +230,10 @@ marked.use({
     em({ tokens }) {
       const text = this.parser.parseInline(tokens);
       return `<i>${text}</i>`;
+    },
+    del({ tokens }) {
+      const text = this.parser.parseInline(tokens);
+      return `<s>${text}</s>`;
     }
   }
 });
@@ -221,13 +252,14 @@ function buildMarkdownTransformers(features) {
   if (features.italic) {
     transformers.push(ITALIC_STAR, ITALIC_UNDERSCORE);
   }
+  if (features.strikethrough) transformers.push(STRIKETHROUGH);
   if (features.links) transformers.push(LINK);
   return transformers;
 }
 function looksLikeMarkdown(text) {
   const t = text.trim();
   if (t.length < 2) return false;
-  return /^#{1,6}\s/m.test(t) || /^>\s/m.test(t) || /^[-*+]\s/m.test(t) || /^\d+\.\s/m.test(t) || /```[\s\S]*?```/.test(t) || /\*\*[^*\n]+\*\*/.test(t) || /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) || /`[^`\n]+`/.test(t) || /\[[^\]]+\]\([^)]+\)/.test(t);
+  return /^#{1,6}\s/m.test(t) || /^>\s/m.test(t) || /^[-*+]\s/m.test(t) || /^\d+\.\s/m.test(t) || /```[\s\S]*?```/.test(t) || /\*\*[^*\n]+\*\*/.test(t) || /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) || /`[^`\n]+`/.test(t) || /~~[^~\n]+~~/.test(t) || /\[[^\]]+\]\([^)]+\)/.test(t);
 }
 function markdownToHtml(markdown) {
   const raw = marked.parse(markdown, { async: false });
@@ -249,6 +281,7 @@ var editorTheme = {
   text: {
     bold: "re-text-bold",
     italic: "re-text-italic",
+    strikethrough: "re-text-strike",
     code: "re-text-code"
   },
   code: "re-block-code",
@@ -266,9 +299,9 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-import { useEffect as useEffect3, useRef } from "react";
+import { useEffect as useEffect4, useRef } from "react";
 import { $generateNodesFromDOM as $generateNodesFromDOM2 } from "@lexical/html";
-import { useLexicalComposerContext as useLexicalComposerContext3 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext4 } from "@lexical/react/LexicalComposerContext";
 import { $getRoot } from "lexical";
 
 // src/components/plugins/EnterPlugin.tsx
@@ -402,11 +435,64 @@ function MarkdownPastePlugin({
   return null;
 }
 
+// src/components/plugins/KeyboardShortcutsPlugin.tsx
+import { useEffect as useEffect3 } from "react";
+import { useLexicalComposerContext as useLexicalComposerContext3 } from "@lexical/react/LexicalComposerContext";
+import {
+  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW2,
+  FORMAT_TEXT_COMMAND,
+  KEY_DOWN_COMMAND
+} from "lexical";
+function isModKey(event) {
+  return event.metaKey || event.ctrlKey;
+}
+function KeyboardShortcutsPlugin({
+  features,
+  disabled
+}) {
+  const [editor] = useLexicalComposerContext3();
+  useEffect3(() => {
+    if (!features.keyboardShortcuts || disabled) return;
+    return editor.registerCommand(
+      KEY_DOWN_COMMAND,
+      (event) => {
+        if (!(event instanceof KeyboardEvent) || !isModKey(event)) {
+          return false;
+        }
+        const key = event.key.toLowerCase();
+        if (key === "b" && features.bold) {
+          event.preventDefault();
+          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
+          return true;
+        }
+        if (key === "i" && features.italic) {
+          event.preventDefault();
+          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
+          return true;
+        }
+        if (key === "e" && features.code && !event.shiftKey) {
+          event.preventDefault();
+          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code");
+          return true;
+        }
+        if (event.shiftKey && key === "x" && features.strikethrough) {
+          event.preventDefault();
+          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough");
+          return true;
+        }
+        return false;
+      },
+      COMMAND_PRIORITY_LOW2
+    );
+  }, [disabled, editor, features]);
+  return null;
+}
+
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = useLexicalComposerContext3();
+  const [editor] = useLexicalComposerContext4();
   const lastApplied = useRef(void 0);
-  useEffect3(() => {
+  useEffect4(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
       const root = $getRoot();
@@ -429,8 +515,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = useLexicalComposerContext3();
-  useEffect3(() => {
+  const [editor] = useLexicalComposerContext4();
+  useEffect4(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -447,8 +533,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = useLexicalComposerContext3();
-  useEffect3(() => {
+  const [editor] = useLexicalComposerContext4();
+  useEffect4(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -459,8 +545,8 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext3();
-  useEffect3(() => {
+  const [editor] = useLexicalComposerContext4();
+  useEffect4(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
         const root = $getRoot();
@@ -481,8 +567,8 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = useLexicalComposerContext3();
-  useEffect3(() => {
+  const [editor] = useLexicalComposerContext4();
+  useEffect4(() => {
     clearRef.current = () => {
       editor.update(() => {
         $getRoot().clear();
@@ -497,8 +583,8 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = useLexicalComposerContext3();
-  useEffect3(() => {
+  const [editor] = useLexicalComposerContext4();
+  useEffect4(() => {
     const update = () => {
       editor.getEditorState().read(() => {
         onEmptyChange($getRoot().getTextContent().trim() === "");
@@ -514,8 +600,8 @@ function EmptyStatePlugin({
 import { useState as useState2 } from "react";
 
 // src/components/toolbar/useFormatState.ts
-import { useEffect as useEffect4, useState } from "react";
-import { useLexicalComposerContext as useLexicalComposerContext4 } from "@lexical/react/LexicalComposerContext";
+import { useEffect as useEffect5, useState } from "react";
+import { useLexicalComposerContext as useLexicalComposerContext5 } from "@lexical/react/LexicalComposerContext";
 import { $isQuoteNode, QuoteNode } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
 import { $findMatchingParent } from "@lexical/utils";
@@ -523,20 +609,21 @@ import {
   $createParagraphNode,
   $getSelection as $getSelection3,
   $isRangeSelection as $isRangeSelection3,
-  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW2,
-  FORMAT_TEXT_COMMAND,
+  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW3,
+  FORMAT_TEXT_COMMAND as FORMAT_TEXT_COMMAND2,
   SELECTION_CHANGE_COMMAND
 } from "lexical";
 var emptyFormat = {
   bold: false,
   italic: false,
+  strikethrough: false,
   code: false,
   quote: false
 };
 function useFormatState() {
-  const [editor] = useLexicalComposerContext4();
+  const [editor] = useLexicalComposerContext5();
   const [state, setState] = useState(emptyFormat);
-  useEffect4(() => {
+  useEffect5(() => {
     const update = () => {
       editor.getEditorState().read(() => {
         const selection = $getSelection3();
@@ -547,6 +634,7 @@ function useFormatState() {
         setState({
           bold: selection.hasFormat("bold"),
           italic: selection.hasFormat("italic"),
+          strikethrough: selection.hasFormat("strikethrough"),
           code: selection.hasFormat("code"),
           quote: !!$findMatchingParent(
             selection.anchor.getNode(),
@@ -562,7 +650,7 @@ function useFormatState() {
         update();
         return false;
       },
-      COMMAND_PRIORITY_LOW2
+      COMMAND_PRIORITY_LOW3
     );
     return () => {
       removeUpdate();
@@ -572,11 +660,12 @@ function useFormatState() {
   return state;
 }
 function useFormatActions() {
-  const [editor] = useLexicalComposerContext4();
+  const [editor] = useLexicalComposerContext5();
   return {
-    bold: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold"),
-    italic: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic"),
-    code: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code"),
+    bold: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "bold"),
+    italic: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "italic"),
+    strikethrough: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "strikethrough"),
+    code: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "code"),
     quote: () => {
       editor.update(() => {
         const selection = $getSelection3();
@@ -644,6 +733,15 @@ function EditorToolbar({
           active: active.italic,
           onClick: format.italic,
           children: "I"
+        }
+      ),
+      features.strikethrough && /* @__PURE__ */ jsx2(
+        ToolbarButton,
+        {
+          label: labels.strikethrough,
+          active: active.strikethrough,
+          onClick: format.strikethrough,
+          children: "S"
         }
       ),
       features.code && /* @__PURE__ */ jsx2(
@@ -725,7 +823,7 @@ function collectSlots(children) {
   return slots;
 }
 function hasToolbar(features, slots) {
-  return features.bold || features.italic || features.code || features.quote || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
+  return features.bold || features.italic || features.strikethrough || features.code || features.quote || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
 }
 
 // src/components/RichTextEditor.tsx
@@ -743,8 +841,8 @@ function exportEditorHtml(editor) {
 function EditorRefPlugin({
   getHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext5();
-  useEffect5(() => {
+  const [editor] = useLexicalComposerContext6();
+  useEffect6(() => {
     getHtmlRef.current = () => exportEditorHtml(editor);
     return () => {
       getHtmlRef.current = null;
@@ -978,6 +1076,7 @@ function RichTextEditorInner({
                 features.links && /* @__PURE__ */ jsx3(LinkPlugin, {}),
                 transformers.length > 0 && /* @__PURE__ */ jsx3(MarkdownShortcutPlugin, { transformers }),
                 /* @__PURE__ */ jsx3(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ jsx3(KeyboardShortcutsPlugin, { features, disabled }),
                 onSubmit && /* @__PURE__ */ jsx3(
                   EnterPlugin,
                   {
@@ -1020,7 +1119,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-import { useEffect as useEffect6, useRef as useRef3 } from "react";
+import { useEffect as useEffect7, useRef as useRef3 } from "react";
 import hljs from "highlight.js/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
 import json from "highlight.js/lib/languages/json";
@@ -1043,7 +1142,7 @@ function RichTextViewer({
   const ref = useRef3(null);
   const isHtml = isHtmlContent(content);
   const html = isHtml ? sanitizeHtml(content) : "";
-  useEffect6(() => {
+  useEffect7(() => {
     if (!isHtml || !features.codeHighlight) return;
     const root = ref.current;
     if (!root) return;
@@ -1051,7 +1150,7 @@ function RichTextViewer({
       hljs.highlightElement(el);
     });
   }, [content, features.codeHighlight, isHtml]);
-  useEffect6(() => {
+  useEffect7(() => {
     if (!isHtml || !features.linkTarget) return;
     const root = ref.current;
     if (!root) return;
