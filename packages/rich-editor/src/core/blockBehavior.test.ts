@@ -17,6 +17,7 @@ import {
   $pruneEmptyQuotes,
   $unwrapParagraphFromQuote,
 } from "./blockBehavior";
+import { $normalizeAllQuotes } from "./quoteBlocks";
 
 function createTestEditor(): LexicalEditor {
   const editor = createEditor({
@@ -47,6 +48,30 @@ function readStructure(editor: LexicalEditor): string {
   });
   return structure;
 }
+
+describe("quote markdown shortcut", () => {
+  it("keeps an empty quote created by > shortcut while user continues typing", async () => {
+    const editor = createTestEditor();
+
+    await editor.update(() => {
+      const quote = $createQuoteNode();
+      const paragraph = $createParagraphNode();
+      quote.append(paragraph);
+      $getRoot().append(quote);
+      paragraph.select(0, 0);
+    });
+
+    await editor.update(() => {
+      $normalizeAllQuotes();
+    });
+
+    editor.getEditorState().read(() => {
+      const children = $getRoot().getChildren();
+      expect(children).toHaveLength(1);
+      expect($isQuoteNode(children[0])).toBe(true);
+    });
+  });
+});
 
 async function withQuoteLines(
   editor: LexicalEditor,

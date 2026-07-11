@@ -1250,10 +1250,6 @@ function $applyQuoteToSelection(selection) {
 function $normalizeAllQuotes() {
   for (const child of $getRoot().getChildren()) {
     if ($isQuoteNode2(child)) {
-      if (child.getTextContent().trim() === "") {
-        child.remove();
-        continue;
-      }
       $ensureQuoteParagraphStructure(child);
     }
   }
@@ -1500,7 +1496,6 @@ function $shouldSkipBlockBehavior() {
 function $needsQuoteNormalization() {
   for (const child of $getRoot3().getChildren()) {
     if (!$isQuoteNode4(child)) continue;
-    if (child.getTextContent().trim() === "") return true;
     const children = child.getChildren();
     if (children.length === 0 || children.some((node) => !$isParagraphNode3(node))) {
       return true;
@@ -1531,7 +1526,6 @@ function BlockBehaviorPlugin() {
           $normalizeAllQuotes();
           $mergeAdjacentQuoteBlocks();
           $mergeAdjacentCodeBlocks();
-          $pruneEmptyQuotes();
         },
         { discrete: true }
       );

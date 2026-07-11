@@ -1237,10 +1237,6 @@ function $applyQuoteToSelection(selection) {
 function $normalizeAllQuotes() {
   for (const child of (0, import_lexical8.$getRoot)().getChildren()) {
     if ((0, import_rich_text2.$isQuoteNode)(child)) {
-      if (child.getTextContent().trim() === "") {
-        child.remove();
-        continue;
-      }
       $ensureQuoteParagraphStructure(child);
     }
   }
@@ -1487,7 +1483,6 @@ function $shouldSkipBlockBehavior() {
 function $needsQuoteNormalization() {
   for (const child of (0, import_lexical10.$getRoot)().getChildren()) {
     if (!(0, import_rich_text4.$isQuoteNode)(child)) continue;
-    if (child.getTextContent().trim() === "") return true;
     const children = child.getChildren();
     if (children.length === 0 || children.some((node) => !(0, import_lexical10.$isParagraphNode)(node))) {
       return true;
@@ -1518,7 +1513,6 @@ function BlockBehaviorPlugin() {
           $normalizeAllQuotes();
           $mergeAdjacentQuoteBlocks();
           $mergeAdjacentCodeBlocks();
-          $pruneEmptyQuotes();
         },
         { discrete: true }
       );

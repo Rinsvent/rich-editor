@@ -24,7 +24,6 @@ import {
   $isAtStartOfBlock,
   $mergeAdjacentCodeBlocks,
   $mergeAdjacentQuoteBlocks,
-  $pruneEmptyQuotes,
   $shouldSkipBlockBehavior,
 } from "../../core/blockBehavior";
 import {
@@ -35,7 +34,6 @@ import {
 function $needsQuoteNormalization(): boolean {
   for (const child of $getRoot().getChildren()) {
     if (!$isQuoteNode(child)) continue;
-    if (child.getTextContent().trim() === "") return true;
     const children = child.getChildren();
     if (children.length === 0 || children.some((node) => !$isParagraphNode(node))) {
       return true;
@@ -69,7 +67,6 @@ export function BlockBehaviorPlugin() {
           $normalizeAllQuotes();
           $mergeAdjacentQuoteBlocks();
           $mergeAdjacentCodeBlocks();
-          $pruneEmptyQuotes();
         },
         { discrete: true },
       );
