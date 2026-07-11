@@ -422,7 +422,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $getSelection,
   $isRangeSelection,
-  COMMAND_PRIORITY_LOW,
+  COMMAND_PRIORITY_EDITOR,
   KEY_ENTER_COMMAND
 } from "lexical";
 function EnterPlugin({
@@ -472,7 +472,7 @@ function EnterPlugin({
         }
         return false;
       },
-      COMMAND_PRIORITY_LOW
+      COMMAND_PRIORITY_EDITOR
     );
   }, [behavior, editor, onSubmit]);
   return null;
@@ -551,7 +551,7 @@ function MarkdownPastePlugin({
 import { useEffect as useEffect3 } from "react";
 import { useLexicalComposerContext as useLexicalComposerContext3 } from "@lexical/react/LexicalComposerContext";
 import {
-  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW2,
+  COMMAND_PRIORITY_LOW,
   FORMAT_TEXT_COMMAND,
   KEY_DOWN_COMMAND
 } from "lexical";
@@ -594,7 +594,7 @@ function KeyboardShortcutsPlugin({
         }
         return false;
       },
-      COMMAND_PRIORITY_LOW2
+      COMMAND_PRIORITY_LOW
     );
   }, [disabled, editor, features]);
   return null;
@@ -609,6 +609,7 @@ import {
 import { useLexicalComposerContext as useLexicalComposerContext4 } from "@lexical/react/LexicalComposerContext";
 import { useCallback, useEffect as useEffect4, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH2 } from "lexical";
 import { jsx as jsx2, jsxs } from "react/jsx-runtime";
 var MentionMenuOption = class extends MenuOption {
   constructor(option) {
@@ -717,7 +718,8 @@ function MentionsPlugin({
       onSelectOption,
       triggerFn,
       options,
-      menuRenderFn
+      menuRenderFn,
+      commandPriority: COMMAND_PRIORITY_HIGH2
     }
   );
 }
@@ -843,7 +845,7 @@ import {
   $createParagraphNode,
   $getSelection as $getSelection3,
   $isRangeSelection as $isRangeSelection3,
-  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW3,
+  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW2,
   FORMAT_TEXT_COMMAND as FORMAT_TEXT_COMMAND2,
   SELECTION_CHANGE_COMMAND
 } from "lexical";
@@ -884,7 +886,7 @@ function useFormatState() {
         update();
         return false;
       },
-      COMMAND_PRIORITY_LOW3
+      COMMAND_PRIORITY_LOW2
     );
     return () => {
       removeUpdate();

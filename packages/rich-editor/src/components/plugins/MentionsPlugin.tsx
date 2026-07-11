@@ -8,7 +8,7 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { type TextNode } from "lexical";
+import { type TextNode, COMMAND_PRIORITY_HIGH } from "lexical";
 import type { MentionOption, MentionSearchFn } from "../../core/mentions";
 import { $createMentionNode } from "../../nodes/MentionNode";
 
@@ -151,6 +151,7 @@ export function MentionsPlugin({
       triggerFn={triggerFn}
       options={options}
       menuRenderFn={menuRenderFn}
+      commandPriority={COMMAND_PRIORITY_HIGH}
     />
   );
 }

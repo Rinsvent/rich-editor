@@ -434,7 +434,7 @@ function cn(...parts) {
 var import_react6 = require("react");
 var import_html4 = require("@lexical/html");
 var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
-var import_lexical5 = require("lexical");
+var import_lexical6 = require("lexical");
 
 // src/components/plugins/EnterPlugin.tsx
 var import_react2 = require("react");
@@ -487,7 +487,7 @@ function EnterPlugin({
         }
         return false;
       },
-      import_lexical2.COMMAND_PRIORITY_LOW
+      import_lexical2.COMMAND_PRIORITY_EDITOR
     );
   }, [behavior, editor, onSubmit]);
   return null;
@@ -610,6 +610,7 @@ var import_LexicalTypeaheadMenuPlugin = require("@lexical/react/LexicalTypeahead
 var import_LexicalComposerContext4 = require("@lexical/react/LexicalComposerContext");
 var import_react5 = require("react");
 var import_react_dom = require("react-dom");
+var import_lexical5 = require("lexical");
 var import_jsx_runtime2 = require("react/jsx-runtime");
 var MentionMenuOption = class extends import_LexicalTypeaheadMenuPlugin.MenuOption {
   constructor(option) {
@@ -718,7 +719,8 @@ function MentionsPlugin({
       onSelectOption,
       triggerFn,
       options,
-      menuRenderFn
+      menuRenderFn,
+      commandPriority: import_lexical5.COMMAND_PRIORITY_HIGH
     }
   );
 }
@@ -730,7 +732,7 @@ function InitialHtmlPlugin({ html }) {
   (0, import_react6.useEffect)(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
-      const root = (0, import_lexical5.$getRoot)();
+      const root = (0, import_lexical6.$getRoot)();
       root.clear();
       if (!html?.trim()) {
         lastApplied.current = html;
@@ -784,7 +786,7 @@ function SetHtmlPlugin({
   (0, import_react6.useEffect)(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
-        const root = (0, import_lexical5.$getRoot)();
+        const root = (0, import_lexical6.$getRoot)();
         root.clear();
         if (!html.trim()) return;
         const parser = new DOMParser();
@@ -806,7 +808,7 @@ function ClearPlugin({
   (0, import_react6.useEffect)(() => {
     clearRef.current = () => {
       editor.update(() => {
-        (0, import_lexical5.$getRoot)().clear();
+        (0, import_lexical6.$getRoot)().clear();
       });
     };
     return () => {
@@ -822,7 +824,7 @@ function EmptyStatePlugin({
   (0, import_react6.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        onEmptyChange((0, import_lexical5.$getRoot)().getTextContent().trim() === "");
+        onEmptyChange((0, import_lexical6.$getRoot)().getTextContent().trim() === "");
       });
     };
     update();
@@ -840,7 +842,7 @@ var import_LexicalComposerContext6 = require("@lexical/react/LexicalComposerCont
 var import_rich_text = require("@lexical/rich-text");
 var import_selection = require("@lexical/selection");
 var import_utils = require("@lexical/utils");
-var import_lexical6 = require("lexical");
+var import_lexical7 = require("lexical");
 var emptyFormat = {
   bold: false,
   italic: false,
@@ -854,8 +856,8 @@ function useFormatState() {
   (0, import_react7.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = (0, import_lexical6.$getSelection)();
-        if (!(0, import_lexical6.$isRangeSelection)(selection)) {
+        const selection = (0, import_lexical7.$getSelection)();
+        if (!(0, import_lexical7.$isRangeSelection)(selection)) {
           setState(emptyFormat);
           return;
         }
@@ -873,12 +875,12 @@ function useFormatState() {
     };
     const removeUpdate = editor.registerUpdateListener(() => update());
     const removeSelection = editor.registerCommand(
-      import_lexical6.SELECTION_CHANGE_COMMAND,
+      import_lexical7.SELECTION_CHANGE_COMMAND,
       () => {
         update();
         return false;
       },
-      import_lexical6.COMMAND_PRIORITY_LOW
+      import_lexical7.COMMAND_PRIORITY_LOW
     );
     return () => {
       removeUpdate();
@@ -890,20 +892,20 @@ function useFormatState() {
 function useFormatActions() {
   const [editor] = (0, import_LexicalComposerContext6.useLexicalComposerContext)();
   return {
-    bold: () => editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "bold"),
-    italic: () => editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "italic"),
-    strikethrough: () => editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "strikethrough"),
-    code: () => editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "code"),
+    bold: () => editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "bold"),
+    italic: () => editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "italic"),
+    strikethrough: () => editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "strikethrough"),
+    code: () => editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "code"),
     quote: () => {
       editor.update(() => {
-        const selection = (0, import_lexical6.$getSelection)();
-        if (!(0, import_lexical6.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical7.$getSelection)();
+        if (!(0, import_lexical7.$isRangeSelection)(selection)) return;
         const inQuote = !!(0, import_utils.$findMatchingParent)(
           selection.anchor.getNode(),
           import_rich_text.$isQuoteNode
         );
         if (inQuote) {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical6.$createParagraphNode)());
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical7.$createParagraphNode)());
         } else {
           (0, import_selection.$setBlocksType)(selection, () => new import_rich_text.QuoteNode());
         }
