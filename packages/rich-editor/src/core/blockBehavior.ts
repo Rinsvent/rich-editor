@@ -1,12 +1,13 @@
 import { $isCodeNode, type CodeNode } from "@lexical/code";
 import { $isListItemNode } from "@lexical/list";
-import { $isQuoteNode, QuoteNode } from "@lexical/rich-text";
+import { $createQuoteNode, $isQuoteNode, QuoteNode } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
 import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
   $getSelection,
+  $getNodeByKey,
   $isElementNode,
   $isParagraphNode,
   $isRangeSelection,
@@ -15,7 +16,7 @@ import {
   type LexicalNode,
   type RangeSelection,
 } from "lexical";
-import { $ensureQuoteParagraphStructure } from "./quoteBlocks";
+import { $ensureQuoteParagraphStructure, $getQuoteParagraph } from "./quoteBlocks";
 
 export function $getBlockQuote(node: LexicalNode): QuoteNode | null {
   return $findMatchingParent(node, $isQuoteNode);
@@ -42,15 +43,30 @@ export function $countTrailingEmptyParagraphs(quote: QuoteNode): number {
 export function $isAtStartOfBlock(selection: RangeSelection): boolean {
   const anchor = selection.anchor;
   if (anchor.offset !== 0) return false;
+
   const node = anchor.getNode();
+  const paragraph = $findMatchingParent(node, $isParagraphNode);
+
+  if (paragraph) {
+    let current: LexicalNode | null = node;
+    while (current !== null && current !== paragraph) {
+      const parent = current.getParent();
+      if (parent === null) return false;
+      if (parent.getFirstChild() !== current) return false;
+      current = parent;
+    }
+    return true;
+  }
+
+  if ($isParagraphNode(node)) return true;
+
   if ($isTextNode(node)) {
     const parent = node.getParent();
     if ($isElementNode(parent)) {
-      const firstChild = parent.getFirstChild();
-      return firstChild === node || firstChild === null;
+      return parent.getFirstChild() === node;
     }
   }
-  if ($isParagraphNode(node)) return true;
+
   return false;
 }
 
@@ -74,18 +90,52 @@ export function $unwrapParagraphFromQuote(paragraph: ElementNode): void {
   const quote = paragraph.getParent();
   if (!$isQuoteNode(quote)) return;
 
+  const paragraphs = quote.getChildren().filter($isParagraphNode);
+  const index = paragraphs.findIndex((p) => p.getKey() === paragraph.getKey());
+  if (index === -1) return;
+
+  const total = paragraphs.length;
   const newParagraph = $createParagraphNode();
   newParagraph.append(...paragraph.getChildren());
-  quote.insertAfter(newParagraph);
+  paragraph.remove();
 
-  if (quote.getChildrenSize() === 1 && quote.getFirstChild() === paragraph) {
+  if (total === 1) {
     quote.replace(newParagraph);
+    newParagraph.selectStart();
     return;
   }
 
-  paragraph.remove();
-  if (quote.getChildrenSize() === 0) {
-    quote.remove();
+  if (index === 0) {
+    quote.insertBefore(newParagraph);
+    newParagraph.selectStart();
+    return;
+  }
+
+  if (index === total - 1) {
+    quote.insertAfter(newParagraph);
+    newParagraph.selectStart();
+    return;
+  }
+
+  const afterQuote = $createQuoteNode();
+  for (let i = index + 1; i < paragraphs.length; i += 1) {
+    afterQuote.append(paragraphs[i]);
+  }
+
+  quote.insertAfter(newParagraph);
+  if (afterQuote.getChildrenSize() > 0) {
+    newParagraph.insertAfter(afterQuote);
+  }
+  newParagraph.selectStart();
+}
+
+/** Remove blockquotes that contain no visible text. */
+export function $pruneEmptyQuotes(): void {
+  for (const child of [...$getRoot().getChildren()]) {
+    if (!$isQuoteNode(child)) continue;
+    if (child.getTextContent().trim() === "") {
+      child.remove();
+    }
   }
 }
 
@@ -159,6 +209,14 @@ export function $handleQuoteBackspace(
   paragraph: ElementNode,
   selection: RangeSelection,
 ): void {
+  const liveQuote = $getNodeByKey(quote.getKey());
+  if (!liveQuote || !$isQuoteNode(liveQuote)) return;
+  quote = liveQuote;
+
+  const liveParagraph = $getQuoteParagraph(selection.anchor.getNode());
+  if (!liveParagraph || liveParagraph.getParent() !== quote) return;
+  paragraph = liveParagraph;
+
   if (!$isParagraphNode(paragraph) || paragraph.getParent() !== quote) return;
   if (!$isAtStartOfBlock(selection)) return;
 
@@ -181,6 +239,7 @@ export function $handleQuoteBackspace(
   }
 
   $unwrapParagraphFromQuote(paragraph);
+  $pruneEmptyQuotes();
 }
 
 export function $mergeAdjacentQuoteBlocks(): void {

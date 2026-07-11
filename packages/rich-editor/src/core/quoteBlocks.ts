@@ -150,6 +150,10 @@ export function $applyQuoteToSelection(selection: RangeSelection): void {
 export function $normalizeAllQuotes(): void {
   for (const child of $getRoot().getChildren()) {
     if ($isQuoteNode(child)) {
+      if (child.getTextContent().trim() === "") {
+        child.remove();
+        continue;
+      }
       $ensureQuoteParagraphStructure(child);
     }
   }

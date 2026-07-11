@@ -1104,20 +1104,21 @@ import {
   $isParagraphNode as $isParagraphNode3,
   $isRangeSelection as $isRangeSelection4,
   COMMAND_PRIORITY_CRITICAL,
-  KEY_BACKSPACE_COMMAND,
+  DELETE_CHARACTER_COMMAND,
   KEY_ENTER_COMMAND as KEY_ENTER_COMMAND2
 } from "lexical";
 
 // src/core/blockBehavior.ts
 import { $isCodeNode } from "@lexical/code";
 import { $isListItemNode } from "@lexical/list";
-import { $isQuoteNode as $isQuoteNode3 } from "@lexical/rich-text";
+import { $createQuoteNode as $createQuoteNode3, $isQuoteNode as $isQuoteNode3 } from "@lexical/rich-text";
 import { $findMatchingParent as $findMatchingParent2 } from "@lexical/utils";
 import {
   $createParagraphNode as $createParagraphNode3,
   $createTextNode as $createTextNode2,
   $getRoot as $getRoot2,
   $getSelection as $getSelection3,
+  $getNodeByKey,
   $isElementNode as $isElementNode2,
   $isParagraphNode as $isParagraphNode2,
   $isRangeSelection as $isRangeSelection3,
@@ -1249,6 +1250,10 @@ function $applyQuoteToSelection(selection) {
 function $normalizeAllQuotes() {
   for (const child of $getRoot().getChildren()) {
     if ($isQuoteNode2(child)) {
+      if (child.getTextContent().trim() === "") {
+        child.remove();
+        continue;
+      }
       $ensureQuoteParagraphStructure(child);
     }
   }
@@ -1277,14 +1282,24 @@ function $isAtStartOfBlock(selection) {
   const anchor = selection.anchor;
   if (anchor.offset !== 0) return false;
   const node = anchor.getNode();
+  const paragraph = $findMatchingParent2(node, $isParagraphNode2);
+  if (paragraph) {
+    let current = node;
+    while (current !== null && current !== paragraph) {
+      const parent = current.getParent();
+      if (parent === null) return false;
+      if (parent.getFirstChild() !== current) return false;
+      current = parent;
+    }
+    return true;
+  }
+  if ($isParagraphNode2(node)) return true;
   if ($isTextNode(node)) {
     const parent = node.getParent();
     if ($isElementNode2(parent)) {
-      const firstChild = parent.getFirstChild();
-      return firstChild === node || firstChild === null;
+      return parent.getFirstChild() === node;
     }
   }
-  if ($isParagraphNode2(node)) return true;
   return false;
 }
 function $isAtEndOfBlock(selection) {
@@ -1305,16 +1320,44 @@ function $isAtEndOfBlock(selection) {
 function $unwrapParagraphFromQuote(paragraph) {
   const quote = paragraph.getParent();
   if (!$isQuoteNode3(quote)) return;
+  const paragraphs = quote.getChildren().filter($isParagraphNode2);
+  const index = paragraphs.findIndex((p) => p.getKey() === paragraph.getKey());
+  if (index === -1) return;
+  const total = paragraphs.length;
   const newParagraph = $createParagraphNode3();
   newParagraph.append(...paragraph.getChildren());
-  quote.insertAfter(newParagraph);
-  if (quote.getChildrenSize() === 1 && quote.getFirstChild() === paragraph) {
+  paragraph.remove();
+  if (total === 1) {
     quote.replace(newParagraph);
+    newParagraph.selectStart();
     return;
   }
-  paragraph.remove();
-  if (quote.getChildrenSize() === 0) {
-    quote.remove();
+  if (index === 0) {
+    quote.insertBefore(newParagraph);
+    newParagraph.selectStart();
+    return;
+  }
+  if (index === total - 1) {
+    quote.insertAfter(newParagraph);
+    newParagraph.selectStart();
+    return;
+  }
+  const afterQuote = $createQuoteNode3();
+  for (let i = index + 1; i < paragraphs.length; i += 1) {
+    afterQuote.append(paragraphs[i]);
+  }
+  quote.insertAfter(newParagraph);
+  if (afterQuote.getChildrenSize() > 0) {
+    newParagraph.insertAfter(afterQuote);
+  }
+  newParagraph.selectStart();
+}
+function $pruneEmptyQuotes() {
+  for (const child of [...$getRoot2().getChildren()]) {
+    if (!$isQuoteNode3(child)) continue;
+    if (child.getTextContent().trim() === "") {
+      child.remove();
+    }
   }
 }
 function $insertParagraphBeforeBlock(block) {
@@ -1357,6 +1400,12 @@ function $handleQuoteEnter(quote, paragraph, selection) {
   selection.insertParagraph();
 }
 function $handleQuoteBackspace(quote, paragraph, selection) {
+  const liveQuote = $getNodeByKey(quote.getKey());
+  if (!liveQuote || !$isQuoteNode3(liveQuote)) return;
+  quote = liveQuote;
+  const liveParagraph = $getQuoteParagraph(selection.anchor.getNode());
+  if (!liveParagraph || liveParagraph.getParent() !== quote) return;
+  paragraph = liveParagraph;
   if (!$isParagraphNode2(paragraph) || paragraph.getParent() !== quote) return;
   if (!$isAtStartOfBlock(selection)) return;
   if ($isParagraphEmpty(paragraph)) {
@@ -1376,6 +1425,7 @@ function $handleQuoteBackspace(quote, paragraph, selection) {
     return;
   }
   $unwrapParagraphFromQuote(paragraph);
+  $pruneEmptyQuotes();
 }
 function $mergeAdjacentQuoteBlocks() {
   const root = $getRoot2();
@@ -1450,6 +1500,7 @@ function $shouldSkipBlockBehavior() {
 function $needsQuoteNormalization() {
   for (const child of $getRoot3().getChildren()) {
     if (!$isQuoteNode4(child)) continue;
+    if (child.getTextContent().trim() === "") return true;
     const children = child.getChildren();
     if (children.length === 0 || children.some((node) => !$isParagraphNode3(node))) {
       return true;
@@ -1480,6 +1531,7 @@ function BlockBehaviorPlugin() {
           $normalizeAllQuotes();
           $mergeAdjacentQuoteBlocks();
           $mergeAdjacentCodeBlocks();
+          $pruneEmptyQuotes();
         },
         { discrete: true }
       );
@@ -1539,31 +1591,18 @@ function BlockBehaviorPlugin() {
       COMMAND_PRIORITY_CRITICAL
     );
     const removeBackspace = editor.registerCommand(
-      KEY_BACKSPACE_COMMAND,
-      (event) => {
+      DELETE_CHARACTER_COMMAND,
+      (isBackward) => {
+        if (!isBackward) return false;
         if ($shouldSkipBlockBehavior()) return false;
-        const quoteContext = editor.getEditorState().read(() => {
-          const selection = $getSelection4();
-          if (!$isRangeSelection4(selection) || !selection.isCollapsed()) {
-            return null;
-          }
-          const quote = $getBlockQuote(selection.anchor.getNode());
-          if (!quote || !$isQuoteNode4(quote)) return null;
-          const paragraph = $getQuoteParagraph(selection.anchor.getNode());
-          if (!paragraph || paragraph.getParent() !== quote) return null;
-          return { quote, paragraph };
-        });
-        if (!quoteContext) return false;
-        event?.preventDefault();
-        editor.update(() => {
-          const selection = $getSelection4();
-          if (!$isRangeSelection4(selection) || !selection.isCollapsed()) return;
-          $handleQuoteBackspace(
-            quoteContext.quote,
-            quoteContext.paragraph,
-            selection
-          );
-        });
+        const selection = $getSelection4();
+        if (!$isRangeSelection4(selection) || !selection.isCollapsed()) return false;
+        if (!$isAtStartOfBlock(selection)) return false;
+        const quote = $getBlockQuote(selection.anchor.getNode());
+        if (!quote || !$isQuoteNode4(quote)) return false;
+        const paragraph = $getQuoteParagraph(selection.anchor.getNode());
+        if (!paragraph || paragraph.getParent() !== quote) return false;
+        $handleQuoteBackspace(quote, paragraph, selection);
         return true;
       },
       COMMAND_PRIORITY_CRITICAL
@@ -2176,7 +2215,7 @@ import { useLexicalComposerContext as useLexicalComposerContext9 } from "@lexica
 import {
   $getSelection as $getSelection7,
   $isRangeSelection as $isRangeSelection7,
-  COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH4,
+  COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH3,
   INSERT_LINE_BREAK_COMMAND
 } from "lexical";
 function LineBreakPlugin() {
@@ -2191,7 +2230,7 @@ function LineBreakPlugin() {
         selection.insertParagraph();
         return true;
       },
-      COMMAND_PRIORITY_HIGH4
+      COMMAND_PRIORITY_HIGH3
     );
   }, [editor]);
   return null;

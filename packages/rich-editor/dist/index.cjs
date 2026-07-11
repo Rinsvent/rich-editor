@@ -1237,6 +1237,10 @@ function $applyQuoteToSelection(selection) {
 function $normalizeAllQuotes() {
   for (const child of (0, import_lexical8.$getRoot)().getChildren()) {
     if ((0, import_rich_text2.$isQuoteNode)(child)) {
+      if (child.getTextContent().trim() === "") {
+        child.remove();
+        continue;
+      }
       $ensureQuoteParagraphStructure(child);
     }
   }
@@ -1265,14 +1269,24 @@ function $isAtStartOfBlock(selection) {
   const anchor = selection.anchor;
   if (anchor.offset !== 0) return false;
   const node = anchor.getNode();
+  const paragraph = (0, import_utils2.$findMatchingParent)(node, import_lexical9.$isParagraphNode);
+  if (paragraph) {
+    let current = node;
+    while (current !== null && current !== paragraph) {
+      const parent = current.getParent();
+      if (parent === null) return false;
+      if (parent.getFirstChild() !== current) return false;
+      current = parent;
+    }
+    return true;
+  }
+  if ((0, import_lexical9.$isParagraphNode)(node)) return true;
   if ((0, import_lexical9.$isTextNode)(node)) {
     const parent = node.getParent();
     if ((0, import_lexical9.$isElementNode)(parent)) {
-      const firstChild = parent.getFirstChild();
-      return firstChild === node || firstChild === null;
+      return parent.getFirstChild() === node;
     }
   }
-  if ((0, import_lexical9.$isParagraphNode)(node)) return true;
   return false;
 }
 function $isAtEndOfBlock(selection) {
@@ -1293,16 +1307,44 @@ function $isAtEndOfBlock(selection) {
 function $unwrapParagraphFromQuote(paragraph) {
   const quote = paragraph.getParent();
   if (!(0, import_rich_text3.$isQuoteNode)(quote)) return;
+  const paragraphs = quote.getChildren().filter(import_lexical9.$isParagraphNode);
+  const index = paragraphs.findIndex((p) => p.getKey() === paragraph.getKey());
+  if (index === -1) return;
+  const total = paragraphs.length;
   const newParagraph = (0, import_lexical9.$createParagraphNode)();
   newParagraph.append(...paragraph.getChildren());
-  quote.insertAfter(newParagraph);
-  if (quote.getChildrenSize() === 1 && quote.getFirstChild() === paragraph) {
+  paragraph.remove();
+  if (total === 1) {
     quote.replace(newParagraph);
+    newParagraph.selectStart();
     return;
   }
-  paragraph.remove();
-  if (quote.getChildrenSize() === 0) {
-    quote.remove();
+  if (index === 0) {
+    quote.insertBefore(newParagraph);
+    newParagraph.selectStart();
+    return;
+  }
+  if (index === total - 1) {
+    quote.insertAfter(newParagraph);
+    newParagraph.selectStart();
+    return;
+  }
+  const afterQuote = (0, import_rich_text3.$createQuoteNode)();
+  for (let i = index + 1; i < paragraphs.length; i += 1) {
+    afterQuote.append(paragraphs[i]);
+  }
+  quote.insertAfter(newParagraph);
+  if (afterQuote.getChildrenSize() > 0) {
+    newParagraph.insertAfter(afterQuote);
+  }
+  newParagraph.selectStart();
+}
+function $pruneEmptyQuotes() {
+  for (const child of [...(0, import_lexical9.$getRoot)().getChildren()]) {
+    if (!(0, import_rich_text3.$isQuoteNode)(child)) continue;
+    if (child.getTextContent().trim() === "") {
+      child.remove();
+    }
   }
 }
 function $insertParagraphBeforeBlock(block) {
@@ -1345,6 +1387,12 @@ function $handleQuoteEnter(quote, paragraph, selection) {
   selection.insertParagraph();
 }
 function $handleQuoteBackspace(quote, paragraph, selection) {
+  const liveQuote = (0, import_lexical9.$getNodeByKey)(quote.getKey());
+  if (!liveQuote || !(0, import_rich_text3.$isQuoteNode)(liveQuote)) return;
+  quote = liveQuote;
+  const liveParagraph = $getQuoteParagraph(selection.anchor.getNode());
+  if (!liveParagraph || liveParagraph.getParent() !== quote) return;
+  paragraph = liveParagraph;
   if (!(0, import_lexical9.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) return;
   if (!$isAtStartOfBlock(selection)) return;
   if ($isParagraphEmpty(paragraph)) {
@@ -1364,6 +1412,7 @@ function $handleQuoteBackspace(quote, paragraph, selection) {
     return;
   }
   $unwrapParagraphFromQuote(paragraph);
+  $pruneEmptyQuotes();
 }
 function $mergeAdjacentQuoteBlocks() {
   const root = (0, import_lexical9.$getRoot)();
@@ -1438,6 +1487,7 @@ function $shouldSkipBlockBehavior() {
 function $needsQuoteNormalization() {
   for (const child of (0, import_lexical10.$getRoot)().getChildren()) {
     if (!(0, import_rich_text4.$isQuoteNode)(child)) continue;
+    if (child.getTextContent().trim() === "") return true;
     const children = child.getChildren();
     if (children.length === 0 || children.some((node) => !(0, import_lexical10.$isParagraphNode)(node))) {
       return true;
@@ -1468,6 +1518,7 @@ function BlockBehaviorPlugin() {
           $normalizeAllQuotes();
           $mergeAdjacentQuoteBlocks();
           $mergeAdjacentCodeBlocks();
+          $pruneEmptyQuotes();
         },
         { discrete: true }
       );
@@ -1527,31 +1578,18 @@ function BlockBehaviorPlugin() {
       import_lexical10.COMMAND_PRIORITY_CRITICAL
     );
     const removeBackspace = editor.registerCommand(
-      import_lexical10.KEY_BACKSPACE_COMMAND,
-      (event) => {
+      import_lexical10.DELETE_CHARACTER_COMMAND,
+      (isBackward) => {
+        if (!isBackward) return false;
         if ($shouldSkipBlockBehavior()) return false;
-        const quoteContext = editor.getEditorState().read(() => {
-          const selection = (0, import_lexical10.$getSelection)();
-          if (!(0, import_lexical10.$isRangeSelection)(selection) || !selection.isCollapsed()) {
-            return null;
-          }
-          const quote = $getBlockQuote(selection.anchor.getNode());
-          if (!quote || !(0, import_rich_text4.$isQuoteNode)(quote)) return null;
-          const paragraph = $getQuoteParagraph(selection.anchor.getNode());
-          if (!paragraph || paragraph.getParent() !== quote) return null;
-          return { quote, paragraph };
-        });
-        if (!quoteContext) return false;
-        event?.preventDefault();
-        editor.update(() => {
-          const selection = (0, import_lexical10.$getSelection)();
-          if (!(0, import_lexical10.$isRangeSelection)(selection) || !selection.isCollapsed()) return;
-          $handleQuoteBackspace(
-            quoteContext.quote,
-            quoteContext.paragraph,
-            selection
-          );
-        });
+        const selection = (0, import_lexical10.$getSelection)();
+        if (!(0, import_lexical10.$isRangeSelection)(selection) || !selection.isCollapsed()) return false;
+        if (!$isAtStartOfBlock(selection)) return false;
+        const quote = $getBlockQuote(selection.anchor.getNode());
+        if (!quote || !(0, import_rich_text4.$isQuoteNode)(quote)) return false;
+        const paragraph = $getQuoteParagraph(selection.anchor.getNode());
+        if (!paragraph || paragraph.getParent() !== quote) return false;
+        $handleQuoteBackspace(quote, paragraph, selection);
         return true;
       },
       import_lexical10.COMMAND_PRIORITY_CRITICAL

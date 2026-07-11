@@ -10,8 +10,7 @@ import {
   $isParagraphNode,
   $isRangeSelection,
   COMMAND_PRIORITY_CRITICAL,
-  COMMAND_PRIORITY_HIGH,
-  KEY_BACKSPACE_COMMAND,
+  DELETE_CHARACTER_COMMAND,
   KEY_ENTER_COMMAND,
 } from "lexical";
 import {
@@ -22,8 +21,10 @@ import {
   $handleQuoteBackspace,
   $handleQuoteEnter,
   $isAtEndOfCodeBlock,
+  $isAtStartOfBlock,
   $mergeAdjacentCodeBlocks,
   $mergeAdjacentQuoteBlocks,
+  $pruneEmptyQuotes,
   $shouldSkipBlockBehavior,
 } from "../../core/blockBehavior";
 import {
@@ -34,6 +35,7 @@ import {
 function $needsQuoteNormalization(): boolean {
   for (const child of $getRoot().getChildren()) {
     if (!$isQuoteNode(child)) continue;
+    if (child.getTextContent().trim() === "") return true;
     const children = child.getChildren();
     if (children.length === 0 || children.some((node) => !$isParagraphNode(node))) {
       return true;
@@ -67,6 +69,7 @@ export function BlockBehaviorPlugin() {
           $normalizeAllQuotes();
           $mergeAdjacentQuoteBlocks();
           $mergeAdjacentCodeBlocks();
+          $pruneEmptyQuotes();
         },
         { discrete: true },
       );
@@ -134,34 +137,22 @@ export function BlockBehaviorPlugin() {
     );
 
     const removeBackspace = editor.registerCommand(
-      KEY_BACKSPACE_COMMAND,
-      (event) => {
+      DELETE_CHARACTER_COMMAND,
+      (isBackward) => {
+        if (!isBackward) return false;
         if ($shouldSkipBlockBehavior()) return false;
 
-        const quoteContext = editor.getEditorState().read(() => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-            return null;
-          }
-          const quote = $getBlockQuote(selection.anchor.getNode());
-          if (!quote || !$isQuoteNode(quote)) return null;
-          const paragraph = $getQuoteParagraph(selection.anchor.getNode());
-          if (!paragraph || paragraph.getParent() !== quote) return null;
-          return { quote, paragraph };
-        });
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection) || !selection.isCollapsed()) return false;
+        if (!$isAtStartOfBlock(selection)) return false;
 
-        if (!quoteContext) return false;
+        const quote = $getBlockQuote(selection.anchor.getNode());
+        if (!quote || !$isQuoteNode(quote)) return false;
 
-        event?.preventDefault();
-        editor.update(() => {
-          const selection = $getSelection();
-          if (!$isRangeSelection(selection) || !selection.isCollapsed()) return;
-          $handleQuoteBackspace(
-            quoteContext.quote,
-            quoteContext.paragraph,
-            selection,
-          );
-        });
+        const paragraph = $getQuoteParagraph(selection.anchor.getNode());
+        if (!paragraph || paragraph.getParent() !== quote) return false;
+
+        $handleQuoteBackspace(quote, paragraph, selection);
         return true;
       },
       COMMAND_PRIORITY_CRITICAL,
