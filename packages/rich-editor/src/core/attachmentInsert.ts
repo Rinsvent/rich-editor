@@ -1,4 +1,4 @@
-import { $createParagraphNode, $getSelection, $insertNodes, $isRangeSelection } from "lexical";
+import { $createParagraphNode, $getRoot, $getSelection, $insertNodes, $isParagraphNode, $isRangeSelection } from "lexical";
 import type { LexicalEditor } from "lexical";
 import type { EditorAttachment } from "./attachments";
 import { getFileKind, isImageMime } from "./attachments";
@@ -68,9 +68,15 @@ export async function insertImageAtSelection(
       $insertNodes([imageNode]);
       return;
     }
+    const root = $getRoot();
+    const lastChild = root.getLastChild();
+    if (lastChild && $isParagraphNode(lastChild)) {
+      lastChild.append(imageNode);
+      return;
+    }
     const paragraph = $createParagraphNode();
     paragraph.append(imageNode);
-    $insertNodes([paragraph]);
+    root.append(paragraph);
   });
 }
 

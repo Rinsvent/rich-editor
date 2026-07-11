@@ -6,9 +6,6 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -30,584 +27,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-
-// src/core/attachments.ts
-function createLocalId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-function isImageMime(mimeType) {
-  return mimeType.startsWith("image/");
-}
-function isVideoMime(mimeType) {
-  return mimeType.startsWith("video/");
-}
-function getFileKind(mimeType) {
-  if (isImageMime(mimeType)) return "image";
-  if (isVideoMime(mimeType)) return "video";
-  return "file";
-}
-function getFileExtension(name) {
-  const index = name.lastIndexOf(".");
-  if (index <= 0) return "";
-  return name.slice(index + 1).toUpperCase();
-}
-function formatFileSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-function toAttachmentPayload(attachment) {
-  if (attachment.status !== "ready" || !attachment.id || !attachment.url) {
-    return null;
-  }
-  return {
-    id: attachment.id,
-    name: attachment.name,
-    mimeType: attachment.mimeType,
-    size: attachment.size,
-    url: attachment.url,
-    thumbnailUrl: attachment.thumbnailUrl
-  };
-}
-function getReadyAttachmentPayloads(attachments) {
-  return attachments.map(toAttachmentPayload).filter((item) => item !== null);
-}
-function getAttachmentPreviewUrl(attachment) {
-  return attachment.thumbnailUrl ?? attachment.previewUrl ?? attachment.url ?? "";
-}
-function collectFilesFromDataTransfer(dataTransfer) {
-  if (!dataTransfer) return [];
-  const files = [];
-  if (dataTransfer.files?.length) {
-    for (const file of Array.from(dataTransfer.files)) {
-      files.push(file);
-    }
-  }
-  return files;
-}
-function collectFilesFromClipboard(clipboard) {
-  if (!clipboard) return [];
-  const files = [];
-  if (clipboard.files?.length) {
-    for (const file of Array.from(clipboard.files)) {
-      files.push(file);
-    }
-  }
-  return files;
-}
-var FILE_ID_ATTR, FILE_NAME_ATTR, FILE_MIME_ATTR, IMAGE_ASPECT_ATTR;
-var init_attachments = __esm({
-  "src/core/attachments.ts"() {
-    "use strict";
-    FILE_ID_ATTR = "data-file-id";
-    FILE_NAME_ATTR = "data-file-name";
-    FILE_MIME_ATTR = "data-file-mime";
-    IMAGE_ASPECT_ATTR = "data-aspect-ratio";
-  }
-});
-
-// src/nodes/FileLinkNode.ts
-function $createFileLinkNode({
-  fileId,
-  fileName,
-  fileUrl,
-  mimeType
-}) {
-  return (0, import_lexical3.$applyNodeReplacement)(
-    new FileLinkNode(fileId, fileName, fileUrl, mimeType)
-  );
-}
-var import_lexical3, FileLinkNode;
-var init_FileLinkNode = __esm({
-  "src/nodes/FileLinkNode.ts"() {
-    "use strict";
-    import_lexical3 = require("lexical");
-    init_attachments();
-    FileLinkNode = class _FileLinkNode extends import_lexical3.ElementNode {
-      static getType() {
-        return "file-link";
-      }
-      static clone(node) {
-        return new _FileLinkNode(
-          node.__fileId,
-          node.__fileName,
-          node.__fileUrl,
-          node.__mimeType,
-          node.__key
-        );
-      }
-      static importJSON(serializedNode) {
-        return $createFileLinkNode({
-          fileId: serializedNode.fileId,
-          fileName: serializedNode.fileName,
-          fileUrl: serializedNode.fileUrl,
-          mimeType: serializedNode.mimeType
-        });
-      }
-      static importDOM() {
-        return {
-          a: (domNode) => {
-            const fileId = domNode.getAttribute(FILE_ID_ATTR);
-            if (!fileId) return null;
-            const fileName = domNode.getAttribute(FILE_NAME_ATTR) ?? domNode.textContent?.trim() ?? "File";
-            const fileUrl = domNode.getAttribute("href") ?? "";
-            const mimeType = domNode.getAttribute(FILE_MIME_ATTR) ?? "application/octet-stream";
-            return {
-              conversion: () => ({
-                node: $createFileLinkNode({
-                  fileId,
-                  fileName,
-                  fileUrl,
-                  mimeType
-                })
-              }),
-              priority: 2
-            };
-          }
-        };
-      }
-      constructor(fileId, fileName, fileUrl, mimeType, key) {
-        super(key);
-        this.__fileId = fileId;
-        this.__fileName = fileName;
-        this.__fileUrl = fileUrl;
-        this.__mimeType = mimeType;
-      }
-      exportJSON() {
-        return {
-          ...super.exportJSON(),
-          fileId: this.__fileId,
-          fileName: this.__fileName,
-          fileUrl: this.__fileUrl,
-          mimeType: this.__mimeType,
-          type: "file-link"
-        };
-      }
-      createDOM(config) {
-        const element = document.createElement("a");
-        element.className = config.theme.fileLink ?? "re-file-link";
-        element.href = this.__fileUrl;
-        element.setAttribute(FILE_ID_ATTR, this.__fileId);
-        element.setAttribute(FILE_NAME_ATTR, this.__fileName);
-        element.setAttribute(FILE_MIME_ATTR, this.__mimeType);
-        element.setAttribute("target", "_blank");
-        element.setAttribute("rel", "noopener noreferrer");
-        element.contentEditable = "false";
-        element.textContent = this.__fileName;
-        return element;
-      }
-      updateDOM() {
-        return false;
-      }
-      exportDOM() {
-        const element = document.createElement("a");
-        element.className = "re-file-link";
-        element.href = this.__fileUrl;
-        element.setAttribute(FILE_ID_ATTR, this.__fileId);
-        element.setAttribute(FILE_NAME_ATTR, this.__fileName);
-        element.setAttribute(FILE_MIME_ATTR, this.__mimeType);
-        element.setAttribute("target", "_blank");
-        element.setAttribute("rel", "noopener noreferrer");
-        element.textContent = this.__fileName;
-        return { element };
-      }
-      isInline() {
-        return true;
-      }
-      canBeEmpty() {
-        return false;
-      }
-      canInsertTextBefore() {
-        return false;
-      }
-      canInsertTextAfter() {
-        return false;
-      }
-      getFileId() {
-        return this.getLatest().__fileId;
-      }
-      getFileName() {
-        return this.getLatest().__fileName;
-      }
-      getFileUrl() {
-        return this.getLatest().__fileUrl;
-      }
-      getMimeType() {
-        return this.getLatest().__mimeType;
-      }
-    };
-  }
-});
-
-// src/core/attachmentInsert.ts
-var attachmentInsert_exports = {};
-__export(attachmentInsert_exports, {
-  MAX_IMAGE_WIDTH: () => MAX_IMAGE_WIDTH,
-  MIN_IMAGE_WIDTH: () => MIN_IMAGE_WIDTH,
-  getAttachmentSource: () => getAttachmentSource,
-  getDefaultImageDimensions: () => getDefaultImageDimensions,
-  insertAttachmentAtSelection: () => insertAttachmentAtSelection,
-  insertFileLinkAtSelection: () => insertFileLinkAtSelection,
-  insertImageAtSelection: () => insertImageAtSelection,
-  readImageDimensions: () => readImageDimensions
-});
-function readImageDimensions(src) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
-      resolve({
-        width: image.naturalWidth || 320,
-        height: image.naturalHeight || 240
-      });
-    };
-    image.onerror = () => reject(new Error("Failed to load image"));
-    image.src = src;
-  });
-}
-async function getDefaultImageDimensions(src) {
-  try {
-    const { width, height } = await readImageDimensions(src);
-    const aspectRatio = width / Math.max(height, 1);
-    const targetWidth = Math.min(
-      MAX_IMAGE_WIDTH,
-      Math.max(MIN_IMAGE_WIDTH, width)
-    );
-    return { width: targetWidth, aspectRatio };
-  } catch {
-    return { width: 320, aspectRatio: 4 / 3 };
-  }
-}
-function getAttachmentSource(attachment) {
-  return attachment.url ?? attachment.previewUrl ?? attachment.thumbnailUrl ?? null;
-}
-async function insertImageAtSelection(editor, attachment) {
-  const src = getAttachmentSource(attachment);
-  if (!src) return;
-  const fileId = attachment.id ?? attachment.localId;
-  const { width, aspectRatio } = await getDefaultImageDimensions(src);
-  editor.update(() => {
-    const imageNode = $createImageNode({
-      src,
-      alt: attachment.name,
-      fileId,
-      width,
-      aspectRatio
-    });
-    const selection = (0, import_lexical4.$getSelection)();
-    if ((0, import_lexical4.$isRangeSelection)(selection)) {
-      (0, import_lexical4.$insertNodes)([imageNode]);
-      return;
-    }
-    const paragraph = (0, import_lexical4.$createParagraphNode)();
-    paragraph.append(imageNode);
-    (0, import_lexical4.$insertNodes)([paragraph]);
-  });
-}
-function insertFileLinkAtSelection(editor, attachment) {
-  if (!attachment.id || !attachment.url) return;
-  editor.update(() => {
-    const fileLink = $createFileLinkNode({
-      fileId: attachment.id,
-      fileName: attachment.name,
-      fileUrl: attachment.url,
-      mimeType: attachment.mimeType
-    });
-    const selection = (0, import_lexical4.$getSelection)();
-    if (!(0, import_lexical4.$isRangeSelection)(selection)) {
-      (0, import_lexical4.$insertNodes)([fileLink]);
-      return;
-    }
-    selection.insertNodes([fileLink]);
-  });
-}
-async function insertAttachmentAtSelection(editor, attachment) {
-  if (attachment.status !== "ready") return;
-  if (getFileKind(attachment.mimeType) === "image" || isImageMime(attachment.mimeType)) {
-    await insertImageAtSelection(editor, attachment);
-    return;
-  }
-  insertFileLinkAtSelection(editor, attachment);
-}
-var import_lexical4, MIN_IMAGE_WIDTH, MAX_IMAGE_WIDTH;
-var init_attachmentInsert = __esm({
-  "src/core/attachmentInsert.ts"() {
-    "use strict";
-    import_lexical4 = require("lexical");
-    init_attachments();
-    init_FileLinkNode();
-    init_ImageNode();
-    MIN_IMAGE_WIDTH = 80;
-    MAX_IMAGE_WIDTH = 720;
-  }
-});
-
-// src/components/attachments/ImageComponent.tsx
-function ImageComponent({
-  src,
-  alt,
-  width,
-  aspectRatio,
-  nodeKey
-}) {
-  const [editor] = (0, import_LexicalComposerContext.useLexicalComposerContext)();
-  const [isSelected, setSelected, clearSelection] = (0, import_useLexicalNodeSelection.useLexicalNodeSelection)(nodeKey);
-  const imageRef = (0, import_react2.useRef)(null);
-  const [isResizing, setIsResizing] = (0, import_react2.useState)(false);
-  const height = Math.max(1, Math.round(width / aspectRatio));
-  (0, import_react2.useEffect)(() => {
-    return (0, import_utils.mergeRegister)(
-      editor.registerCommand(
-        import_lexical5.CLICK_COMMAND,
-        (event) => {
-          const target = event.target;
-          if (!imageRef.current?.contains(target)) return false;
-          if (event.shiftKey) {
-            setSelected(!isSelected);
-          } else {
-            clearSelection();
-            setSelected(true);
-          }
-          return true;
-        },
-        import_lexical5.COMMAND_PRIORITY_LOW
-      )
-    );
-  }, [clearSelection, editor, isSelected, setSelected]);
-  const onResizeStart = (0, import_react2.useCallback)(
-    (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setIsResizing(true);
-      const startX = event.clientX;
-      const startWidth = width;
-      const onMove = (moveEvent) => {
-        const delta = moveEvent.clientX - startX;
-        const nextWidth = Math.min(
-          MAX_IMAGE_WIDTH,
-          Math.max(MIN_IMAGE_WIDTH, startWidth + delta)
-        );
-        editor.update(() => {
-          const node = (0, import_lexical5.$getNodeByKey)(nodeKey);
-          if ($isImageNode(node)) {
-            node.setWidth(nextWidth);
-          }
-        });
-      };
-      const onUp = () => {
-        setIsResizing(false);
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    },
-    [editor, nodeKey, width]
-  );
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-    "span",
-    {
-      className: `re-image-wrap${isSelected ? " re-image-wrap-selected" : ""}${isResizing ? " re-image-wrap-resizing" : ""}`,
-      contentEditable: false,
-      "data-lexical-decorator": "true",
-      children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "img",
-          {
-            ref: imageRef,
-            className: "re-image",
-            src,
-            alt,
-            width,
-            height,
-            draggable: false
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "span",
-          {
-            className: "re-image-resize-handle",
-            onMouseDown: onResizeStart,
-            "aria-hidden": "true"
-          }
-        )
-      ]
-    }
-  );
-}
-var import_LexicalComposerContext, import_useLexicalNodeSelection, import_utils, import_lexical5, import_react2, import_jsx_runtime2;
-var init_ImageComponent = __esm({
-  "src/components/attachments/ImageComponent.tsx"() {
-    "use strict";
-    "use client";
-    import_LexicalComposerContext = require("@lexical/react/LexicalComposerContext");
-    import_useLexicalNodeSelection = require("@lexical/react/useLexicalNodeSelection");
-    import_utils = require("@lexical/utils");
-    import_lexical5 = require("lexical");
-    import_react2 = require("react");
-    init_ImageNode();
-    init_attachmentInsert();
-    import_jsx_runtime2 = require("react/jsx-runtime");
-  }
-});
-
-// src/nodes/ImageNode.tsx
-function $createImageNode({
-  src,
-  alt,
-  fileId,
-  width,
-  aspectRatio
-}) {
-  return (0, import_lexical6.$applyNodeReplacement)(
-    new ImageNode(src, alt, fileId, width, aspectRatio)
-  );
-}
-function $isImageNode(node) {
-  return node instanceof ImageNode;
-}
-var import_lexical6, import_jsx_runtime3, ImageNode;
-var init_ImageNode = __esm({
-  "src/nodes/ImageNode.tsx"() {
-    "use strict";
-    "use client";
-    import_lexical6 = require("lexical");
-    init_ImageComponent();
-    init_attachments();
-    import_jsx_runtime3 = require("react/jsx-runtime");
-    ImageNode = class _ImageNode extends import_lexical6.DecoratorNode {
-      static getType() {
-        return "image";
-      }
-      static clone(node) {
-        return new _ImageNode(
-          node.__src,
-          node.__alt,
-          node.__fileId,
-          node.__width,
-          node.__aspectRatio,
-          node.__key
-        );
-      }
-      static importJSON(serializedNode) {
-        return $createImageNode({
-          src: serializedNode.src,
-          alt: serializedNode.alt,
-          fileId: serializedNode.fileId,
-          width: serializedNode.width,
-          aspectRatio: serializedNode.aspectRatio
-        });
-      }
-      static importDOM() {
-        return {
-          img: (domNode) => {
-            if (!(domNode instanceof HTMLImageElement)) return null;
-            const fileId = domNode.getAttribute(FILE_ID_ATTR);
-            if (!fileId) return null;
-            const src = domNode.getAttribute("src") ?? "";
-            const alt = domNode.getAttribute("alt") ?? "";
-            const width = Number(domNode.getAttribute("width")) || 320;
-            const aspectRatio = Number(domNode.getAttribute(IMAGE_ASPECT_ATTR)) || (domNode.width && domNode.height ? domNode.width / domNode.height : 4 / 3);
-            return {
-              conversion: () => ({
-                node: $createImageNode({
-                  src,
-                  alt,
-                  fileId,
-                  width,
-                  aspectRatio
-                })
-              }),
-              priority: 2
-            };
-          }
-        };
-      }
-      constructor(src, alt, fileId, width, aspectRatio, key) {
-        super(key);
-        this.__src = src;
-        this.__alt = alt;
-        this.__fileId = fileId;
-        this.__width = width;
-        this.__aspectRatio = aspectRatio;
-      }
-      exportJSON() {
-        return {
-          type: "image",
-          version: 1,
-          src: this.__src,
-          alt: this.__alt,
-          fileId: this.__fileId,
-          width: this.__width,
-          aspectRatio: this.__aspectRatio
-        };
-      }
-      exportDOM() {
-        const element = document.createElement("img");
-        element.className = "re-image";
-        element.src = this.__src;
-        element.alt = this.__alt;
-        element.setAttribute(FILE_ID_ATTR, this.__fileId);
-        element.width = this.__width;
-        element.height = Math.max(1, Math.round(this.__width / this.__aspectRatio));
-        element.setAttribute(IMAGE_ASPECT_ATTR, String(this.__aspectRatio));
-        return { element };
-      }
-      createDOM() {
-        const span = document.createElement("span");
-        span.className = "re-image-host";
-        return span;
-      }
-      updateDOM() {
-        return false;
-      }
-      decorate() {
-        return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-          ImageComponent,
-          {
-            src: this.__src,
-            alt: this.__alt,
-            width: this.__width,
-            aspectRatio: this.__aspectRatio,
-            nodeKey: this.getKey()
-          }
-        );
-      }
-      isInline() {
-        return false;
-      }
-      getSrc() {
-        return this.getLatest().__src;
-      }
-      getAlt() {
-        return this.getLatest().__alt;
-      }
-      getFileId() {
-        return this.getLatest().__fileId;
-      }
-      getWidth() {
-        return this.getLatest().__width;
-      }
-      getAspectRatio() {
-        return this.getLatest().__aspectRatio;
-      }
-      setWidth(width) {
-        const writable = this.getWritable();
-        writable.__width = width;
-      }
-      setSrc(src) {
-        const writable = this.getWritable();
-        writable.__src = src;
-      }
-      setFileId(fileId) {
-        const writable = this.getWritable();
-        writable.__fileId = fileId;
-      }
-    };
-  }
-});
 
 // src/index.ts
 var index_exports = {};
@@ -1077,10 +496,580 @@ function $isSpoilerNode(node) {
   return node instanceof SpoilerNode;
 }
 
-// src/components/RichTextEditor.tsx
-init_ImageNode();
-init_FileLinkNode();
-init_attachments();
+// src/nodes/ImageNode.tsx
+var import_lexical6 = require("lexical");
+
+// src/components/attachments/ImageComponent.tsx
+var import_LexicalComposerContext = require("@lexical/react/LexicalComposerContext");
+var import_useLexicalNodeSelection = require("@lexical/react/useLexicalNodeSelection");
+var import_utils = require("@lexical/utils");
+var import_lexical5 = require("lexical");
+var import_react2 = require("react");
+
+// src/core/attachmentInsert.ts
+var import_lexical4 = require("lexical");
+
+// src/core/attachments.ts
+var FILE_ID_ATTR = "data-file-id";
+var FILE_NAME_ATTR = "data-file-name";
+var FILE_MIME_ATTR = "data-file-mime";
+var IMAGE_ASPECT_ATTR = "data-aspect-ratio";
+function createLocalId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+function isImageMime(mimeType) {
+  return mimeType.startsWith("image/");
+}
+function isVideoMime(mimeType) {
+  return mimeType.startsWith("video/");
+}
+function getFileKind(mimeType) {
+  if (isImageMime(mimeType)) return "image";
+  if (isVideoMime(mimeType)) return "video";
+  return "file";
+}
+function getFileExtension(name) {
+  const index = name.lastIndexOf(".");
+  if (index <= 0) return "";
+  return name.slice(index + 1).toUpperCase();
+}
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+function toAttachmentPayload(attachment) {
+  if (attachment.status !== "ready" || !attachment.id || !attachment.url) {
+    return null;
+  }
+  return {
+    id: attachment.id,
+    name: attachment.name,
+    mimeType: attachment.mimeType,
+    size: attachment.size,
+    url: attachment.url,
+    thumbnailUrl: attachment.thumbnailUrl
+  };
+}
+function getReadyAttachmentPayloads(attachments) {
+  return attachments.map(toAttachmentPayload).filter((item) => item !== null);
+}
+function getAttachmentPreviewUrl(attachment) {
+  return attachment.thumbnailUrl ?? attachment.previewUrl ?? attachment.url ?? "";
+}
+function collectFilesFromDataTransfer(dataTransfer) {
+  if (!dataTransfer) return [];
+  const files = [];
+  if (dataTransfer.files?.length) {
+    for (const file of Array.from(dataTransfer.files)) {
+      files.push(file);
+    }
+  }
+  return files;
+}
+function collectFilesFromClipboard(clipboard) {
+  if (!clipboard) return [];
+  const files = [];
+  if (clipboard.files?.length) {
+    for (const file of Array.from(clipboard.files)) {
+      files.push(file);
+    }
+  }
+  return files;
+}
+
+// src/nodes/FileLinkNode.ts
+var import_lexical3 = require("lexical");
+var FileLinkNode = class _FileLinkNode extends import_lexical3.ElementNode {
+  static getType() {
+    return "file-link";
+  }
+  static clone(node) {
+    return new _FileLinkNode(
+      node.__fileId,
+      node.__fileName,
+      node.__fileUrl,
+      node.__mimeType,
+      node.__key
+    );
+  }
+  static importJSON(serializedNode) {
+    return $createFileLinkNode({
+      fileId: serializedNode.fileId,
+      fileName: serializedNode.fileName,
+      fileUrl: serializedNode.fileUrl,
+      mimeType: serializedNode.mimeType
+    });
+  }
+  static importDOM() {
+    return {
+      a: (domNode) => {
+        const fileId = domNode.getAttribute(FILE_ID_ATTR);
+        if (!fileId) return null;
+        const fileName = domNode.getAttribute(FILE_NAME_ATTR) ?? domNode.textContent?.trim() ?? "File";
+        const fileUrl = domNode.getAttribute("href") ?? "";
+        const mimeType = domNode.getAttribute(FILE_MIME_ATTR) ?? "application/octet-stream";
+        return {
+          conversion: () => ({
+            node: $createFileLinkNode({
+              fileId,
+              fileName,
+              fileUrl,
+              mimeType
+            })
+          }),
+          priority: 2
+        };
+      }
+    };
+  }
+  constructor(fileId, fileName, fileUrl, mimeType, key) {
+    super(key);
+    this.__fileId = fileId;
+    this.__fileName = fileName;
+    this.__fileUrl = fileUrl;
+    this.__mimeType = mimeType;
+  }
+  exportJSON() {
+    return {
+      ...super.exportJSON(),
+      fileId: this.__fileId,
+      fileName: this.__fileName,
+      fileUrl: this.__fileUrl,
+      mimeType: this.__mimeType,
+      type: "file-link"
+    };
+  }
+  createDOM(config) {
+    const element = document.createElement("a");
+    element.className = config.theme.fileLink ?? "re-file-link";
+    element.href = this.__fileUrl;
+    element.setAttribute(FILE_ID_ATTR, this.__fileId);
+    element.setAttribute(FILE_NAME_ATTR, this.__fileName);
+    element.setAttribute(FILE_MIME_ATTR, this.__mimeType);
+    element.setAttribute("target", "_blank");
+    element.setAttribute("rel", "noopener noreferrer");
+    element.contentEditable = "false";
+    element.textContent = this.__fileName;
+    return element;
+  }
+  updateDOM() {
+    return false;
+  }
+  exportDOM() {
+    const element = document.createElement("a");
+    element.className = "re-file-link";
+    element.href = this.__fileUrl;
+    element.setAttribute(FILE_ID_ATTR, this.__fileId);
+    element.setAttribute(FILE_NAME_ATTR, this.__fileName);
+    element.setAttribute(FILE_MIME_ATTR, this.__mimeType);
+    element.setAttribute("target", "_blank");
+    element.setAttribute("rel", "noopener noreferrer");
+    element.textContent = this.__fileName;
+    return { element };
+  }
+  isInline() {
+    return true;
+  }
+  canBeEmpty() {
+    return false;
+  }
+  canInsertTextBefore() {
+    return false;
+  }
+  canInsertTextAfter() {
+    return false;
+  }
+  getFileId() {
+    return this.getLatest().__fileId;
+  }
+  getFileName() {
+    return this.getLatest().__fileName;
+  }
+  getFileUrl() {
+    return this.getLatest().__fileUrl;
+  }
+  getMimeType() {
+    return this.getLatest().__mimeType;
+  }
+};
+function $createFileLinkNode({
+  fileId,
+  fileName,
+  fileUrl,
+  mimeType
+}) {
+  return (0, import_lexical3.$applyNodeReplacement)(
+    new FileLinkNode(fileId, fileName, fileUrl, mimeType)
+  );
+}
+
+// src/core/attachmentInsert.ts
+var MIN_IMAGE_WIDTH = 80;
+var MAX_IMAGE_WIDTH = 720;
+function readImageDimensions(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      resolve({
+        width: image.naturalWidth || 320,
+        height: image.naturalHeight || 240
+      });
+    };
+    image.onerror = () => reject(new Error("Failed to load image"));
+    image.src = src;
+  });
+}
+async function getDefaultImageDimensions(src) {
+  try {
+    const { width, height } = await readImageDimensions(src);
+    const aspectRatio = width / Math.max(height, 1);
+    const targetWidth = Math.min(
+      MAX_IMAGE_WIDTH,
+      Math.max(MIN_IMAGE_WIDTH, width)
+    );
+    return { width: targetWidth, aspectRatio };
+  } catch {
+    return { width: 320, aspectRatio: 4 / 3 };
+  }
+}
+function getAttachmentSource(attachment) {
+  return attachment.url ?? attachment.previewUrl ?? attachment.thumbnailUrl ?? null;
+}
+async function insertImageAtSelection(editor, attachment) {
+  const src = getAttachmentSource(attachment);
+  if (!src) return;
+  const fileId = attachment.id ?? attachment.localId;
+  const { width, aspectRatio } = await getDefaultImageDimensions(src);
+  editor.update(() => {
+    const imageNode = $createImageNode({
+      src,
+      alt: attachment.name,
+      fileId,
+      width,
+      aspectRatio
+    });
+    const selection = (0, import_lexical4.$getSelection)();
+    if ((0, import_lexical4.$isRangeSelection)(selection)) {
+      (0, import_lexical4.$insertNodes)([imageNode]);
+      return;
+    }
+    const root = (0, import_lexical4.$getRoot)();
+    const lastChild = root.getLastChild();
+    if (lastChild && (0, import_lexical4.$isParagraphNode)(lastChild)) {
+      lastChild.append(imageNode);
+      return;
+    }
+    const paragraph = (0, import_lexical4.$createParagraphNode)();
+    paragraph.append(imageNode);
+    root.append(paragraph);
+  });
+}
+function insertFileLinkAtSelection(editor, attachment) {
+  if (!attachment.id || !attachment.url) return;
+  editor.update(() => {
+    const fileLink = $createFileLinkNode({
+      fileId: attachment.id,
+      fileName: attachment.name,
+      fileUrl: attachment.url,
+      mimeType: attachment.mimeType
+    });
+    const selection = (0, import_lexical4.$getSelection)();
+    if (!(0, import_lexical4.$isRangeSelection)(selection)) {
+      (0, import_lexical4.$insertNodes)([fileLink]);
+      return;
+    }
+    selection.insertNodes([fileLink]);
+  });
+}
+async function insertAttachmentAtSelection(editor, attachment) {
+  if (attachment.status !== "ready") return;
+  if (getFileKind(attachment.mimeType) === "image" || isImageMime(attachment.mimeType)) {
+    await insertImageAtSelection(editor, attachment);
+    return;
+  }
+  insertFileLinkAtSelection(editor, attachment);
+}
+
+// src/components/attachments/ImageComponent.tsx
+var import_jsx_runtime2 = require("react/jsx-runtime");
+function clampWidth(width) {
+  return Math.min(MAX_IMAGE_WIDTH, Math.max(MIN_IMAGE_WIDTH, Math.round(width)));
+}
+function ImageComponent({
+  src,
+  alt,
+  width,
+  aspectRatio,
+  nodeKey
+}) {
+  const [editor] = (0, import_LexicalComposerContext.useLexicalComposerContext)();
+  const [isSelected, setSelected, clearSelection] = (0, import_useLexicalNodeSelection.useLexicalNodeSelection)(nodeKey);
+  const imageRef = (0, import_react2.useRef)(null);
+  const [isResizing, setIsResizing] = (0, import_react2.useState)(false);
+  const height = Math.max(1, Math.round(width / aspectRatio));
+  (0, import_react2.useEffect)(() => {
+    return (0, import_utils.mergeRegister)(
+      editor.registerCommand(
+        import_lexical5.CLICK_COMMAND,
+        (event) => {
+          const target = event.target;
+          if (!imageRef.current?.closest(".re-image-wrap")?.contains(target)) {
+            return false;
+          }
+          if (event.shiftKey) {
+            setSelected(!isSelected);
+          } else {
+            clearSelection();
+            setSelected(true);
+          }
+          return true;
+        },
+        import_lexical5.COMMAND_PRIORITY_LOW
+      )
+    );
+  }, [clearSelection, editor, isSelected, setSelected]);
+  const onResizeStart = (0, import_react2.useCallback)(
+    (edge, event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsResizing(true);
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startWidth = width;
+      const onMove = (moveEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        let nextWidth = startWidth;
+        if (edge === "e") {
+          nextWidth = startWidth + deltaX;
+        } else if (edge === "s") {
+          nextWidth = startWidth + deltaY * aspectRatio;
+        } else {
+          const fromX = startWidth + deltaX;
+          const fromY = startWidth + deltaY * aspectRatio;
+          nextWidth = Math.abs(deltaX) >= Math.abs(deltaY * aspectRatio) ? fromX : fromY;
+        }
+        editor.update(() => {
+          const node = (0, import_lexical5.$getNodeByKey)(nodeKey);
+          if ($isImageNode(node)) {
+            node.setWidth(clampWidth(nextWidth));
+          }
+        });
+      };
+      const onUp = () => {
+        setIsResizing(false);
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [aspectRatio, editor, nodeKey, width]
+  );
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+    "span",
+    {
+      className: `re-image-wrap${isSelected ? " re-image-wrap-selected" : ""}${isResizing ? " re-image-wrap-resizing" : ""}`,
+      style: { width: `${width}px` },
+      contentEditable: false,
+      "data-lexical-decorator": "true",
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "img",
+          {
+            ref: imageRef,
+            className: "re-image",
+            src,
+            alt,
+            width,
+            height,
+            draggable: false
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "span",
+          {
+            className: "re-image-resize-handle re-image-resize-handle-e",
+            onMouseDown: (event) => onResizeStart("e", event),
+            "aria-hidden": "true"
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "span",
+          {
+            className: "re-image-resize-handle re-image-resize-handle-s",
+            onMouseDown: (event) => onResizeStart("s", event),
+            "aria-hidden": "true"
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "span",
+          {
+            className: "re-image-resize-handle re-image-resize-handle-se",
+            onMouseDown: (event) => onResizeStart("se", event),
+            "aria-hidden": "true"
+          }
+        )
+      ]
+    }
+  );
+}
+
+// src/nodes/ImageNode.tsx
+var import_jsx_runtime3 = require("react/jsx-runtime");
+var ImageNode = class _ImageNode extends import_lexical6.DecoratorNode {
+  static getType() {
+    return "image";
+  }
+  static clone(node) {
+    return new _ImageNode(
+      node.__src,
+      node.__alt,
+      node.__fileId,
+      node.__width,
+      node.__aspectRatio,
+      node.__key
+    );
+  }
+  static importJSON(serializedNode) {
+    return $createImageNode({
+      src: serializedNode.src,
+      alt: serializedNode.alt,
+      fileId: serializedNode.fileId,
+      width: serializedNode.width,
+      aspectRatio: serializedNode.aspectRatio
+    });
+  }
+  static importDOM() {
+    return {
+      img: (domNode) => {
+        if (!(domNode instanceof HTMLImageElement)) return null;
+        const fileId = domNode.getAttribute(FILE_ID_ATTR);
+        if (!fileId) return null;
+        const src = domNode.getAttribute("src") ?? "";
+        const alt = domNode.getAttribute("alt") ?? "";
+        const width = Number(domNode.getAttribute("width")) || 320;
+        const aspectRatio = Number(domNode.getAttribute(IMAGE_ASPECT_ATTR)) || (domNode.width && domNode.height ? domNode.width / domNode.height : 4 / 3);
+        return {
+          conversion: () => ({
+            node: $createImageNode({
+              src,
+              alt,
+              fileId,
+              width,
+              aspectRatio
+            })
+          }),
+          priority: 2
+        };
+      }
+    };
+  }
+  constructor(src, alt, fileId, width, aspectRatio, key) {
+    super(key);
+    this.__src = src;
+    this.__alt = alt;
+    this.__fileId = fileId;
+    this.__width = width;
+    this.__aspectRatio = aspectRatio;
+  }
+  exportJSON() {
+    return {
+      type: "image",
+      version: 1,
+      src: this.__src,
+      alt: this.__alt,
+      fileId: this.__fileId,
+      width: this.__width,
+      aspectRatio: this.__aspectRatio
+    };
+  }
+  exportDOM() {
+    const element = document.createElement("img");
+    element.className = "re-image";
+    element.src = this.__src;
+    element.alt = this.__alt;
+    element.setAttribute(FILE_ID_ATTR, this.__fileId);
+    element.width = this.__width;
+    element.height = Math.max(1, Math.round(this.__width / this.__aspectRatio));
+    element.setAttribute(IMAGE_ASPECT_ATTR, String(this.__aspectRatio));
+    element.style.width = `${this.__width}px`;
+    element.style.maxWidth = "100%";
+    element.style.height = "auto";
+    return { element };
+  }
+  createDOM() {
+    const span = document.createElement("span");
+    span.className = "re-image-host";
+    span.style.display = "inline-block";
+    span.style.maxWidth = "100%";
+    span.style.verticalAlign = "bottom";
+    return span;
+  }
+  updateDOM() {
+    return false;
+  }
+  decorate() {
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      ImageComponent,
+      {
+        src: this.__src,
+        alt: this.__alt,
+        width: this.__width,
+        aspectRatio: this.__aspectRatio,
+        nodeKey: this.getKey()
+      }
+    );
+  }
+  isInline() {
+    return true;
+  }
+  getSrc() {
+    return this.getLatest().__src;
+  }
+  getAlt() {
+    return this.getLatest().__alt;
+  }
+  getFileId() {
+    return this.getLatest().__fileId;
+  }
+  getWidth() {
+    return this.getLatest().__width;
+  }
+  getAspectRatio() {
+    return this.getLatest().__aspectRatio;
+  }
+  setWidth(width) {
+    const writable = this.getWritable();
+    writable.__width = width;
+  }
+  setSrc(src) {
+    const writable = this.getWritable();
+    writable.__src = src;
+  }
+  setFileId(fileId) {
+    const writable = this.getWritable();
+    writable.__fileId = fileId;
+  }
+};
+function $createImageNode({
+  src,
+  alt,
+  fileId,
+  width,
+  aspectRatio
+}) {
+  return (0, import_lexical6.$applyNodeReplacement)(
+    new ImageNode(src, alt, fileId, width, aspectRatio)
+  );
+}
+function $isImageNode(node) {
+  return node instanceof ImageNode;
+}
 
 // src/core/html.ts
 var import_isomorphic_dompurify = __toESM(require("isomorphic-dompurify"), 1);
@@ -3755,9 +3744,6 @@ function SpoilerPlugin() {
 var import_LexicalComposerContext14 = require("@lexical/react/LexicalComposerContext");
 var import_lexical22 = require("lexical");
 var import_react16 = require("react");
-init_attachments();
-init_attachmentInsert();
-init_ImageNode();
 function syncUploadedImages(editor, attachments) {
   editor.update(() => {
     const imageNodes = (0, import_lexical22.$nodesOfType)(ImageNode);
@@ -3859,8 +3845,7 @@ function AttachmentsPlugin({
 async function handleInsertAttachment(editor, attachments, localId) {
   const attachment = attachments.find((item) => item.localId === localId);
   if (!attachment) return;
-  const { insertAttachmentAtSelection: insertAttachmentAtSelection2 } = await Promise.resolve().then(() => (init_attachmentInsert(), attachmentInsert_exports));
-  await insertAttachmentAtSelection2(editor, attachment);
+  await insertAttachmentAtSelection(editor, attachment);
 }
 
 // src/components/plugins/index.tsx
@@ -3989,7 +3974,6 @@ var import_LexicalComposerContext16 = require("@lexical/react/LexicalComposerCon
 
 // src/components/attachments/AttachmentStrip.tsx
 var import_react18 = require("react");
-init_attachments();
 var import_jsx_runtime10 = require("react/jsx-runtime");
 function useAttachmentUploads({
   onUploadFile,

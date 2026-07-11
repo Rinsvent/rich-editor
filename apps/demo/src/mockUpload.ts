@@ -1,10 +1,11 @@
 import type { UploadedFile, UploadFileFn } from "@rinsvent/rich-editor";
+import { registerDemoFileUrl } from "./uploadRegistry";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-/** Demo upload that mimics S3 presigned upload latency and returns a blob URL. */
+/** Demo upload that mimics S3 presigned upload latency and returns a persisted blob URL. */
 export const mockUploadFile: UploadFileFn = async (file, options) => {
   const steps = 8;
   for (let step = 1; step <= steps; step += 1) {
@@ -15,9 +16,10 @@ export const mockUploadFile: UploadFileFn = async (file, options) => {
     await delay(120 + Math.random() * 80);
   }
 
-  const url = URL.createObjectURL(file);
+  const id = crypto.randomUUID();
+  const url = registerDemoFileUrl(id, file);
   const uploaded: UploadedFile = {
-    id: crypto.randomUUID(),
+    id,
     url,
     name: file.name,
     mimeType: file.type || "application/octet-stream",

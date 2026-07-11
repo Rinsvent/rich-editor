@@ -127,12 +127,18 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     element.width = this.__width;
     element.height = Math.max(1, Math.round(this.__width / this.__aspectRatio));
     element.setAttribute(IMAGE_ASPECT_ATTR, String(this.__aspectRatio));
+    element.style.width = `${this.__width}px`;
+    element.style.maxWidth = "100%";
+    element.style.height = "auto";
     return { element };
   }
 
   createDOM(): HTMLElement {
     const span = document.createElement("span");
     span.className = "re-image-host";
+    span.style.display = "inline-block";
+    span.style.maxWidth = "100%";
+    span.style.verticalAlign = "bottom";
     return span;
   }
 
@@ -152,8 +158,8 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     );
   }
 
-  isInline(): false {
-    return false;
+  isInline(): true {
+    return true;
   }
 
   getSrc(): string {

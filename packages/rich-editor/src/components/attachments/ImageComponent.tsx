@@ -13,6 +13,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { $isImageNode } from "../../nodes/ImageNode";
 import { MAX_IMAGE_WIDTH, MIN_IMAGE_WIDTH } from "../../core/attachmentInsert";
 
+type ResizeEdge = "e" | "s" | "se";
+
+function clampWidth(width: number): number {
+  return Math.min(MAX_IMAGE_WIDTH, Math.max(MIN_IMAGE_WIDTH, Math.round(width)));
+}
+
 export function ImageComponent({
   src,
   alt,
@@ -40,7 +46,9 @@ export function ImageComponent({
         CLICK_COMMAND,
         (event) => {
           const target = event.target as Node | null;
-          if (!imageRef.current?.contains(target)) return false;
+          if (!imageRef.current?.closest(".re-image-wrap")?.contains(target)) {
+            return false;
+          }
           if (event.shiftKey) {
             setSelected(!isSelected);
           } else {
@@ -55,23 +63,34 @@ export function ImageComponent({
   }, [clearSelection, editor, isSelected, setSelected]);
 
   const onResizeStart = useCallback(
-    (event: React.MouseEvent) => {
+    (edge: ResizeEdge, event: React.MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
       setIsResizing(true);
       const startX = event.clientX;
+      const startY = event.clientY;
       const startWidth = width;
 
       const onMove = (moveEvent: MouseEvent) => {
-        const delta = moveEvent.clientX - startX;
-        const nextWidth = Math.min(
-          MAX_IMAGE_WIDTH,
-          Math.max(MIN_IMAGE_WIDTH, startWidth + delta),
-        );
+        const deltaX = moveEvent.clientX - startX;
+        const deltaY = moveEvent.clientY - startY;
+        let nextWidth = startWidth;
+
+        if (edge === "e") {
+          nextWidth = startWidth + deltaX;
+        } else if (edge === "s") {
+          nextWidth = startWidth + deltaY * aspectRatio;
+        } else {
+          const fromX = startWidth + deltaX;
+          const fromY = startWidth + deltaY * aspectRatio;
+          nextWidth =
+            Math.abs(deltaX) >= Math.abs(deltaY * aspectRatio) ? fromX : fromY;
+        }
+
         editor.update(() => {
           const node = $getNodeByKey(nodeKey);
           if ($isImageNode(node)) {
-            node.setWidth(nextWidth);
+            node.setWidth(clampWidth(nextWidth));
           }
         });
       };
@@ -85,12 +104,13 @@ export function ImageComponent({
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     },
-    [editor, nodeKey, width],
+    [aspectRatio, editor, nodeKey, width],
   );
 
   return (
     <span
       className={`re-image-wrap${isSelected ? " re-image-wrap-selected" : ""}${isResizing ? " re-image-wrap-resizing" : ""}`}
+      style={{ width: `${width}px` }}
       contentEditable={false}
       data-lexical-decorator="true"
     >
@@ -104,8 +124,18 @@ export function ImageComponent({
         draggable={false}
       />
       <span
-        className="re-image-resize-handle"
-        onMouseDown={onResizeStart}
+        className="re-image-resize-handle re-image-resize-handle-e"
+        onMouseDown={(event) => onResizeStart("e", event)}
+        aria-hidden="true"
+      />
+      <span
+        className="re-image-resize-handle re-image-resize-handle-s"
+        onMouseDown={(event) => onResizeStart("s", event)}
+        aria-hidden="true"
+      />
+      <span
+        className="re-image-resize-handle re-image-resize-handle-se"
+        onMouseDown={(event) => onResizeStart("se", event)}
         aria-hidden="true"
       />
     </span>

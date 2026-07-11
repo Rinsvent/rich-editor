@@ -1,10 +1,7 @@
 import { useState } from "react";
-import {
-  RichTextEditor,
-  RichTextViewer,
-  type RichTextSubmitPayload,
-} from "@rinsvent/rich-editor";
+import { RichTextEditor, type RichTextSubmitPayload } from "@rinsvent/rich-editor";
 import { mockUploadFile } from "../mockUpload";
+import { ChatMessagePreview } from "../components/ChatMessagePreview";
 
 type ChatMessage = RichTextSubmitPayload;
 
@@ -48,20 +45,8 @@ export function ChatPage() {
         <h2>Messages</h2>
         {messages.length === 0 && <p style={{ opacity: 0.6 }}>Пока пусто</p>}
         {messages.map((message, i) => (
-          <div key={i} style={{ marginBottom: "1rem" }}>
-            <RichTextViewer content={message.html} />
-            {message.attachments.length > 0 && (
-              <ul style={{ margin: "0.35rem 0 0", paddingLeft: "1.25rem", fontSize: "0.85rem" }}>
-                {message.attachments.map((file) => (
-                  <li key={file.id}>
-                    <a href={file.url} target="_blank" rel="noreferrer">
-                      {file.name}
-                    </a>{" "}
-                    ({file.mimeType})
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div key={i} className="demo-message-wrap">
+            <ChatMessagePreview message={message} />
           </div>
         ))}
       </div>
