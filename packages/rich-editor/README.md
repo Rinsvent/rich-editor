@@ -64,6 +64,23 @@ Keyboard shortcuts (when `keyboardShortcuts` is enabled):
 | Ctrl/Cmd+E | Inline code |
 | Ctrl/Cmd+Shift+X | Strikethrough |
 
+### Mentions
+
+```tsx
+<RichTextEditor
+  features={{ mentions: true }}
+  mentionSearch={(query) => users.filter((u) => u.label.includes(query))}
+  onSubmit={send}
+/>
+
+<RichTextViewer
+  content={html}
+  onMentionClick={({ id, label }) => openProfile(id)}
+/>
+```
+
+Storage: `<span data-mention-id="…" data-mention-label="…">@label</span>`
+
 ## Tests
 
 ```bash

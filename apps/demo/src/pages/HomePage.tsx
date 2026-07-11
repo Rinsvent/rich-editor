@@ -27,6 +27,9 @@ export function HomePage() {
         <li>
           <Link to="/playground">Playground</Link> — editor + live viewer
         </li>
+        <li>
+          <Link to="/mentions">Mentions</Link> — @user typeahead
+        </li>
       </ul>
     </div>
   );

@@ -22,4 +22,5 @@ export const editorTheme = {
     listitem: "re-list-item",
   },
   link: "re-link",
+  mention: "re-mention",
 };

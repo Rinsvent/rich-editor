@@ -29,7 +29,14 @@ const ALLOWED_TAGS = [
 export function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS,
-    ALLOWED_ATTR: ["href", "class", "target", "rel"],
+    ALLOWED_ATTR: [
+      "href",
+      "class",
+      "target",
+      "rel",
+      "data-mention-id",
+      "data-mention-label",
+    ],
   });
 }
 

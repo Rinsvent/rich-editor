@@ -11,6 +11,7 @@ export type EditorFeatures = {
   markdownShortcuts: boolean;
   markdownPaste: boolean;
   keyboardShortcuts: boolean;
+  mentions: boolean;
 };
 
 export const defaultFeatures: EditorFeatures = {
@@ -26,6 +27,7 @@ export const defaultFeatures: EditorFeatures = {
   markdownShortcuts: true,
   markdownPaste: true,
   keyboardShortcuts: true,
+  mentions: false,
 };
 
 export function resolveFeatures(

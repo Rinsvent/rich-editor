@@ -213,6 +213,52 @@
 
 .re-link { color: var(--re-accent); text-decoration: underline; }
 
+.re-mention,
+.re-editor-input .re-mention {
+  color: var(--re-accent);
+  font-weight: 500;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--re-accent) 15%, transparent);
+  padding: 0 0.15rem;
+  cursor: default;
+}
+
+.re-viewer .re-mention,
+.re-viewer [data-mention-id] {
+  cursor: pointer;
+}
+
+.re-mention-menu {
+  position: absolute;
+  z-index: 30;
+  min-width: 180px;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--re-border);
+  background: var(--re-bg);
+  padding: 0.25rem 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.re-mention-menu-item {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--re-text);
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.re-mention-menu-item:hover,
+.re-mention-menu-item[aria-selected="true"] {
+  background: var(--re-hover);
+  color: var(--re-accent);
+}
+
 .re-viewer {
   font-size: var(--re-font-size);
   line-height: var(--re-line-height);

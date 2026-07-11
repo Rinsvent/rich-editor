@@ -19,6 +19,8 @@ export type {
   ViewerFeatures,
 } from "./core/features";
 
+export type { MentionOption, MentionSearchFn } from "./core/mentions";
+
 export {
   defaultFeatures,
   defaultLabels,

@@ -24,6 +24,12 @@ const samples = [
     content: "<p><s>deleted text</s> and <b><s>bold strike</s></b></p>",
   },
   {
+    title: "Mention",
+    content:
+      '<p>Hey <span class="re-mention" data-mention-id="1" data-mention-label="alice">@alice</span></p>',
+  },
+  {
+    title: "Link",
     content: '<p>Ссылка: <a href="https://example.com">example.com</a></p>',
   },
 ];

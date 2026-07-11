@@ -39,6 +39,8 @@ import {
   resolveFeatures,
   resolveLabels,
 } from "../core/features";
+import type { MentionSearchFn } from "../core/mentions";
+import { MentionNode } from "../nodes/MentionNode";
 import { normalizeHtml } from "../core/html";
 import { buildMarkdownTransformers } from "../core/markdown";
 import { editorTheme } from "../core/theme";
@@ -52,6 +54,7 @@ import {
   InitialHtmlPlugin,
   KeyboardShortcutsPlugin,
   MarkdownPastePlugin,
+  MentionsPlugin,
   SetHtmlPlugin,
 } from "./plugins";
 import { EditorToolbar } from "./toolbar/EditorToolbar";
@@ -85,6 +88,7 @@ export type RichTextEditorProps = {
   theme?: "light" | "dark";
   minRows?: number;
   maxRows?: number;
+  mentionSearch?: MentionSearchFn;
   children?: ReactNode;
 };
 
@@ -248,6 +252,7 @@ function RichTextEditorInner(
     theme = "dark",
     minRows = 1,
     maxRows = 8,
+    mentionSearch,
     children,
   }: RichTextEditorProps,
   ref: React.Ref<RichTextEditorHandle>,
@@ -287,9 +292,10 @@ function RichTextEditorInner(
         CodeHighlightNode,
         LinkNode,
         AutoLinkNode,
+        ...(features.mentions ? [MentionNode] : []),
       ],
     }),
-    [disabled],
+    [disabled, features.mentions],
   );
 
   const transformers = useMemo(
@@ -386,6 +392,9 @@ function RichTextEditorInner(
             )}
             <MarkdownPastePlugin features={features} />
             <KeyboardShortcutsPlugin features={features} disabled={disabled} />
+            {features.mentions && mentionSearch && (
+              <MentionsPlugin searchMentions={mentionSearch} />
+            )}
             {onSubmit && (
               <EnterPlugin
                 behavior={enterBehavior}

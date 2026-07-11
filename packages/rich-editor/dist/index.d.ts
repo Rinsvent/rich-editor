@@ -18,6 +18,7 @@ type EditorFeatures = {
     markdownShortcuts: boolean;
     markdownPaste: boolean;
     keyboardShortcuts: boolean;
+    mentions: boolean;
 };
 declare const defaultFeatures: EditorFeatures;
 type EditorLabels = {
@@ -36,6 +37,12 @@ type ViewerFeatures = {
     linkTarget: string;
 };
 declare const defaultViewerFeatures: ViewerFeatures;
+
+type MentionOption = {
+    id: string;
+    label: string;
+};
+type MentionSearchFn = (query: string) => MentionOption[] | Promise<MentionOption[]>;
 
 type RichTextEditorHandle = {
     getHtml: () => string;
@@ -58,6 +65,7 @@ type RichTextEditorProps = {
     theme?: "light" | "dark";
     minRows?: number;
     maxRows?: number;
+    mentionSearch?: MentionSearchFn;
     children?: ReactNode;
 };
 declare function exportEditorHtml(editor: LexicalEditor): string;
@@ -94,8 +102,9 @@ type RichTextViewerProps = {
     features?: Partial<ViewerFeatures>;
     className?: string;
     theme?: "light" | "dark";
+    onMentionClick?: (mention: MentionOption) => void;
 };
-declare function RichTextViewer({ content, features: featuresProp, className, theme, }: RichTextViewerProps): react.JSX.Element;
+declare function RichTextViewer({ content, features: featuresProp, className, theme, onMentionClick, }: RichTextViewerProps): react.JSX.Element;
 
 type FormatState = {
     bold: boolean;
@@ -135,4 +144,4 @@ declare function buildMarkdownTransformers(features: EditorFeatures): Transforme
 declare function looksLikeMarkdown(text: string): boolean;
 declare function markdownToHtml(markdown: string): string;
 
-export { type EditorFeatures, type EditorLabels, type EnterBehavior, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, buildMarkdownTransformers, defaultFeatures, defaultLabels, defaultViewerFeatures, exportEditorHtml, isHtmlContent, looksLikeMarkdown, markdownToHtml, normalizeHtml, plainTextFromHtml, sanitizeHtml, useRichTextEditor };
+export { type EditorFeatures, type EditorLabels, type EnterBehavior, type MentionOption, type MentionSearchFn, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, buildMarkdownTransformers, defaultFeatures, defaultLabels, defaultViewerFeatures, exportEditorHtml, isHtmlContent, looksLikeMarkdown, markdownToHtml, normalizeHtml, plainTextFromHtml, sanitizeHtml, useRichTextEditor };

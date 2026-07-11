@@ -6,6 +6,7 @@ import { ChatPage } from "./pages/ChatPage";
 import { TaskPage } from "./pages/TaskPage";
 import { ViewerPage } from "./pages/ViewerPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
+import { MentionsPage } from "./pages/MentionsPage";
 
 const links = [
   { to: "/", label: "Overview" },
@@ -15,6 +16,7 @@ const links = [
   { to: "/editor/task", label: "Task" },
   { to: "/viewer", label: "Viewer" },
   { to: "/playground", label: "Playground" },
+  { to: "/mentions", label: "Mentions" },
 ];
 
 export function App() {
@@ -41,6 +43,7 @@ export function App() {
         <Route path="/editor/task" element={<TaskPage />} />
         <Route path="/viewer" element={<ViewerPage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
+        <Route path="/mentions" element={<MentionsPage />} />
       </Routes>
     </div>
   );

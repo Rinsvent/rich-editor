@@ -12,6 +12,8 @@ import {
 } from "../core/features";
 import { isHtmlContent, sanitizeHtml } from "../core/html";
 import { cn } from "../core/cn";
+import type { MentionOption } from "../core/mentions";
+import { MENTION_ID_ATTR, MENTION_LABEL_ATTR } from "../core/mentions";
 
 hljs.registerLanguage("javascript", javascript);
 hljs.registerLanguage("js", javascript);
@@ -25,6 +27,7 @@ export type RichTextViewerProps = {
   features?: Partial<ViewerFeatures>;
   className?: string;
   theme?: "light" | "dark";
+  onMentionClick?: (mention: MentionOption) => void;
 };
 
 export function RichTextViewer({
@@ -32,6 +35,7 @@ export function RichTextViewer({
   features: featuresProp,
   className,
   theme = "dark",
+  onMentionClick,
 }: RichTextViewerProps) {
   const features = resolveViewerFeatures(featuresProp);
   const ref = useRef<HTMLDivElement>(null);
@@ -56,6 +60,29 @@ export function RichTextViewer({
       a.setAttribute("rel", "noopener noreferrer");
     });
   }, [content, features.linkTarget, isHtml]);
+
+  useEffect(() => {
+    if (!isHtml || !onMentionClick) return;
+    const root = ref.current;
+    if (!root) return;
+
+    const handler = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement).closest(
+        `[${MENTION_ID_ATTR}]`,
+      );
+      if (!target || !root.contains(target)) return;
+      const id = target.getAttribute(MENTION_ID_ATTR);
+      if (!id) return;
+      const label =
+        target.getAttribute(MENTION_LABEL_ATTR) ??
+        target.textContent?.replace(/^@/, "") ??
+        id;
+      onMentionClick({ id, label });
+    };
+
+    root.addEventListener("click", handler);
+    return () => root.removeEventListener("click", handler);
+  }, [content, isHtml, onMentionClick]);
 
   if (!isHtml) {
     return (
