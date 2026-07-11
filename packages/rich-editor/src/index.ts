@@ -45,7 +45,11 @@ export {
   normalizeHtml,
   isHtmlContent,
   plainTextFromHtml,
+  applyLinkTargetToHtml,
 } from "./core/html";
+
+export { prepareViewerContent } from "./core/viewerHtml";
+export type { PreparedViewerContent } from "./core/viewerHtml";
 
 export {
   buildMarkdownTransformers,

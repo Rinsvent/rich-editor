@@ -225,7 +225,7 @@ function $createMentionNode(mentionId, mentionLabel, textContent) {
 }
 
 // src/core/html.ts
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 var ALLOWED_TAGS = [
   "p",
   "br",
@@ -266,6 +266,16 @@ function sanitizeHtml(html) {
 }
 function isHtmlContent(content) {
   return /<[a-z][\s\S]*>/i.test(content.trim());
+}
+function applyLinkTargetToHtml(html, target) {
+  return html.replace(/<a\b([^>]*)>/gi, (match, attrs) => {
+    if (/\btarget\s*=/.test(attrs)) return match;
+    let next = attrs;
+    if (!/\brel\s*=/.test(next)) {
+      next = `${next} rel="noopener noreferrer"`;
+    }
+    return `<a${next} target="${target}">`;
+  });
 }
 function plainTextFromHtml(html) {
   if (typeof document === "undefined") {
@@ -1390,19 +1400,44 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-import { useEffect as useEffect8, useRef as useRef3 } from "react";
-import hljs from "highlight.js/lib/core";
-import javascript from "highlight.js/lib/languages/javascript";
-import json from "highlight.js/lib/languages/json";
-import plaintext from "highlight.js/lib/languages/plaintext";
-import typescript from "highlight.js/lib/languages/typescript";
+import { useEffect as useEffect8, useMemo as useMemo3, useRef as useRef3 } from "react";
+
+// src/core/viewerHtml.ts
+function prepareViewerContent(content, features) {
+  if (!isHtmlContent(content)) {
+    return { kind: "plain", text: content };
+  }
+  let html = sanitizeHtml(content);
+  if (features.linkTarget) {
+    html = applyLinkTargetToHtml(html, features.linkTarget);
+  }
+  return { kind: "html", html };
+}
+
+// src/components/highlightViewerCode.ts
+async function highlightViewerCodeBlocks(root) {
+  if (!root) return;
+  const [hljsModule, javascript, typescript, json, plaintext] = await Promise.all([
+    import("highlight.js/lib/core"),
+    import("highlight.js/lib/languages/javascript"),
+    import("highlight.js/lib/languages/typescript"),
+    import("highlight.js/lib/languages/json"),
+    import("highlight.js/lib/languages/plaintext")
+  ]);
+  const hljs = hljsModule.default;
+  hljs.registerLanguage("javascript", javascript.default);
+  hljs.registerLanguage("js", javascript.default);
+  hljs.registerLanguage("typescript", typescript.default);
+  hljs.registerLanguage("ts", typescript.default);
+  hljs.registerLanguage("json", json.default);
+  hljs.registerLanguage("plaintext", plaintext.default);
+  root.querySelectorAll("pre code").forEach((el) => {
+    hljs.highlightElement(el);
+  });
+}
+
+// src/components/RichTextViewer.tsx
 import { jsx as jsx5 } from "react/jsx-runtime";
-hljs.registerLanguage("javascript", javascript);
-hljs.registerLanguage("js", javascript);
-hljs.registerLanguage("typescript", typescript);
-hljs.registerLanguage("ts", typescript);
-hljs.registerLanguage("json", json);
-hljs.registerLanguage("plaintext", plaintext);
 function RichTextViewer({
   content,
   features: featuresProp,
@@ -1412,27 +1447,16 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const ref = useRef3(null);
-  const isHtml = isHtmlContent(content);
-  const html = isHtml ? sanitizeHtml(content) : "";
+  const prepared = useMemo3(
+    () => prepareViewerContent(content, features),
+    [content, features]
+  );
   useEffect8(() => {
-    if (!isHtml || !features.codeHighlight) return;
-    const root = ref.current;
-    if (!root) return;
-    root.querySelectorAll("pre code").forEach((el) => {
-      hljs.highlightElement(el);
-    });
-  }, [content, features.codeHighlight, isHtml]);
+    if (prepared.kind !== "html" || !features.codeHighlight) return;
+    void highlightViewerCodeBlocks(ref.current);
+  }, [prepared, features.codeHighlight]);
   useEffect8(() => {
-    if (!isHtml || !features.linkTarget) return;
-    const root = ref.current;
-    if (!root) return;
-    root.querySelectorAll("a[href]").forEach((a) => {
-      a.setAttribute("target", features.linkTarget);
-      a.setAttribute("rel", "noopener noreferrer");
-    });
-  }, [content, features.linkTarget, isHtml]);
-  useEffect8(() => {
-    if (!isHtml || !onMentionClick) return;
+    if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
     const handler = (event) => {
@@ -1447,14 +1471,14 @@ function RichTextViewer({
     };
     root.addEventListener("click", handler);
     return () => root.removeEventListener("click", handler);
-  }, [content, isHtml, onMentionClick]);
-  if (!isHtml) {
+  }, [prepared, onMentionClick]);
+  if (prepared.kind === "plain") {
     return /* @__PURE__ */ jsx5(
       "p",
       {
         ...themeDataAttribute(theme),
         className: cn("re-viewer re-viewer-plain", className),
-        children: content
+        children: prepared.text
       }
     );
   }
@@ -1464,13 +1488,14 @@ function RichTextViewer({
       ref,
       ...themeDataAttribute(theme),
       className: cn("re-viewer", className),
-      dangerouslySetInnerHTML: { __html: html }
+      dangerouslySetInnerHTML: { __html: prepared.html }
     }
   );
 }
 export {
   RichTextEditor,
   RichTextViewer,
+  applyLinkTargetToHtml,
   buildMarkdownTransformers,
   defaultEditorTheme,
   defaultFeatures,
@@ -1485,6 +1510,7 @@ export {
   markdownToHtml,
   normalizeHtml,
   plainTextFromHtml,
+  prepareViewerContent,
   sanitizeHtml,
   useRichTextEditor
 };

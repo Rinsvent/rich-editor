@@ -98,6 +98,21 @@ Override variables on a wrapper:
 }
 ```
 
+### SSR (Next.js / RSC)
+
+`RichTextViewer` sanitizes HTML during render using `isomorphic-dompurify` — safe on server and client.
+
+Code highlighting runs client-only after mount (no hydration mismatch).
+
+For static HTML outside React:
+
+```tsx
+import { prepareViewerContent, defaultViewerFeatures } from "@rinsvent/rich-editor";
+
+const { kind, ...rest } = prepareViewerContent(html, defaultViewerFeatures);
+// kind === "html" → rest.html; kind === "plain" → rest.text
+```
+
 ## Tests
 
 ```bash

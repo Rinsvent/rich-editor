@@ -1,28 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import hljs from "highlight.js/lib/core";
-import javascript from "highlight.js/lib/languages/javascript";
-import json from "highlight.js/lib/languages/json";
-import plaintext from "highlight.js/lib/languages/plaintext";
-import typescript from "highlight.js/lib/languages/typescript";
+import { useEffect, useMemo, useRef } from "react";
 import {
   resolveViewerFeatures,
   type ViewerFeatures,
 } from "../core/features";
-import { isHtmlContent, sanitizeHtml } from "../core/html";
 import { cn } from "../core/cn";
 import type { MentionOption } from "../core/mentions";
 import { MENTION_ID_ATTR, MENTION_LABEL_ATTR } from "../core/mentions";
 import { defaultEditorTheme, type EditorTheme } from "../core/presets";
 import { themeDataAttribute } from "../core/themePresets";
-
-hljs.registerLanguage("javascript", javascript);
-hljs.registerLanguage("js", javascript);
-hljs.registerLanguage("typescript", typescript);
-hljs.registerLanguage("ts", typescript);
-hljs.registerLanguage("json", json);
-hljs.registerLanguage("plaintext", plaintext);
+import { prepareViewerContent } from "../core/viewerHtml";
+import { highlightViewerCodeBlocks } from "./highlightViewerCode";
 
 export type RichTextViewerProps = {
   content: string;
@@ -41,30 +30,19 @@ export function RichTextViewer({
 }: RichTextViewerProps) {
   const features = resolveViewerFeatures(featuresProp);
   const ref = useRef<HTMLDivElement>(null);
-  const isHtml = isHtmlContent(content);
-  const html = isHtml ? sanitizeHtml(content) : "";
+
+  const prepared = useMemo(
+    () => prepareViewerContent(content, features),
+    [content, features],
+  );
 
   useEffect(() => {
-    if (!isHtml || !features.codeHighlight) return;
-    const root = ref.current;
-    if (!root) return;
-    root.querySelectorAll("pre code").forEach((el) => {
-      hljs.highlightElement(el as HTMLElement);
-    });
-  }, [content, features.codeHighlight, isHtml]);
+    if (prepared.kind !== "html" || !features.codeHighlight) return;
+    void highlightViewerCodeBlocks(ref.current);
+  }, [prepared, features.codeHighlight]);
 
   useEffect(() => {
-    if (!isHtml || !features.linkTarget) return;
-    const root = ref.current;
-    if (!root) return;
-    root.querySelectorAll("a[href]").forEach((a) => {
-      a.setAttribute("target", features.linkTarget);
-      a.setAttribute("rel", "noopener noreferrer");
-    });
-  }, [content, features.linkTarget, isHtml]);
-
-  useEffect(() => {
-    if (!isHtml || !onMentionClick) return;
+    if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
 
@@ -84,15 +62,15 @@ export function RichTextViewer({
 
     root.addEventListener("click", handler);
     return () => root.removeEventListener("click", handler);
-  }, [content, isHtml, onMentionClick]);
+  }, [prepared, onMentionClick]);
 
-  if (!isHtml) {
+  if (prepared.kind === "plain") {
     return (
       <p
         {...themeDataAttribute(theme)}
         className={cn("re-viewer re-viewer-plain", className)}
       >
-        {content}
+        {prepared.text}
       </p>
     );
   }
@@ -102,7 +80,7 @@ export function RichTextViewer({
       ref={ref}
       {...themeDataAttribute(theme)}
       className={cn("re-viewer", className)}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: prepared.html }}
     />
   );
 }

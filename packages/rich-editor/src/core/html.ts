@@ -1,4 +1,4 @@
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 
 const ALLOWED_TAGS = [
   "p",
@@ -42,6 +42,18 @@ export function sanitizeHtml(html: string): string {
 
 export function isHtmlContent(content: string): boolean {
   return /<[a-z][\s\S]*>/i.test(content.trim());
+}
+
+/** Add target/rel to links for SSR-safe viewer output. */
+export function applyLinkTargetToHtml(html: string, target: string): string {
+  return html.replace(/<a\b([^>]*)>/gi, (match, attrs: string) => {
+    if (/\btarget\s*=/.test(attrs)) return match;
+    let next = attrs;
+    if (!/\brel\s*=/.test(next)) {
+      next = `${next} rel="noopener noreferrer"`;
+    }
+    return `<a${next} target="${target}">`;
+  });
 }
 
 export function plainTextFromHtml(html: string): string {

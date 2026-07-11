@@ -147,12 +147,24 @@ declare function useRichTextEditor(): RichTextEditorContextValue;
 
 declare function sanitizeHtml(html: string): string;
 declare function isHtmlContent(content: string): boolean;
+/** Add target/rel to links for SSR-safe viewer output. */
+declare function applyLinkTargetToHtml(html: string, target: string): string;
 declare function plainTextFromHtml(html: string): string;
 /** Normalize Lexical HTML export to our API subset (b/i/s, no nested duplicates). */
 declare function normalizeHtml(html: string): string;
+
+type PreparedViewerContent = {
+    kind: "plain";
+    text: string;
+} | {
+    kind: "html";
+    html: string;
+};
+/** Sanitize and enrich HTML for RichTextViewer (safe on server and client). */
+declare function prepareViewerContent(content: string, features: Pick<ViewerFeatures, "linkTarget">): PreparedViewerContent;
 
 declare function buildMarkdownTransformers(features: EditorFeatures): Transformer[];
 declare function looksLikeMarkdown(text: string): boolean;
 declare function markdownToHtml(markdown: string): string;
 
-export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type MentionOption, type MentionSearchFn, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, buildMarkdownTransformers, defaultEditorTheme, defaultFeatures, defaultLabels, defaultViewerFeatures, editorCssVariables, editorThemePresets, exportEditorHtml, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownToHtml, normalizeHtml, plainTextFromHtml, sanitizeHtml, useRichTextEditor };
+export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultFeatures, defaultLabels, defaultViewerFeatures, editorCssVariables, editorThemePresets, exportEditorHtml, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownToHtml, normalizeHtml, plainTextFromHtml, prepareViewerContent, sanitizeHtml, useRichTextEditor };
