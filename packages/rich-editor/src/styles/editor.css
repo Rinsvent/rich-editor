@@ -483,19 +483,27 @@
   cursor: pointer;
 }
 
-.re-viewer .re-inline-code-copyable {
+.re-viewer p code.re-inline-code-copyable,
+.re-viewer .re-paragraph code.re-inline-code-copyable {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
-.re-viewer .re-inline-code-copyable:hover {
+.re-viewer p code.re-inline-code-copyable:hover,
+.re-viewer .re-paragraph code.re-inline-code-copyable:hover {
   background: color-mix(in srgb, var(--re-accent) 18%, var(--re-code-bg));
   color: var(--re-accent);
 }
 
-.re-viewer .re-inline-code-copied {
+.re-viewer p code.re-inline-code-copied,
+.re-viewer .re-paragraph code.re-inline-code-copied {
   background: color-mix(in srgb, var(--re-accent) 22%, var(--re-code-bg));
   color: var(--re-accent);
+}
+
+.re-code-block-wrap > pre.re-block-code,
+.re-code-block-wrap > .re-block-code {
+  cursor: text;
 }
 
 .re-viewer a {

@@ -14,15 +14,13 @@ function collectCodeBlocks(root: HTMLElement): Element[] {
 
 function collectInlineCodeElements(root: HTMLElement): HTMLElement[] {
   const elements: HTMLElement[] = [];
-  root
-    .querySelectorAll("code.re-text-code, .re-text-code")
-    .forEach((code) => {
-      if (!(code instanceof HTMLElement)) return;
-      if (code.classList.contains("re-block-code")) return;
-      if (code.closest("pre")) return;
-      if (code.closest(".re-code-block-wrap")) return;
-      elements.push(code);
-    });
+  root.querySelectorAll("p code, .re-paragraph code").forEach((code) => {
+    if (!(code instanceof HTMLElement)) return;
+    if (code.classList.contains("re-block-code")) return;
+    if (code.closest("pre")) return;
+    if (code.closest(".re-code-block-wrap")) return;
+    elements.push(code);
+  });
   return elements;
 }
 
@@ -78,7 +76,7 @@ function flashCopiedInline(element: HTMLElement, labels: ViewerLabels): void {
   }, 1500);
 }
 
-/** Enhance viewer code blocks with copy-on-click and a copy button. */
+/** Enhance viewer code: block copy via button, inline copy on click. */
 export function enhanceViewerCodeBlocks(
   root: HTMLElement | null,
   labels: ViewerLabels,
@@ -108,19 +106,10 @@ export function enhanceViewerCodeBlocks(
       void copy();
     };
 
-    const onCodeClick = (event: MouseEvent) => {
-      event.preventDefault();
-      void copy();
-    };
-
     button.addEventListener("click", onButtonClick);
-    codeElement.addEventListener("click", onCodeClick);
-    codeElement.classList.add("re-code-copyable");
 
     cleanups.push(() => {
       button?.removeEventListener("click", onButtonClick);
-      codeElement.removeEventListener("click", onCodeClick);
-      codeElement.classList.remove("re-code-copyable");
     });
   });
 
