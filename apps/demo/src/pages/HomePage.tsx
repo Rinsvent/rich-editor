@@ -16,13 +16,16 @@ export function HomePage() {
           <Link to="/editor/full">Full</Link> — все форматирования
         </li>
         <li>
-          <Link to="/editor/chat">Chat</Link> — Enter = send, слоты toolbar
+          <Link to="/editor/chat">Chat</Link> — composer, attachments
         </li>
         <li>
-          <Link to="/editor/task">Task</Link> — headings, save button
+          <Link to="/editor/task">Task tracker</Link> — ClickUp-style blur save
         </li>
         <li>
           <Link to="/viewer">Viewer</Link> — примеры отображения
+        </li>
+        <li>
+          <Link to="/performance">Performance</Link> — большие документы
         </li>
         <li>
           <Link to="/playground">Playground</Link> — editor + live viewer

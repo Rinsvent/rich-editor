@@ -10,14 +10,16 @@ import { MentionsPage } from "./pages/MentionsPage";
 import { ThemesPage } from "./pages/ThemesPage";
 import { A11yPage } from "./pages/A11yPage";
 import { EnterBehaviorPage } from "./pages/EnterBehaviorPage";
+import { PerformancePage } from "./pages/PerformancePage";
 
 const links = [
   { to: "/", label: "Overview" },
   { to: "/editor/basic", label: "Basic" },
   { to: "/editor/full", label: "Full" },
   { to: "/editor/chat", label: "Chat" },
-  { to: "/editor/task", label: "Task" },
+  { to: "/editor/task", label: "Task tracker" },
   { to: "/viewer", label: "Viewer" },
+  { to: "/performance", label: "Performance" },
   { to: "/playground", label: "Playground" },
   { to: "/mentions", label: "Mentions" },
   { to: "/themes", label: "Themes" },
@@ -48,6 +50,7 @@ export function App() {
         <Route path="/editor/chat" element={<ChatPage />} />
         <Route path="/editor/task" element={<TaskPage />} />
         <Route path="/viewer" element={<ViewerPage />} />
+        <Route path="/performance" element={<PerformancePage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/mentions" element={<MentionsPage />} />
         <Route path="/themes" element={<ThemesPage />} />

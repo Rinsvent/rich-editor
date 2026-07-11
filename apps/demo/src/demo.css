@@ -213,3 +213,95 @@ a {
   font-size: 0.65rem;
   font-weight: 700;
 }
+
+.demo-task-tracker-hint {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
+
+.demo-task-tracker-body {
+  min-height: 50vh;
+}
+
+.demo-task-tracker-viewer {
+  min-height: 50vh;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.18);
+  cursor: text;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.demo-task-tracker-viewer:hover,
+.demo-task-tracker-viewer:focus-visible {
+  border-color: rgba(123, 104, 238, 0.55);
+  background: rgba(0, 0, 0, 0.24);
+  outline: none;
+}
+
+.demo-task-tracker-editor .re-editor-input {
+  min-height: 50vh !important;
+  max-height: 50vh !important;
+}
+
+.demo-perf-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.demo-perf-controls button {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.demo-perf-controls button.active,
+.demo-perf-controls button:hover {
+  border-color: rgba(42, 171, 238, 0.45);
+  background: rgba(42, 171, 238, 0.12);
+}
+
+.demo-perf-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 220px;
+  font-size: 0.85rem;
+}
+
+.demo-perf-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0;
+}
+
+.demo-perf-stats div {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.demo-perf-stats dt {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.demo-perf-stats dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-perf-editor,
+.demo-perf-viewer {
+  margin-top: 1rem;
+}
