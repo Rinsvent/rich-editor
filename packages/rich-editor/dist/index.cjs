@@ -4875,6 +4875,7 @@ function RichTextEditorInner({
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
+  const bodyHasSubmitPadding = slots.submitButton !== void 0 || showDefaultSubmit && canSubmit;
   return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(EditorRefPlugin, { getHtmlRef, useTrim }),
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(SetHtmlPlugin, { setHtmlRef }),
@@ -4924,96 +4925,106 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(BlockBehaviorPlugin, {}),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(LineBreakPlugin, {}),
-                features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(SpoilerPlugin, {}),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-                  import_LexicalRichTextPlugin.RichTextPlugin,
-                  {
-                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-                      import_LexicalContentEditable.ContentEditable,
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
+                "div",
+                {
+                  ref: bodyRef,
+                  className: cn(
+                    "re-editor-body",
+                    bodyHasSubmitPadding && "re-editor-body-has-submit"
+                  ),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(BlockBehaviorPlugin, {}),
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(LineBreakPlugin, {}),
+                    features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(SpoilerPlugin, {}),
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(InitialHtmlPlugin, { html: value }),
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                      import_LexicalRichTextPlugin.RichTextPlugin,
                       {
-                        id: editorInputId,
-                        className: "re-editor-input",
-                        style: inputStyle,
-                        role: "textbox",
-                        "aria-label": labels.editor,
-                        "aria-multiline": true,
-                        "aria-disabled": disabled,
-                        "aria-describedby": placeholder ? placeholderId : void 0
+                        contentEditable: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                          import_LexicalContentEditable.ContentEditable,
+                          {
+                            id: editorInputId,
+                            className: "re-editor-input",
+                            style: inputStyle,
+                            role: "textbox",
+                            "aria-label": labels.editor,
+                            "aria-multiline": true,
+                            "aria-disabled": disabled,
+                            "aria-describedby": placeholder ? placeholderId : void 0
+                          }
+                        ),
+                        placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                        ErrorBoundary: import_LexicalErrorBoundary.LexicalErrorBoundary
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
-                    ErrorBoundary: import_LexicalErrorBoundary.LexicalErrorBoundary
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalListPlugin.ListPlugin, {}),
-                features.links && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
-                features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(import_jsx_runtime14.Fragment, { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
-                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-                    CodeLanguagePlugin,
-                    {
-                      labels,
-                      containerRef: bodyRef,
-                      codeLanguages
-                    }
-                  )
-                ] }),
-                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
-                attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-                  AttachmentsPlugin,
-                  {
-                    disabled,
-                    attachments: uploads.attachments,
-                    addFiles: uploads.addFiles,
-                    containerRef: bodyRef
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-                  EnterPlugin,
-                  {
-                    bindings: enterBindings,
-                    onSubmit: onSubmit ? () => void submit() : void 0
-                  }
-                ),
-                features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-                  SelectionMenuPlugin,
-                  {
-                    features,
-                    labels,
-                    items: selectionMenuItems,
-                    containerRef: bodyRef
-                  }
-                ),
-                attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-                  AttachmentsBridge,
-                  {
-                    attachments: uploads.attachments,
-                    labels,
-                    disabled,
-                    onRemove: uploads.removeAttachment
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-                  SubmitArea,
-                  {
-                    slots,
-                    disabled,
-                    sending,
-                    onSubmit: () => void submit(),
-                    label: labels.submit,
-                    showDefault: showDefaultSubmit,
-                    showSubmit: canSubmit
-                  }
-                )
-              ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
+                    features.lists && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalListPlugin.ListPlugin, {}),
+                    features.links && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
+                    features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(import_jsx_runtime14.Fragment, { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
+                      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                        CodeLanguagePlugin,
+                        {
+                          labels,
+                          containerRef: bodyRef,
+                          codeLanguages
+                        }
+                      )
+                    ] }),
+                    transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(MarkdownPastePlugin, { features }),
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
+                    features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
+                    attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                      AttachmentsPlugin,
+                      {
+                        disabled,
+                        attachments: uploads.attachments,
+                        addFiles: uploads.addFiles,
+                        containerRef: bodyRef
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                      EnterPlugin,
+                      {
+                        bindings: enterBindings,
+                        onSubmit: onSubmit ? () => void submit() : void 0
+                      }
+                    ),
+                    features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                      SelectionMenuPlugin,
+                      {
+                        features,
+                        labels,
+                        items: selectionMenuItems,
+                        containerRef: bodyRef
+                      }
+                    ),
+                    attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                      AttachmentsBridge,
+                      {
+                        attachments: uploads.attachments,
+                        labels,
+                        disabled,
+                        onRemove: uploads.removeAttachment
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+                      SubmitArea,
+                      {
+                        slots,
+                        disabled,
+                        sending,
+                        onSubmit: () => void submit(),
+                        label: labels.submit,
+                        showDefault: showDefaultSubmit,
+                        showSubmit: canSubmit
+                      }
+                    )
+                  ]
+                }
+              ),
               slots.footer && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "re-footer", children: slots.footer })
             ]
           }

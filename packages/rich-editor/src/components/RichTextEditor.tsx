@@ -438,6 +438,8 @@ function RichTextEditorInner(
 
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === undefined;
+  const bodyHasSubmitPadding =
+    slots.submitButton !== undefined || (showDefaultSubmit && canSubmit);
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
@@ -483,7 +485,13 @@ function RichTextEditorInner(
             onBlur={onBlur}
             getHtml={getHtml}
           />
-          <div ref={bodyRef} className="re-editor-body">
+          <div
+            ref={bodyRef}
+            className={cn(
+              "re-editor-body",
+              bodyHasSubmitPadding && "re-editor-body-has-submit",
+            )}
+          >
             <BlockBehaviorPlugin />
             <LineBreakPlugin />
             {features.spoiler && <SpoilerPlugin />}

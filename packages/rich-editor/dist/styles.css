@@ -167,6 +167,9 @@
 .re-editor-body {
   position: relative;
   padding: 0.5rem 0.75rem;
+}
+
+.re-editor-body-has-submit {
   padding-right: 2.5rem;
 }
 

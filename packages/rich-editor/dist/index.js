@@ -4953,6 +4953,7 @@ function RichTextEditorInner({
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
+  const bodyHasSubmitPadding = slots.submitButton !== void 0 || showDefaultSubmit && canSubmit;
   return /* @__PURE__ */ jsxs8(LexicalComposer, { initialConfig, children: [
     /* @__PURE__ */ jsx14(EditorRefPlugin, { getHtmlRef, useTrim }),
     /* @__PURE__ */ jsx14(SetHtmlPlugin, { setHtmlRef }),
@@ -5002,96 +5003,106 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ jsxs8("div", { ref: bodyRef, className: "re-editor-body", children: [
-                /* @__PURE__ */ jsx14(BlockBehaviorPlugin, {}),
-                /* @__PURE__ */ jsx14(LineBreakPlugin, {}),
-                features.spoiler && /* @__PURE__ */ jsx14(SpoilerPlugin, {}),
-                /* @__PURE__ */ jsx14(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ jsx14(
-                  RichTextPlugin,
-                  {
-                    contentEditable: /* @__PURE__ */ jsx14(
-                      ContentEditable,
+              /* @__PURE__ */ jsxs8(
+                "div",
+                {
+                  ref: bodyRef,
+                  className: cn(
+                    "re-editor-body",
+                    bodyHasSubmitPadding && "re-editor-body-has-submit"
+                  ),
+                  children: [
+                    /* @__PURE__ */ jsx14(BlockBehaviorPlugin, {}),
+                    /* @__PURE__ */ jsx14(LineBreakPlugin, {}),
+                    features.spoiler && /* @__PURE__ */ jsx14(SpoilerPlugin, {}),
+                    /* @__PURE__ */ jsx14(InitialHtmlPlugin, { html: value }),
+                    /* @__PURE__ */ jsx14(
+                      RichTextPlugin,
                       {
-                        id: editorInputId,
-                        className: "re-editor-input",
-                        style: inputStyle,
-                        role: "textbox",
-                        "aria-label": labels.editor,
-                        "aria-multiline": true,
-                        "aria-disabled": disabled,
-                        "aria-describedby": placeholder ? placeholderId : void 0
+                        contentEditable: /* @__PURE__ */ jsx14(
+                          ContentEditable,
+                          {
+                            id: editorInputId,
+                            className: "re-editor-input",
+                            style: inputStyle,
+                            role: "textbox",
+                            "aria-label": labels.editor,
+                            "aria-multiline": true,
+                            "aria-disabled": disabled,
+                            "aria-describedby": placeholder ? placeholderId : void 0
+                          }
+                        ),
+                        placeholder: placeholder ? /* @__PURE__ */ jsx14("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                        ErrorBoundary: LexicalErrorBoundary
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ jsx14("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
-                    ErrorBoundary: LexicalErrorBoundary
-                  }
-                ),
-                /* @__PURE__ */ jsx14(HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ jsx14(ListPlugin, {}),
-                features.links && /* @__PURE__ */ jsx14(LinkPlugin, {}),
-                features.codeBlock && /* @__PURE__ */ jsxs8(Fragment4, { children: [
-                  /* @__PURE__ */ jsx14(CodeHighlightPlugin, { enabled: !disabled }),
-                  /* @__PURE__ */ jsx14(
-                    CodeLanguagePlugin,
-                    {
-                      labels,
-                      containerRef: bodyRef,
-                      codeLanguages
-                    }
-                  )
-                ] }),
-                transformers.length > 0 && /* @__PURE__ */ jsx14(MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ jsx14(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ jsx14(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ jsx14(MentionsPlugin, { searchMentions: mentionSearch }),
-                attachmentsEnabled && /* @__PURE__ */ jsx14(
-                  AttachmentsPlugin,
-                  {
-                    disabled,
-                    attachments: uploads.attachments,
-                    addFiles: uploads.addFiles,
-                    containerRef: bodyRef
-                  }
-                ),
-                /* @__PURE__ */ jsx14(
-                  EnterPlugin,
-                  {
-                    bindings: enterBindings,
-                    onSubmit: onSubmit ? () => void submit() : void 0
-                  }
-                ),
-                features.selectionMenu && /* @__PURE__ */ jsx14(
-                  SelectionMenuPlugin,
-                  {
-                    features,
-                    labels,
-                    items: selectionMenuItems,
-                    containerRef: bodyRef
-                  }
-                ),
-                attachmentsEnabled && /* @__PURE__ */ jsx14(
-                  AttachmentsBridge,
-                  {
-                    attachments: uploads.attachments,
-                    labels,
-                    disabled,
-                    onRemove: uploads.removeAttachment
-                  }
-                ),
-                /* @__PURE__ */ jsx14(
-                  SubmitArea,
-                  {
-                    slots,
-                    disabled,
-                    sending,
-                    onSubmit: () => void submit(),
-                    label: labels.submit,
-                    showDefault: showDefaultSubmit,
-                    showSubmit: canSubmit
-                  }
-                )
-              ] }),
+                    /* @__PURE__ */ jsx14(HistoryPlugin, {}),
+                    features.lists && /* @__PURE__ */ jsx14(ListPlugin, {}),
+                    features.links && /* @__PURE__ */ jsx14(LinkPlugin, {}),
+                    features.codeBlock && /* @__PURE__ */ jsxs8(Fragment4, { children: [
+                      /* @__PURE__ */ jsx14(CodeHighlightPlugin, { enabled: !disabled }),
+                      /* @__PURE__ */ jsx14(
+                        CodeLanguagePlugin,
+                        {
+                          labels,
+                          containerRef: bodyRef,
+                          codeLanguages
+                        }
+                      )
+                    ] }),
+                    transformers.length > 0 && /* @__PURE__ */ jsx14(MarkdownShortcutPlugin, { transformers }),
+                    /* @__PURE__ */ jsx14(MarkdownPastePlugin, { features }),
+                    /* @__PURE__ */ jsx14(KeyboardShortcutsPlugin, { features, disabled }),
+                    features.mentions && mentionSearch && /* @__PURE__ */ jsx14(MentionsPlugin, { searchMentions: mentionSearch }),
+                    attachmentsEnabled && /* @__PURE__ */ jsx14(
+                      AttachmentsPlugin,
+                      {
+                        disabled,
+                        attachments: uploads.attachments,
+                        addFiles: uploads.addFiles,
+                        containerRef: bodyRef
+                      }
+                    ),
+                    /* @__PURE__ */ jsx14(
+                      EnterPlugin,
+                      {
+                        bindings: enterBindings,
+                        onSubmit: onSubmit ? () => void submit() : void 0
+                      }
+                    ),
+                    features.selectionMenu && /* @__PURE__ */ jsx14(
+                      SelectionMenuPlugin,
+                      {
+                        features,
+                        labels,
+                        items: selectionMenuItems,
+                        containerRef: bodyRef
+                      }
+                    ),
+                    attachmentsEnabled && /* @__PURE__ */ jsx14(
+                      AttachmentsBridge,
+                      {
+                        attachments: uploads.attachments,
+                        labels,
+                        disabled,
+                        onRemove: uploads.removeAttachment
+                      }
+                    ),
+                    /* @__PURE__ */ jsx14(
+                      SubmitArea,
+                      {
+                        slots,
+                        disabled,
+                        sending,
+                        onSubmit: () => void submit(),
+                        label: labels.submit,
+                        showDefault: showDefaultSubmit,
+                        showSubmit: canSubmit
+                      }
+                    )
+                  ]
+                }
+              ),
               slots.footer && /* @__PURE__ */ jsx14("div", { className: "re-footer", children: slots.footer })
             ]
           }
