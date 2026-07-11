@@ -6,11 +6,12 @@ import {
   createLocalId,
   type EditorAttachment,
   type UploadFileFn,
-  getAttachmentPreviewUrl,
-  getFileExtension,
-  getFileKind,
   formatFileSize,
 } from "../../core/attachments";
+import {
+  AttachmentThumb,
+  getEditorAttachmentPreviewUrl,
+} from "./AttachmentThumb";
 
 export function useAttachmentUploads({
   onUploadFile,
@@ -157,36 +158,12 @@ function AttachmentPreview({
 }: {
   attachment: EditorAttachment;
 }) {
-  const kind = getFileKind(attachment.mimeType);
-  const previewUrl = getAttachmentPreviewUrl(attachment);
-
-  if (kind === "image" && previewUrl) {
-    return (
-      <img
-        className="re-attachment-thumb"
-        src={previewUrl}
-        alt=""
-        draggable={false}
-      />
-    );
-  }
-
-  if (kind === "video" && previewUrl) {
-    return (
-      <video
-        className="re-attachment-thumb re-attachment-thumb-video"
-        src={previewUrl}
-        muted
-        playsInline
-        preload="metadata"
-      />
-    );
-  }
-
   return (
-    <span className="re-attachment-file-icon" aria-hidden="true">
-      {getFileExtension(attachment.name) || "FILE"}
-    </span>
+    <AttachmentThumb
+      name={attachment.name}
+      mimeType={attachment.mimeType}
+      previewUrl={getEditorAttachmentPreviewUrl(attachment)}
+    />
   );
 }
 

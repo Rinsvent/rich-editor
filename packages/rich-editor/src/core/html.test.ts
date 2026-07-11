@@ -11,6 +11,16 @@ describe("sanitizeHtml", () => {
   it("strips script tags", () => {
     expect(sanitizeHtml('<p>ok</p><script>alert(1)</script>')).toBe("<p>ok</p>");
   });
+
+  it("keeps inline images with blob src and width style", () => {
+    const html =
+      '<p>text<img class="re-image" src="blob:http://localhost/abc" alt="shot" width="240" style="width: 240px; max-width: 100%; height: auto;" data-file-id="1"></p>';
+    const sanitized = sanitizeHtml(html);
+    expect(sanitized).toContain('src="blob:http://localhost/abc"');
+    expect(sanitized).toContain('class="re-image"');
+    expect(sanitized).toContain('width="240"');
+    expect(sanitized).toContain("width: 240px");
+  });
 });
 
 describe("normalizeHtml", () => {

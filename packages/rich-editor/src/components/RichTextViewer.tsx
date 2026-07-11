@@ -7,6 +7,7 @@ import {
   type ViewerFeatures,
   type ViewerLabels,
 } from "../core/features";
+import type { EditorAttachmentPayload } from "../core/attachments";
 import { cn } from "../core/cn";
 import type { MentionOption } from "../core/mentions";
 import { MENTION_ID_ATTR, MENTION_LABEL_ATTR } from "../core/mentions";
@@ -18,6 +19,7 @@ import {
   storeViewerCodeText,
 } from "./highlightViewerCode";
 import { enhanceViewerCodeBlocks } from "./enhanceViewerCode";
+import { ViewerAttachments } from "./attachments/ViewerAttachments";
 
 export type RichTextViewerProps = {
   content: string;
@@ -26,6 +28,9 @@ export type RichTextViewerProps = {
   className?: string;
   theme?: EditorTheme;
   onMentionClick?: (mention: MentionOption) => void;
+  attachments?: EditorAttachmentPayload[];
+  /** Show attachment previews below content. Default: false */
+  showAttachments?: boolean;
 };
 
 function mentionAriaLabel(template: string, label: string): string {
@@ -49,6 +54,8 @@ export function RichTextViewer({
   className,
   theme = defaultEditorTheme,
   onMentionClick,
+  attachments = [],
+  showAttachments = false,
 }: RichTextViewerProps) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
@@ -58,6 +65,11 @@ export function RichTextViewer({
     () => prepareViewerContent(content, features),
     [content, features],
   );
+
+  const attachmentStrip =
+    showAttachments && attachments.length > 0 ? (
+      <ViewerAttachments attachments={attachments} labels={labels} />
+    ) : null;
 
   useLayoutEffect(() => {
     if (prepared.kind !== "html") return;
@@ -144,24 +156,31 @@ export function RichTextViewer({
 
   if (prepared.kind === "plain") {
     return (
-      <p
+      <div
         {...themeDataAttribute(theme)}
-        className={cn("re-viewer re-viewer-plain", className)}
-        aria-label={labels.content}
+        className={cn("re-viewer-shell", className)}
       >
-        {prepared.text}
-      </p>
+        <p className="re-viewer re-viewer-plain" aria-label={labels.content}>
+          {prepared.text}
+        </p>
+        {attachmentStrip}
+      </div>
     );
   }
 
   return (
     <div
-      ref={ref}
       {...themeDataAttribute(theme)}
-      className={cn("re-viewer", className)}
-      role="article"
-      aria-label={labels.content}
-      dangerouslySetInnerHTML={{ __html: prepared.html }}
-    />
+      className={cn("re-viewer-shell", className)}
+    >
+      <div
+        ref={ref}
+        className="re-viewer"
+        role="article"
+        aria-label={labels.content}
+        dangerouslySetInnerHTML={{ __html: prepared.html }}
+      />
+      {attachmentStrip}
+    </div>
   );
 }

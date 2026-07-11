@@ -27,6 +27,9 @@ const ALLOWED_TAGS = [
   "img",
 ];
 
+const ALLOWED_URI_REGEXP =
+  /^(?:(?:https?|mailto|tel|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+
 export function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS,
@@ -35,6 +38,7 @@ export function sanitizeHtml(html: string): string {
       "class",
       "target",
       "rel",
+      "style",
       "data-mention-id",
       "data-mention-label",
       "data-re-spoiler",
@@ -47,6 +51,7 @@ export function sanitizeHtml(html: string): string {
       "data-file-mime",
       "data-aspect-ratio",
     ],
+    ALLOWED_URI_REGEXP,
   });
 }
 

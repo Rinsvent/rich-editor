@@ -125,6 +125,7 @@ export type ViewerLabels = {
   mention: string;
   copyCode: string;
   copiedCode: string;
+  attachments: string;
 };
 
 export const defaultViewerLabels: ViewerLabels = {
@@ -132,6 +133,7 @@ export const defaultViewerLabels: ViewerLabels = {
   mention: "Mention {label}",
   copyCode: "Copy code",
   copiedCode: "Copied",
+  attachments: "Attachments",
 };
 
 export function resolveViewerLabels(

@@ -65,6 +65,7 @@ type ViewerLabels = {
     mention: string;
     copyCode: string;
     copiedCode: string;
+    attachments: string;
 };
 declare const defaultViewerLabels: ViewerLabels;
 type EnterBehavior = "submit" | "newline" | "shift-newline";
@@ -238,8 +239,11 @@ type RichTextViewerProps = {
     className?: string;
     theme?: EditorTheme;
     onMentionClick?: (mention: MentionOption) => void;
+    attachments?: EditorAttachmentPayload[];
+    /** Show attachment previews below content. Default: false */
+    showAttachments?: boolean;
 };
-declare function RichTextViewer({ content, features: featuresProp, labels: labelsProp, className, theme, onMentionClick, }: RichTextViewerProps): react.JSX.Element;
+declare function RichTextViewer({ content, features: featuresProp, labels: labelsProp, className, theme, onMentionClick, attachments, showAttachments, }: RichTextViewerProps): react.JSX.Element;
 
 declare function useFormatActions(): {
     bold: () => boolean;

@@ -1137,6 +1137,30 @@
   background: var(--re-hover);
 }
 
+.re-viewer-shell {
+  display: block;
+}
+
+.re-viewer-attachments {
+  padding: 0.5rem 0 0;
+}
+
+.re-viewer-attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 220px;
+  padding: 0.35rem;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.re-viewer-attachment-item:hover {
+  background: var(--re-hover);
+}
+
 .re-editor-input .re-image-host {
   display: inline-block;
   max-width: 100%;

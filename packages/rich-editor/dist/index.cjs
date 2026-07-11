@@ -172,7 +172,8 @@ var defaultViewerLabels = {
   content: "Rich text content",
   mention: "Mention {label}",
   copyCode: "Copy code",
-  copiedCode: "Copied"
+  copiedCode: "Copied",
+  attachments: "Attachments"
 };
 function resolveViewerLabels(partial) {
   return { ...defaultViewerLabels, ...partial };
@@ -556,9 +557,6 @@ function toAttachmentPayload(attachment) {
 }
 function getReadyAttachmentPayloads(attachments) {
   return attachments.map(toAttachmentPayload).filter((item) => item !== null);
-}
-function getAttachmentPreviewUrl(attachment) {
-  return attachment.thumbnailUrl ?? attachment.previewUrl ?? attachment.url ?? "";
 }
 function collectFilesFromDataTransfer(dataTransfer) {
   if (!dataTransfer) return [];
@@ -1099,6 +1097,7 @@ var ALLOWED_TAGS = [
   "h6",
   "img"
 ];
+var ALLOWED_URI_REGEXP = /^(?:(?:https?|mailto|tel|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 function sanitizeHtml(html) {
   return import_isomorphic_dompurify.default.sanitize(html, {
     ALLOWED_TAGS,
@@ -1107,6 +1106,7 @@ function sanitizeHtml(html) {
       "class",
       "target",
       "rel",
+      "style",
       "data-mention-id",
       "data-mention-label",
       "data-re-spoiler",
@@ -1118,7 +1118,8 @@ function sanitizeHtml(html) {
       "data-file-name",
       "data-file-mime",
       "data-aspect-ratio"
-    ]
+    ],
+    ALLOWED_URI_REGEXP
   });
 }
 function isHtmlContent(content) {
@@ -3974,7 +3975,50 @@ var import_LexicalComposerContext16 = require("@lexical/react/LexicalComposerCon
 
 // src/components/attachments/AttachmentStrip.tsx
 var import_react18 = require("react");
+
+// src/components/attachments/AttachmentThumb.tsx
 var import_jsx_runtime10 = require("react/jsx-runtime");
+function getPayloadPreviewUrl(file) {
+  return file.thumbnailUrl ?? file.url;
+}
+function getEditorAttachmentPreviewUrl(attachment) {
+  return attachment.thumbnailUrl ?? attachment.previewUrl ?? attachment.url ?? "";
+}
+function AttachmentThumb({
+  name,
+  mimeType,
+  previewUrl
+}) {
+  const kind = getFileKind(mimeType);
+  if (kind === "image" && previewUrl) {
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      "img",
+      {
+        className: "re-attachment-thumb",
+        src: previewUrl,
+        alt: "",
+        draggable: false,
+        loading: "lazy"
+      }
+    );
+  }
+  if (kind === "video" && previewUrl) {
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      "video",
+      {
+        className: "re-attachment-thumb re-attachment-thumb-video",
+        src: previewUrl,
+        muted: true,
+        playsInline: true,
+        preload: "metadata"
+      }
+    );
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "re-attachment-file-icon", "aria-hidden": "true", children: getFileExtension(name) || "FILE" });
+}
+
+// src/components/attachments/AttachmentStrip.tsx
+var import_jsx_runtime11 = require("react/jsx-runtime");
 function useAttachmentUploads({
   onUploadFile,
   disabled
@@ -4095,32 +4139,14 @@ function useAttachmentUploads({
 function AttachmentPreview({
   attachment
 }) {
-  const kind = getFileKind(attachment.mimeType);
-  const previewUrl = getAttachmentPreviewUrl(attachment);
-  if (kind === "image" && previewUrl) {
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-      "img",
-      {
-        className: "re-attachment-thumb",
-        src: previewUrl,
-        alt: "",
-        draggable: false
-      }
-    );
-  }
-  if (kind === "video" && previewUrl) {
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-      "video",
-      {
-        className: "re-attachment-thumb re-attachment-thumb-video",
-        src: previewUrl,
-        muted: true,
-        playsInline: true,
-        preload: "metadata"
-      }
-    );
-  }
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "re-attachment-file-icon", "aria-hidden": "true", children: getFileExtension(attachment.name) || "FILE" });
+  return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+    AttachmentThumb,
+    {
+      name: attachment.name,
+      mimeType: attachment.mimeType,
+      previewUrl: getEditorAttachmentPreviewUrl(attachment)
+    }
+  );
 }
 function AttachmentStrip({
   attachments,
@@ -4130,14 +4156,14 @@ function AttachmentStrip({
   onInsert
 }) {
   if (attachments.length === 0) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "re-attachments", "aria-label": labels.attachments, children: attachments.map((attachment) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { className: "re-attachments", "aria-label": labels.attachments, children: attachments.map((attachment) => {
     const canInsert = attachment.status === "ready";
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
       "div",
       {
         className: `re-attachment-item re-attachment-item-${attachment.status}`,
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
             "button",
             {
               type: "button",
@@ -4146,15 +4172,15 @@ function AttachmentStrip({
               title: canInsert ? labels.insertAttachment : attachment.error,
               onClick: () => onInsert(attachment.localId),
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(AttachmentPreview, { attachment }),
-                /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "re-attachment-meta", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "re-attachment-name", children: attachment.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "re-attachment-sub", children: attachment.status === "uploading" ? `${labels.uploading} ${attachment.progress ?? 0}%` : attachment.status === "error" ? attachment.error ?? labels.uploadFailed : formatFileSize(attachment.size) })
+                /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(AttachmentPreview, { attachment }),
+                /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { className: "re-attachment-meta", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "re-attachment-name", children: attachment.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "re-attachment-sub", children: attachment.status === "uploading" ? `${labels.uploading} ${attachment.progress ?? 0}%` : attachment.status === "error" ? attachment.error ?? labels.uploadFailed : formatFileSize(attachment.size) })
                 ] })
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             "button",
             {
               type: "button",
@@ -4180,8 +4206,8 @@ function AttachmentUploadButton({
   onFilesSelected
 }) {
   const inputRef = (0, import_react18.useRef)(null);
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_jsx_runtime10.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
       "button",
       {
         type: "button",
@@ -4190,7 +4216,7 @@ function AttachmentUploadButton({
         title: labels.attachFile,
         disabled,
         onClick: () => inputRef.current?.click(),
-        children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
           "path",
           {
             d: "M21.44 11.05l-8.49 8.49a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 1 1-2.12-2.12l8.49-8.48",
@@ -4202,7 +4228,7 @@ function AttachmentUploadButton({
         ) })
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
       "input",
       {
         ref: inputRef,
@@ -4221,7 +4247,7 @@ function AttachmentUploadButton({
 }
 
 // src/components/attachments/AttachmentsBridge.tsx
-var import_jsx_runtime11 = require("react/jsx-runtime");
+var import_jsx_runtime12 = require("react/jsx-runtime");
 function AttachmentsBridge({
   attachments,
   labels,
@@ -4229,7 +4255,7 @@ function AttachmentsBridge({
   onRemove
 }) {
   const [editor] = (0, import_LexicalComposerContext16.useLexicalComposerContext)();
-  return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     AttachmentStrip,
     {
       attachments,
@@ -4364,7 +4390,7 @@ function shortcutById(id) {
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-var import_jsx_runtime12 = require("react/jsx-runtime");
+var import_jsx_runtime13 = require("react/jsx-runtime");
 function ToolbarButton({
   label,
   active,
@@ -4373,7 +4399,7 @@ function ToolbarButton({
   children
 }) {
   const shortcut = shortcutId ? shortcutById(shortcutId) : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
     "button",
     {
       type: "button",
@@ -4410,7 +4436,7 @@ function EditorToolbar({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
-  return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
     "div",
     {
       className: "re-toolbar",
@@ -4418,115 +4444,115 @@ function EditorToolbar({
       "aria-label": labels.toolbar,
       "aria-controls": editorInputId,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
           slots.toolbarStart,
-          features.bold && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.bold && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.bold,
               active: active.bold,
               onClick: format.bold,
               shortcutId: "format.bold",
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconBold, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconBold, {})
             }
           ),
-          features.italic && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.italic && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.italic,
               active: active.italic,
               onClick: format.italic,
               shortcutId: "format.italic",
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconItalic, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconItalic, {})
             }
           ),
-          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.strikethrough,
               active: active.strikethrough,
               onClick: format.strikethrough,
               shortcutId: "format.strikethrough",
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconStrikethrough, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconStrikethrough, {})
             }
           ),
-          features.code && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.code && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.code,
               active: active.code,
               onClick: format.code,
               shortcutId: "format.code",
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconCode, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconCode, {})
             }
           ),
-          features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.spoiler,
               active: active.spoiler,
               onClick: format.spoiler,
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconSpoiler, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconSpoiler, {})
             }
           ),
-          features.quote && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.quote && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.quote,
               active: active.quote,
               onClick: format.quote,
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconQuote, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconQuote, {})
             }
           ),
-          features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.codeBlock,
               active: active.codeBlock,
               onClick: format.codeBlock,
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconCodeBlock, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconCodeBlock, {})
             }
           ),
-          features.lists && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_jsx_runtime12.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.lists && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
               ToolbarButton,
               {
                 label: labels.bulletList,
                 active: active.bulletList,
                 onClick: format.bulletList,
-                children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconBulletList, {})
+                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconBulletList, {})
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
               ToolbarButton,
               {
                 label: labels.numberedList,
                 active: active.numberedList,
                 onClick: format.numberedList,
-                children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconNumberedList, {})
+                children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconNumberedList, {})
               }
             )
           ] }),
-          features.links && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.links && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.link,
               active: active.link,
               onClick: format.link,
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconLink, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconLink, {})
             }
           ),
-          features.headings && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          features.headings && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             ToolbarButton,
             {
               label: labels.heading,
               active: active.heading,
               onClick: format.heading,
-              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconHeading, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconHeading, {})
             }
           ),
-          showMentionButton && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconMention, {}) }),
-          showAttachButton && onAttachFiles && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          showMentionButton && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(IconMention, {}) }),
+          showAttachButton && onAttachFiles && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
             AttachmentUploadButton,
             {
               labels,
@@ -4535,10 +4561,10 @@ function EditorToolbar({
             }
           )
         ] }),
-        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
+        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
           slots.toolbarEnd,
-          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_jsx_runtime12.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
               "button",
               {
                 type: "button",
@@ -4552,8 +4578,8 @@ function EditorToolbar({
                 children: "\u22EE"
               }
             ),
-            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_jsx_runtime12.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                 "div",
                 {
                   className: "re-toolbar-menu-backdrop",
@@ -4561,7 +4587,7 @@ function EditorToolbar({
                   "aria-hidden": "true"
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                 "div",
                 {
                   id: menuId,
@@ -4604,7 +4630,7 @@ function hasToolbar(features, slots) {
 }
 
 // src/components/RichTextEditor.tsx
-var import_jsx_runtime13 = require("react/jsx-runtime");
+var import_jsx_runtime14 = require("react/jsx-runtime");
 function onError(error) {
   console.error(error);
 }
@@ -4639,7 +4665,7 @@ function DefaultSubmitButton({
   show
 }) {
   if (!show) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
     "button",
     {
       type: "button",
@@ -4648,7 +4674,7 @@ function DefaultSubmitButton({
       className: "re-submit-btn",
       "aria-label": label,
       title: label,
-      children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
+      children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
     }
   );
 }
@@ -4662,10 +4688,10 @@ function SubmitArea({
   showSubmit
 }) {
   if (slots.submitButton !== void 0) {
-    return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_jsx_runtime13.Fragment, { children: slots.submitButton });
+    return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_jsx_runtime14.Fragment, { children: slots.submitButton });
   }
   if (!showDefault) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
     DefaultSubmitButton,
     {
       disabled: disabled || sending,
@@ -4723,7 +4749,7 @@ function ContextBridge({
       onSubmit
     ]
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(RichTextEditorProvider, { value: ctx, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(RichTextEditorProvider, { value: ctx, children });
 }
 function RichTextEditorInner({
   value,
@@ -4849,13 +4875,13 @@ function RichTextEditorInner({
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(EditorRefPlugin, { getHtmlRef, useTrim }),
-    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ClearPlugin, { clearRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(FocusPlugin, { focusRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
-    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(EditorRefPlugin, { getHtmlRef, useTrim }),
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(SetHtmlPlugin, { setHtmlRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(FocusPlugin, { focusRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
       ContextBridge,
       {
         disabled,
@@ -4869,7 +4895,7 @@ function RichTextEditorInner({
         attachments: uploads.attachments,
         hasReadyAttachments: uploads.hasReadyAttachments,
         onSubmit: () => void submit(),
-        children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
           "div",
           {
             ref: rootRef,
@@ -4877,7 +4903,7 @@ function RichTextEditorInner({
             ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
-              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                 EditorToolbar,
                 {
                   features,
@@ -4890,7 +4916,7 @@ function RichTextEditorInner({
                   acceptFiles
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                 BlurCapturePlugin,
                 {
                   rootRef,
@@ -4898,15 +4924,15 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(BlockBehaviorPlugin, {}),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(LineBreakPlugin, {}),
-                features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(SpoilerPlugin, {}),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(LineBreakPlugin, {}),
+                features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(SpoilerPlugin, {}),
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(InitialHtmlPlugin, { html: value }),
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                   import_LexicalRichTextPlugin.RichTextPlugin,
                   {
-                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                       import_LexicalContentEditable.ContentEditable,
                       {
                         id: editorInputId,
@@ -4919,16 +4945,16 @@ function RichTextEditorInner({
                         "aria-describedby": placeholder ? placeholderId : void 0
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
                     ErrorBoundary: import_LexicalErrorBoundary.LexicalErrorBoundary
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_LexicalListPlugin.ListPlugin, {}),
-                features.links && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
-                features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
-                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
+                features.lists && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalListPlugin.ListPlugin, {}),
+                features.links && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
+                features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(import_jsx_runtime14.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
+                  /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                     CodeLanguagePlugin,
                     {
                       labels,
@@ -4937,11 +4963,11 @@ function RichTextEditorInner({
                     }
                   )
                 ] }),
-                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
-                attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
+                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
+                attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                   AttachmentsPlugin,
                   {
                     disabled,
@@ -4950,14 +4976,14 @@ function RichTextEditorInner({
                     containerRef: bodyRef
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                   EnterPlugin,
                   {
                     bindings: enterBindings,
                     onSubmit: onSubmit ? () => void submit() : void 0
                   }
                 ),
-                features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                   SelectionMenuPlugin,
                   {
                     features,
@@ -4966,7 +4992,7 @@ function RichTextEditorInner({
                     containerRef: bodyRef
                   }
                 ),
-                attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                   AttachmentsBridge,
                   {
                     attachments: uploads.attachments,
@@ -4975,7 +5001,7 @@ function RichTextEditorInner({
                     onRemove: uploads.removeAttachment
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
                   SubmitArea,
                   {
                     slots,
@@ -4988,7 +5014,7 @@ function RichTextEditorInner({
                   }
                 )
               ] }),
-              slots.footer && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "re-footer", children: slots.footer })
+              slots.footer && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "re-footer", children: slots.footer })
             ]
           }
         )
@@ -5287,8 +5313,42 @@ function enhanceViewerCodeBlocks(root, labels) {
   };
 }
 
+// src/components/attachments/ViewerAttachments.tsx
+var import_jsx_runtime15 = require("react/jsx-runtime");
+function ViewerAttachments({
+  attachments,
+  labels
+}) {
+  if (attachments.length === 0) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "re-attachments re-viewer-attachments", "aria-label": labels.attachments, children: attachments.map((file) => /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
+    "a",
+    {
+      className: "re-attachment-item re-viewer-attachment-item",
+      href: file.url,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      title: file.name,
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+          AttachmentThumb,
+          {
+            name: file.name,
+            mimeType: file.mimeType,
+            previewUrl: getPayloadPreviewUrl(file)
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { className: "re-attachment-meta", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "re-attachment-name", children: file.name }),
+          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("span", { className: "re-attachment-sub", children: formatFileSize(file.size) })
+        ] })
+      ]
+    },
+    file.id
+  )) });
+}
+
 // src/components/RichTextViewer.tsx
-var import_jsx_runtime14 = require("react/jsx-runtime");
+var import_jsx_runtime16 = require("react/jsx-runtime");
 function mentionAriaLabel(template, label) {
   return template.replace("{label}", label);
 }
@@ -5304,7 +5364,9 @@ function RichTextViewer({
   labels: labelsProp,
   className,
   theme = defaultEditorTheme,
-  onMentionClick
+  onMentionClick,
+  attachments = [],
+  showAttachments = false
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
@@ -5313,6 +5375,7 @@ function RichTextViewer({
     () => prepareViewerContent(content, features),
     [content, features]
   );
+  const attachmentStrip = showAttachments && attachments.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(ViewerAttachments, { attachments, labels }) : null;
   (0, import_react22.useLayoutEffect)(() => {
     if (prepared.kind !== "html") return;
     const run = async () => {
@@ -5384,25 +5447,36 @@ function RichTextViewer({
     };
   }, [labels.mention, onMentionClick, prepared]);
   if (prepared.kind === "plain") {
-    return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-      "p",
+    return /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
+      "div",
       {
         ...themeDataAttribute(theme),
-        className: cn("re-viewer re-viewer-plain", className),
-        "aria-label": labels.content,
-        children: prepared.text
+        className: cn("re-viewer-shell", className),
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("p", { className: "re-viewer re-viewer-plain", "aria-label": labels.content, children: prepared.text }),
+          attachmentStrip
+        ]
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(
     "div",
     {
-      ref,
       ...themeDataAttribute(theme),
-      className: cn("re-viewer", className),
-      role: "article",
-      "aria-label": labels.content,
-      dangerouslySetInnerHTML: { __html: prepared.html }
+      className: cn("re-viewer-shell", className),
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+          "div",
+          {
+            ref,
+            className: "re-viewer",
+            role: "article",
+            "aria-label": labels.content,
+            dangerouslySetInnerHTML: { __html: prepared.html }
+          }
+        ),
+        attachmentStrip
+      ]
     }
   );
 }
