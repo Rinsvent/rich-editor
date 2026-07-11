@@ -117,6 +117,7 @@ export function normalizeHtml(html: string): string {
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
+    if (code.classList.contains("re-block-code")) return;
     while (span.firstChild) {
       code.insertBefore(span.firstChild, span);
     }

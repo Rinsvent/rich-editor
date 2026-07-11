@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
   resolveViewerFeatures,
   resolveViewerLabels,
@@ -55,7 +55,7 @@ export function RichTextViewer({
     [content, features],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (prepared.kind !== "html" || !features.codeHighlight) return;
     void highlightViewerCodeBlocks(ref.current);
   }, [prepared, features.codeHighlight]);

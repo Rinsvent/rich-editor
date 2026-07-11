@@ -31,6 +31,14 @@ describe("normalizeHtml", () => {
       normalizeHtml("<blockquote><p>a</p></blockquote><blockquote><p>b</p></blockquote>"),
     ).toBe("<blockquote><p>a</p><p>b</p></blockquote>");
   });
+
+  it("preserves syntax tokens inside block code", () => {
+    expect(
+      normalizeHtml(
+        '<code class="re-block-code"><span class="token keyword">const</span> x</code>',
+      ),
+    ).toContain('class="token keyword"');
+  });
 });
 
 describe("isHtmlContent", () => {
