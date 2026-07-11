@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" role="img" aria-label="Screenshot thumb">
+  <rect width="80" height="80" rx="8" fill="#4f46e5"/>
+  <rect x="10" y="18" width="60" height="44" rx="5" fill="rgba(255,255,255,0.2)"/>
+  <rect x="16" y="26" width="28" height="6" rx="2" fill="rgba(255,255,255,0.45)"/>
+  <rect x="16" y="38" width="44" height="5" rx="2" fill="rgba(255,255,255,0.3)"/>
+</svg>

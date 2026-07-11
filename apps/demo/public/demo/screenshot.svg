@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="160" viewBox="0 0 240 160" role="img" aria-label="Screenshot">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="160" rx="12" fill="url(#bg)"/>
+  <rect x="18" y="22" width="204" height="116" rx="8" fill="rgba(255,255,255,0.12)"/>
+  <rect x="34" y="40" width="88" height="12" rx="4" fill="rgba(255,255,255,0.35)"/>
+  <rect x="34" y="62" width="148" height="10" rx="4" fill="rgba(255,255,255,0.22)"/>
+  <rect x="34" y="80" width="124" height="10" rx="4" fill="rgba(255,255,255,0.22)"/>
+  <rect x="34" y="106" width="72" height="18" rx="6" fill="rgba(255,255,255,0.3)"/>
+  <text x="120" y="18" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="12" font-weight="600">Screenshot</text>
+</svg>

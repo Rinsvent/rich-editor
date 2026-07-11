@@ -1,5 +1,41 @@
 import { RichTextViewer } from "@rinsvent/rich-editor";
-import { viewerAttachmentSamples } from "../demoContent";
+import {
+  DEMO_IMAGES,
+  demoInlineImageHtml,
+  viewerAttachmentSamples,
+} from "../demoContent";
+
+const inlineA = demoInlineImageHtml({
+  src: DEMO_IMAGES.landscapeA,
+  alt: "Demo landscape A",
+  width: 220,
+  aspectRatio: 220 / 140,
+  fileId: "img-a",
+});
+
+const inlineB = demoInlineImageHtml({
+  src: DEMO_IMAGES.landscapeB,
+  alt: "Demo landscape B",
+  width: 180,
+  aspectRatio: 180 / 120,
+  fileId: "img-b",
+});
+
+const inlineC = demoInlineImageHtml({
+  src: DEMO_IMAGES.landscapeC,
+  alt: "Demo landscape C",
+  width: 180,
+  aspectRatio: 180 / 120,
+  fileId: "img-c",
+});
+
+const inlineMock = demoInlineImageHtml({
+  src: DEMO_IMAGES.uiMock,
+  alt: "UI mock",
+  width: 200,
+  aspectRatio: 200 / 130,
+  fileId: "img-mock",
+});
 
 const samples = [
   {
@@ -55,16 +91,18 @@ const samples = [
   },
   {
     title: "Inline image",
-    content:
-      '<p>Before <img class="re-image" src="https://picsum.photos/seed/demo-inline/220/140" alt="demo" width="220" style="width: 220px; max-width: 100%; height: auto;" data-file-id="img-1" data-aspect-ratio="1.5714285714285714"> after</p>',
+    content: `<p>Before ${inlineA} after</p>`,
   },
   {
     title: "Two inline images",
+    content: `<p>${inlineB} ${inlineC}</p>`,
+  },
+  {
+    title: "Three sizes in text",
     content:
-      '<p>' +
-      '<img class="re-image" src="https://picsum.photos/seed/a/180/120" alt="a" width="180" style="width: 180px; max-width: 100%; height: auto;" data-file-id="a" data-aspect-ratio="1.5"> ' +
-      '<img class="re-image" src="https://picsum.photos/seed/b/180/120" alt="b" width="180" style="width: 180px; max-width: 100%; height: auto;" data-file-id="b" data-aspect-ratio="1.5">' +
-      "</p>",
+      `<p>${demoInlineImageHtml({ src: DEMO_IMAGES.landscapeA, alt: "Small", width: 120, aspectRatio: 220 / 140, fileId: "sm" })} ` +
+      `${demoInlineImageHtml({ src: DEMO_IMAGES.landscapeB, alt: "Medium", width: 160, aspectRatio: 180 / 120, fileId: "md" })} ` +
+      `${demoInlineImageHtml({ src: DEMO_IMAGES.landscapeC, alt: "Large", width: 200, aspectRatio: 180 / 120, fileId: "lg" })}</p>`,
   },
   {
     title: "File link",
@@ -88,8 +126,7 @@ const samples = [
   },
   {
     title: "Text + inline image + attachments",
-    content:
-      '<p>UI mock: <img class="re-image" src="https://picsum.photos/seed/mock/200/130" alt="mock" width="200" style="width: 200px; max-width: 100%; height: auto;" data-file-id="mock" data-aspect-ratio="1.5384615384615385"></p>',
+    content: `<p>UI mock in text: ${inlineMock}</p>`,
     attachments: viewerAttachmentSamples,
     showAttachments: true,
   },
@@ -98,6 +135,9 @@ const samples = [
 export function ViewerPage() {
   return (
     <>
+      <p style={{ opacity: 0.75, fontSize: "0.875rem", marginBottom: "1rem" }}>
+        Картинки — локальные SVG из <code>/demo/*.svg</code>, без внешних CDN.
+      </p>
       {samples.map((sample) => (
         <div key={sample.title} className="demo-card">
           <h2>{sample.title}</h2>

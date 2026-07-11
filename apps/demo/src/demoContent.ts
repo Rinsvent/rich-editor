@@ -1,5 +1,35 @@
 import type { EditorAttachmentPayload } from "@rinsvent/rich-editor";
 
+/** Local demo assets served from /apps/demo/public/demo */
+export const DEMO_IMAGES = {
+  landscapeA: "/demo/landscape-a.svg",
+  landscapeB: "/demo/landscape-b.svg",
+  landscapeC: "/demo/landscape-c.svg",
+  uiMock: "/demo/ui-mock.svg",
+  screenshot: "/demo/screenshot.svg",
+  screenshotThumb: "/demo/screenshot-thumb.svg",
+} as const;
+
+export function demoInlineImageHtml({
+  src,
+  alt,
+  width,
+  aspectRatio,
+  fileId,
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  aspectRatio: number;
+  fileId: string;
+}): string {
+  return (
+    `<img class="re-image" src="${src}" alt="${alt}" width="${width}" ` +
+    `style="width: ${width}px; max-width: 100%; height: auto;" ` +
+    `data-file-id="${fileId}" data-aspect-ratio="${aspectRatio}">`
+  );
+}
+
 export const viewerAttachmentSamples: EditorAttachmentPayload[] = [
   {
     id: "demo-file-1",
@@ -13,8 +43,16 @@ export const viewerAttachmentSamples: EditorAttachmentPayload[] = [
     name: "screenshot.png",
     mimeType: "image/png",
     size: 184_220,
-    url: "https://picsum.photos/seed/rich-editor/480/320",
-    thumbnailUrl: "https://picsum.photos/seed/rich-editor/80/80",
+    url: DEMO_IMAGES.screenshot,
+    thumbnailUrl: DEMO_IMAGES.screenshotThumb,
+  },
+  {
+    id: "demo-file-3",
+    name: "wireframe.svg",
+    mimeType: "image/svg+xml",
+    size: 12_400,
+    url: DEMO_IMAGES.uiMock,
+    thumbnailUrl: DEMO_IMAGES.uiMock,
   },
 ];
 
