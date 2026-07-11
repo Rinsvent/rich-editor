@@ -31,6 +31,14 @@ type EditorLabels = {
     bulletList: string;
     numberedList: string;
     link: string;
+    linkText: string;
+    linkUrl: string;
+    linkAdd: string;
+    linkEdit: string;
+    linkRemove: string;
+    linkSave: string;
+    linkCancel: string;
+    linkToolbar: string;
     heading: string;
     mention: string;
     spoiler: string;

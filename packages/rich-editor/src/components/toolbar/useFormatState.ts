@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $createCodeNode, $isCodeNode } from "@lexical/code";
-import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
+import { $isLinkNode } from "@lexical/link";
 import {
   $isListNode,
   INSERT_ORDERED_LIST_COMMAND,
@@ -27,6 +27,7 @@ import {
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
 import type { FormatState } from "../../context/EditorContext";
+import { useLinkUiOptional } from "../../context/LinkUiContext";
 import { $applyQuoteToSelection } from "../../core/quoteBlocks";
 import { $createSpoilerNode, $isSpoilerNode } from "../../nodes/SpoilerNode";
 
@@ -96,6 +97,7 @@ export function useFormatState(): FormatState {
 
 export function useFormatActions() {
   const [editor] = useLexicalComposerContext();
+  const linkUi = useLinkUiOptional();
 
   return {
     bold: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold"),
@@ -156,23 +158,7 @@ export function useFormatActions() {
       });
     },
     link: () => {
-      editor.update(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) return;
-        const existing = $findMatchingParent(
-          selection.anchor.getNode(),
-          $isLinkNode,
-        );
-        if (existing) {
-          editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
-          return;
-        }
-        const url = window.prompt("URL", "https://");
-        if (url === null) return;
-        if (url.trim()) {
-          editor.dispatchCommand(TOGGLE_LINK_COMMAND, url.trim());
-        }
-      });
+      linkUi?.openLinkDialog();
     },
     heading: () => {
       editor.update(() => {

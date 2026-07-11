@@ -6,7 +6,7 @@ import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { useLexicalComposerContext as useLexicalComposerContext12 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext13 } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
@@ -17,13 +17,13 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode as QuoteNode3 } from "@lexical/rich-text";
 import {
   forwardRef,
-  useCallback as useCallback2,
-  useEffect as useEffect13,
-  useId as useId3,
+  useCallback as useCallback4,
+  useEffect as useEffect14,
+  useId as useId4,
   useImperativeHandle,
-  useMemo as useMemo2,
-  useRef as useRef3,
-  useState as useState5
+  useMemo as useMemo3,
+  useRef as useRef4,
+  useState as useState6
 } from "react";
 
 // src/context/EditorContext.tsx
@@ -80,6 +80,14 @@ var defaultLabels = {
   bulletList: "Bullet list",
   numberedList: "Numbered list",
   link: "Link",
+  linkText: "Text",
+  linkUrl: "URL",
+  linkAdd: "Add link",
+  linkEdit: "Edit link",
+  linkRemove: "Remove link",
+  linkSave: "Save",
+  linkCancel: "Cancel",
+  linkToolbar: "Link actions",
   heading: "Heading",
   mention: "Mention",
   spoiler: "Spoiler",
@@ -107,7 +115,7 @@ var defaultViewerFeatures = {
 function resolveViewerFeatures(partial) {
   return { ...defaultViewerFeatures, ...partial };
 }
-var EDITOR_LINE_HEIGHT_PX = 28;
+var EDITOR_LINE_HEIGHT_PX = 24;
 
 // src/core/enterBindings.ts
 var defaultEnterKeyBindings = [
@@ -770,9 +778,9 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-import { useEffect as useEffect11, useRef as useRef2 } from "react";
+import { useEffect as useEffect12, useRef as useRef3 } from "react";
 import { $generateNodesFromDOM as $generateNodesFromDOM2 } from "@lexical/html";
-import { useLexicalComposerContext as useLexicalComposerContext11 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext12 } from "@lexical/react/LexicalComposerContext";
 import { $getRoot as $getRoot4 } from "lexical";
 
 // src/components/plugins/EnterPlugin.tsx
@@ -1731,12 +1739,27 @@ function IconSpoiler(props) {
     /* @__PURE__ */ jsx3("line", { x1: "3", y1: "3", x2: "21", y2: "21" })
   ] });
 }
+function IconEdit(props) {
+  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx3("path", { d: "M12 20h9" }),
+    /* @__PURE__ */ jsx3("path", { d: "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" })
+  ] });
+}
+function IconTrash(props) {
+  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx3("path", { d: "M3 6h18" }),
+    /* @__PURE__ */ jsx3("path", { d: "M8 6V4h8v2" }),
+    /* @__PURE__ */ jsx3("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" }),
+    /* @__PURE__ */ jsx3("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
+    /* @__PURE__ */ jsx3("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
+  ] });
+}
 
 // src/components/toolbar/useFormatState.ts
 import { useEffect as useEffect7, useState as useState2 } from "react";
 import { useLexicalComposerContext as useLexicalComposerContext7 } from "@lexical/react/LexicalComposerContext";
 import { $createCodeNode, $isCodeNode as $isCodeNode3 } from "@lexical/code";
-import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
+import { $isLinkNode } from "@lexical/link";
 import {
   $isListNode,
   INSERT_ORDERED_LIST_COMMAND,
@@ -1759,6 +1782,27 @@ import {
   FORMAT_TEXT_COMMAND as FORMAT_TEXT_COMMAND2,
   SELECTION_CHANGE_COMMAND
 } from "lexical";
+
+// src/context/LinkUiContext.tsx
+import {
+  createContext as createContext2,
+  useContext as useContext2,
+  useMemo as useMemo2
+} from "react";
+import { jsx as jsx4 } from "react/jsx-runtime";
+var LinkUiContext = createContext2(null);
+function LinkUiProvider({
+  openLinkDialog,
+  children
+}) {
+  const value = useMemo2(() => ({ openLinkDialog }), [openLinkDialog]);
+  return /* @__PURE__ */ jsx4(LinkUiContext.Provider, { value, children });
+}
+function useLinkUiOptional() {
+  return useContext2(LinkUiContext);
+}
+
+// src/components/toolbar/useFormatState.ts
 var emptyFormat = {
   bold: false,
   italic: false,
@@ -1818,6 +1862,7 @@ function useFormatState() {
 }
 function useFormatActions() {
   const [editor] = useLexicalComposerContext7();
+  const linkUi = useLinkUiOptional();
   return {
     bold: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "bold"),
     italic: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "italic"),
@@ -1876,23 +1921,7 @@ function useFormatActions() {
       });
     },
     link: () => {
-      editor.update(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection)) return;
-        const existing = $findMatchingParent3(
-          selection.anchor.getNode(),
-          $isLinkNode
-        );
-        if (existing) {
-          editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
-          return;
-        }
-        const url = window.prompt("URL", "https://");
-        if (url === null) return;
-        if (url.trim()) {
-          editor.dispatchCommand(TOGGLE_LINK_COMMAND, url.trim());
-        }
-      });
+      linkUi?.openLinkDialog();
     },
     heading: () => {
       editor.update(() => {
@@ -1942,7 +1971,7 @@ function useFormatActions() {
 }
 
 // src/components/plugins/SelectionMenuPlugin.tsx
-import { jsx as jsx4 } from "react/jsx-runtime";
+import { jsx as jsx5 } from "react/jsx-runtime";
 function isItemEnabled(item, features) {
   switch (item) {
     case "bold":
@@ -1975,29 +2004,29 @@ function isItemEnabled(item, features) {
 function MenuIcon({ item }) {
   switch (item) {
     case "bold":
-      return /* @__PURE__ */ jsx4(IconBold, {});
+      return /* @__PURE__ */ jsx5(IconBold, {});
     case "italic":
-      return /* @__PURE__ */ jsx4(IconItalic, {});
+      return /* @__PURE__ */ jsx5(IconItalic, {});
     case "strikethrough":
-      return /* @__PURE__ */ jsx4(IconStrikethrough, {});
+      return /* @__PURE__ */ jsx5(IconStrikethrough, {});
     case "code":
-      return /* @__PURE__ */ jsx4(IconCode, {});
+      return /* @__PURE__ */ jsx5(IconCode, {});
     case "quote":
-      return /* @__PURE__ */ jsx4(IconQuote, {});
+      return /* @__PURE__ */ jsx5(IconQuote, {});
     case "codeBlock":
-      return /* @__PURE__ */ jsx4(IconCodeBlock, {});
+      return /* @__PURE__ */ jsx5(IconCodeBlock, {});
     case "bulletList":
-      return /* @__PURE__ */ jsx4(IconBulletList, {});
+      return /* @__PURE__ */ jsx5(IconBulletList, {});
     case "numberedList":
-      return /* @__PURE__ */ jsx4(IconNumberedList, {});
+      return /* @__PURE__ */ jsx5(IconNumberedList, {});
     case "link":
-      return /* @__PURE__ */ jsx4(IconLink, {});
+      return /* @__PURE__ */ jsx5(IconLink, {});
     case "heading":
-      return /* @__PURE__ */ jsx4(IconHeading, {});
+      return /* @__PURE__ */ jsx5(IconHeading, {});
     case "mention":
-      return /* @__PURE__ */ jsx4(IconMention, {});
+      return /* @__PURE__ */ jsx5(IconMention, {});
     case "spoiler":
-      return /* @__PURE__ */ jsx4(IconSpoiler, {});
+      return /* @__PURE__ */ jsx5(IconSpoiler, {});
     default:
       return null;
   }
@@ -2170,7 +2199,7 @@ function SelectionMenuPlugin({
   if (!features.selectionMenu || !position || visibleItems.length === 0) {
     return null;
   }
-  const menu = /* @__PURE__ */ jsx4(
+  const menu = /* @__PURE__ */ jsx5(
     "div",
     {
       className: "re-selection-menu",
@@ -2180,7 +2209,7 @@ function SelectionMenuPlugin({
       },
       role: "toolbar",
       "aria-label": labels.selectionMenu,
-      children: visibleItems.map((item) => /* @__PURE__ */ jsx4(
+      children: visibleItems.map((item) => /* @__PURE__ */ jsx5(
         "button",
         {
           type: "button",
@@ -2194,7 +2223,7 @@ function SelectionMenuPlugin({
             event.preventDefault();
             runItemAction(item, format);
           },
-          children: /* @__PURE__ */ jsx4(MenuIcon, { item })
+          children: /* @__PURE__ */ jsx5(MenuIcon, { item })
         },
         item
       ))
@@ -2230,15 +2259,394 @@ function LineBreakPlugin() {
   return null;
 }
 
-// src/components/plugins/SpoilerPlugin.tsx
-import { useEffect as useEffect10, useRef } from "react";
+// src/components/plugins/LinkUiPlugin.tsx
+import { useCallback as useCallback3, useEffect as useEffect10, useId as useId2, useRef, useState as useState4 } from "react";
+import { createPortal as createPortal3 } from "react-dom";
 import { useLexicalComposerContext as useLexicalComposerContext10 } from "@lexical/react/LexicalComposerContext";
+import { $isLinkNode as $isLinkNode3 } from "@lexical/link";
 import { $findMatchingParent as $findMatchingParent4 } from "@lexical/utils";
-import { $getSelection as $getSelection8, $isRangeSelection as $isRangeSelection8 } from "lexical";
-function SpoilerPlugin() {
-  const [editor] = useLexicalComposerContext10();
-  const editingRef = useRef(null);
+import {
+  $getNearestNodeFromDOMNode,
+  $getNodeByKey as $getNodeByKey3,
+  $getSelection as $getSelection9,
+  $isRangeSelection as $isRangeSelection9,
+  CLICK_COMMAND,
+  COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH4
+} from "lexical";
+
+// src/core/links.ts
+import { $createLinkNode, $isLinkNode as $isLinkNode2 } from "@lexical/link";
+import {
+  $createTextNode as $createTextNode4,
+  $getNodeByKey as $getNodeByKey2,
+  $getSelection as $getSelection8,
+  $isRangeSelection as $isRangeSelection8
+} from "lexical";
+function $applyLinkForm(values, linkKey) {
+  const text = values.text.trim();
+  const url = values.url.trim();
+  if (!text || !url) return;
+  if (linkKey) {
+    const link2 = $getNodeByKey2(linkKey);
+    if (!$isLinkNode2(link2)) return;
+    const nextLink = $createLinkNode(url, {
+      rel: link2.getRel(),
+      target: link2.getTarget(),
+      title: link2.getTitle()
+    });
+    nextLink.append($createTextNode4(text));
+    link2.replace(nextLink);
+    nextLink.selectEnd();
+    return;
+  }
+  const selection = $getSelection8();
+  if (!$isRangeSelection8(selection)) return;
+  if (!selection.isCollapsed()) {
+    selection.removeText();
+  }
+  const link = $createLinkNode(url);
+  link.append($createTextNode4(text));
+  selection.insertNodes([link]);
+}
+function $removeLinkByKey(linkKey) {
+  const link = $getNodeByKey2(linkKey);
+  if (!$isLinkNode2(link)) return;
+  const textNode = $createTextNode4(link.getTextContent());
+  link.replace(textNode);
+  textNode.select();
+}
+
+// src/components/plugins/LinkUiPlugin.tsx
+import { Fragment, jsx as jsx6, jsxs as jsxs3 } from "react/jsx-runtime";
+function LinkModal({
+  state,
+  labels,
+  onClose,
+  onSave
+}) {
+  const titleId = useId2();
+  const textId = useId2();
+  const urlId = useId2();
+  const [text, setText] = useState4(state.text);
+  const [url, setUrl] = useState4(state.url);
+  const textRef = useRef(null);
   useEffect10(() => {
+    setText(state.text);
+    setUrl(state.url || "https://");
+    const timer = window.setTimeout(() => textRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+  useEffect10(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+  const title = state.mode === "edit" ? labels.linkEdit : labels.linkAdd;
+  return createPortal3(
+    /* @__PURE__ */ jsx6("div", { className: "re-link-modal-backdrop", onMouseDown: onClose, children: /* @__PURE__ */ jsxs3(
+      "div",
+      {
+        className: "re-link-modal",
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-labelledby": titleId,
+        onMouseDown: (event) => event.stopPropagation(),
+        children: [
+          /* @__PURE__ */ jsx6("h3", { id: titleId, className: "re-link-modal-title", children: title }),
+          /* @__PURE__ */ jsxs3("label", { className: "re-link-field", htmlFor: textId, children: [
+            /* @__PURE__ */ jsx6("span", { className: "re-link-field-label", children: labels.linkText }),
+            /* @__PURE__ */ jsx6(
+              "input",
+              {
+                ref: textRef,
+                id: textId,
+                type: "text",
+                className: "re-link-field-input",
+                value: text,
+                onChange: (event) => setText(event.target.value),
+                placeholder: labels.linkText
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs3("label", { className: "re-link-field", htmlFor: urlId, children: [
+            /* @__PURE__ */ jsx6("span", { className: "re-link-field-label", children: labels.linkUrl }),
+            /* @__PURE__ */ jsx6(
+              "input",
+              {
+                id: urlId,
+                type: "url",
+                className: "re-link-field-input",
+                value: url,
+                onChange: (event) => setUrl(event.target.value),
+                placeholder: "https://"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs3("div", { className: "re-link-modal-actions", children: [
+            /* @__PURE__ */ jsx6(
+              "button",
+              {
+                type: "button",
+                className: "re-link-modal-btn re-link-modal-btn-secondary",
+                onClick: onClose,
+                children: labels.linkCancel
+              }
+            ),
+            /* @__PURE__ */ jsx6(
+              "button",
+              {
+                type: "button",
+                className: "re-link-modal-btn re-link-modal-btn-primary",
+                onClick: () => onSave(text, url, state.linkKey),
+                disabled: !text.trim() || !url.trim(),
+                children: labels.linkSave
+              }
+            )
+          ] })
+        ]
+      }
+    ) }),
+    document.body
+  );
+}
+function LinkFloatingToolbar({
+  position,
+  labels,
+  onEdit,
+  onRemove
+}) {
+  return /* @__PURE__ */ jsxs3(
+    "div",
+    {
+      className: "re-link-floating-toolbar",
+      style: {
+        top: `${position.top}px`,
+        left: `${position.left}px`
+      },
+      role: "toolbar",
+      "aria-label": labels.linkToolbar,
+      children: [
+        /* @__PURE__ */ jsx6(
+          "button",
+          {
+            type: "button",
+            className: "re-link-floating-btn",
+            "aria-label": labels.linkEdit,
+            title: labels.linkEdit,
+            onMouseDown: (event) => {
+              event.preventDefault();
+              onEdit();
+            },
+            children: /* @__PURE__ */ jsx6(IconEdit, {})
+          }
+        ),
+        /* @__PURE__ */ jsx6(
+          "button",
+          {
+            type: "button",
+            className: "re-link-floating-btn re-link-floating-btn-danger",
+            "aria-label": labels.linkRemove,
+            title: labels.linkRemove,
+            onMouseDown: (event) => {
+              event.preventDefault();
+              onRemove();
+            },
+            children: /* @__PURE__ */ jsx6(IconTrash, {})
+          }
+        )
+      ]
+    }
+  );
+}
+function LinkUiPlugin({
+  labels,
+  containerRef,
+  enabled = true,
+  children
+}) {
+  if (!enabled) {
+    return /* @__PURE__ */ jsx6(Fragment, { children });
+  }
+  const [editor] = useLexicalComposerContext10();
+  const [modal, setModal] = useState4(null);
+  const [toolbar, setToolbar] = useState4(null);
+  const closeModal = useCallback3(() => setModal(null), []);
+  const hideToolbar = useCallback3(() => setToolbar(null), []);
+  const openLinkDialog = useCallback3(() => {
+    editor.getEditorState().read(() => {
+      const selection = $getSelection9();
+      if (!$isRangeSelection9(selection)) return;
+      const existing = $findMatchingParent4(selection.anchor.getNode(), $isLinkNode3);
+      if (existing) {
+        setModal({
+          mode: "edit",
+          text: existing.getTextContent(),
+          url: existing.getURL(),
+          linkKey: existing.getKey()
+        });
+        hideToolbar();
+        return;
+      }
+      setModal({
+        mode: "create",
+        text: selection.getTextContent(),
+        url: "https://"
+      });
+      hideToolbar();
+    });
+  }, [editor, hideToolbar]);
+  const openEditForLinkKey = useCallback3(
+    (linkKey) => {
+      editor.getEditorState().read(() => {
+        const link = $getNodeByKey3(linkKey);
+        if (!$isLinkNode3(link)) return;
+        setModal({
+          mode: "edit",
+          text: link.getTextContent(),
+          url: link.getURL(),
+          linkKey: link.getKey()
+        });
+        hideToolbar();
+      });
+    },
+    [editor, hideToolbar]
+  );
+  const handleSaveModal = useCallback3(
+    (text, url, linkKey) => {
+      editor.update(() => {
+        $applyLinkForm({ text, url }, linkKey);
+      });
+      closeModal();
+      editor.focus();
+    },
+    [closeModal, editor]
+  );
+  const removeLink = useCallback3(
+    (linkKey) => {
+      editor.update(() => {
+        $removeLinkByKey(linkKey);
+      });
+      hideToolbar();
+    },
+    [editor, hideToolbar]
+  );
+  useEffect10(() => {
+    const removeClick = editor.registerCommand(
+      CLICK_COMMAND,
+      (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return false;
+        const anchor = target.closest("a.re-link");
+        if (!anchor || !containerRef.current?.contains(anchor)) return false;
+        event.preventDefault();
+        const node = $getNearestNodeFromDOMNode(anchor);
+        const link = node ? $findMatchingParent4(node, $isLinkNode3) : null;
+        if (!link) return true;
+        const rect = anchor.getBoundingClientRect();
+        const host = containerRef.current.getBoundingClientRect();
+        const toolbarHeight = 36;
+        const gap = 6;
+        const spaceAbove = rect.top - host.top;
+        const showBelow = spaceAbove < toolbarHeight + gap;
+        setToolbar({
+          linkKey: link.getKey(),
+          top: showBelow ? rect.bottom - host.top + gap : rect.top - host.top - toolbarHeight - gap,
+          left: rect.left - host.left + rect.width / 2
+        });
+        setModal(null);
+        return true;
+      },
+      COMMAND_PRIORITY_HIGH4
+    );
+    const onDocumentMouseDown = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest(".re-link-floating-toolbar")) return;
+      if (target.closest(".re-link-modal")) return;
+      if (target.closest("a.re-link")) return;
+      hideToolbar();
+    };
+    document.addEventListener("mousedown", onDocumentMouseDown);
+    return () => {
+      removeClick();
+      document.removeEventListener("mousedown", onDocumentMouseDown);
+    };
+  }, [containerRef, editor, hideToolbar]);
+  useEffect10(() => {
+    if (!toolbar) return;
+    const update = () => {
+      editor.getEditorState().read(() => {
+        const link = $getNodeByKey3(toolbar.linkKey);
+        if (!$isLinkNode3(link)) {
+          hideToolbar();
+          return;
+        }
+        const element = editor.getElementByKey(link.getKey());
+        const container = containerRef.current;
+        if (!element || !container) {
+          hideToolbar();
+          return;
+        }
+        const rect = element.getBoundingClientRect();
+        const host = container.getBoundingClientRect();
+        const toolbarHeight = 36;
+        const gap = 6;
+        setToolbar(
+          (current) => current ? {
+            ...current,
+            top: rect.top - host.top - toolbarHeight - gap,
+            left: rect.left - host.left + rect.width / 2
+          } : null
+        );
+      });
+    };
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [containerRef, editor, hideToolbar, toolbar]);
+  return /* @__PURE__ */ jsxs3(LinkUiProvider, { openLinkDialog, children: [
+    children,
+    toolbar && containerRef.current && createPortal3(
+      /* @__PURE__ */ jsx6(
+        LinkFloatingToolbar,
+        {
+          position: toolbar,
+          labels,
+          onEdit: () => openEditForLinkKey(toolbar.linkKey),
+          onRemove: () => removeLink(toolbar.linkKey)
+        }
+      ),
+      containerRef.current
+    ),
+    modal && /* @__PURE__ */ jsx6(
+      LinkModal,
+      {
+        state: modal,
+        labels,
+        onClose: closeModal,
+        onSave: handleSaveModal
+      }
+    )
+  ] });
+}
+
+// src/components/plugins/SpoilerPlugin.tsx
+import { useEffect as useEffect11, useRef as useRef2 } from "react";
+import { useLexicalComposerContext as useLexicalComposerContext11 } from "@lexical/react/LexicalComposerContext";
+import { $findMatchingParent as $findMatchingParent5 } from "@lexical/utils";
+import { $getSelection as $getSelection10, $isRangeSelection as $isRangeSelection10 } from "lexical";
+function SpoilerPlugin() {
+  const [editor] = useLexicalComposerContext11();
+  const editingRef = useRef2(null);
+  useEffect11(() => {
     const root = editor.getRootElement();
     if (!root) return;
     const clearEditing = () => {
@@ -2263,9 +2671,9 @@ function SpoilerPlugin() {
     };
     const removeUpdate = editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const selection = $getSelection8();
-        if (!$isRangeSelection8(selection)) return;
-        const spoiler = $findMatchingParent4(
+        const selection = $getSelection10();
+        if (!$isRangeSelection10(selection)) return;
+        const spoiler = $findMatchingParent5(
           selection.anchor.getNode(),
           $isSpoilerNode
         );
@@ -2285,9 +2693,9 @@ function SpoilerPlugin() {
 
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = useLexicalComposerContext11();
-  const lastApplied = useRef2(void 0);
-  useEffect11(() => {
+  const [editor] = useLexicalComposerContext12();
+  const lastApplied = useRef3(void 0);
+  useEffect12(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
       const root = $getRoot4();
@@ -2310,8 +2718,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = useLexicalComposerContext11();
-  useEffect11(() => {
+  const [editor] = useLexicalComposerContext12();
+  useEffect12(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -2328,8 +2736,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = useLexicalComposerContext11();
-  useEffect11(() => {
+  const [editor] = useLexicalComposerContext12();
+  useEffect12(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -2340,8 +2748,8 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext11();
-  useEffect11(() => {
+  const [editor] = useLexicalComposerContext12();
+  useEffect12(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
         const root = $getRoot4();
@@ -2362,8 +2770,8 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = useLexicalComposerContext11();
-  useEffect11(() => {
+  const [editor] = useLexicalComposerContext12();
+  useEffect12(() => {
     clearRef.current = () => {
       editor.update(() => {
         $getRoot4().clear();
@@ -2378,8 +2786,8 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = useLexicalComposerContext11();
-  useEffect11(() => {
+  const [editor] = useLexicalComposerContext12();
+  useEffect12(() => {
     const update = () => {
       editor.getEditorState().read(() => {
         onEmptyChange($getRoot4().getTextContent().trim() === "");
@@ -2392,7 +2800,7 @@ function EmptyStatePlugin({
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-import { useState as useState4, useId as useId2, useEffect as useEffect12 } from "react";
+import { useState as useState5, useId as useId3, useEffect as useEffect13 } from "react";
 
 // src/core/shortcuts.ts
 var formatKeyboardShortcuts = [
@@ -2512,7 +2920,7 @@ function shortcutById(id) {
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-import { Fragment, jsx as jsx5, jsxs as jsxs3 } from "react/jsx-runtime";
+import { Fragment as Fragment2, jsx as jsx7, jsxs as jsxs4 } from "react/jsx-runtime";
 function ToolbarButton({
   label,
   active,
@@ -2521,7 +2929,7 @@ function ToolbarButton({
   children
 }) {
   const shortcut = shortcutId ? shortcutById(shortcutId) : void 0;
-  return /* @__PURE__ */ jsx5(
+  return /* @__PURE__ */ jsx7(
     "button",
     {
       type: "button",
@@ -2544,10 +2952,10 @@ function EditorToolbar({
 }) {
   const active = useFormatState();
   const format = useFormatActions();
-  const [menuOpen, setMenuOpen] = useState4(false);
-  const menuId = useId2();
+  const [menuOpen, setMenuOpen] = useState5(false);
+  const menuId = useId3();
   const hasMenu = !!slots.toolbarMenu;
-  useEffect12(() => {
+  useEffect13(() => {
     if (!menuOpen) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -2555,7 +2963,7 @@ function EditorToolbar({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
-  return /* @__PURE__ */ jsxs3(
+  return /* @__PURE__ */ jsxs4(
     "div",
     {
       className: "re-toolbar",
@@ -2563,119 +2971,119 @@ function EditorToolbar({
       "aria-label": labels.toolbar,
       "aria-controls": editorInputId,
       children: [
-        /* @__PURE__ */ jsxs3("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
+        /* @__PURE__ */ jsxs4("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
           slots.toolbarStart,
-          features.bold && /* @__PURE__ */ jsx5(
+          features.bold && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.bold,
               active: active.bold,
               onClick: format.bold,
               shortcutId: "format.bold",
-              children: /* @__PURE__ */ jsx5(IconBold, {})
+              children: /* @__PURE__ */ jsx7(IconBold, {})
             }
           ),
-          features.italic && /* @__PURE__ */ jsx5(
+          features.italic && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.italic,
               active: active.italic,
               onClick: format.italic,
               shortcutId: "format.italic",
-              children: /* @__PURE__ */ jsx5(IconItalic, {})
+              children: /* @__PURE__ */ jsx7(IconItalic, {})
             }
           ),
-          features.strikethrough && /* @__PURE__ */ jsx5(
+          features.strikethrough && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.strikethrough,
               active: active.strikethrough,
               onClick: format.strikethrough,
               shortcutId: "format.strikethrough",
-              children: /* @__PURE__ */ jsx5(IconStrikethrough, {})
+              children: /* @__PURE__ */ jsx7(IconStrikethrough, {})
             }
           ),
-          features.code && /* @__PURE__ */ jsx5(
+          features.code && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.code,
               active: active.code,
               onClick: format.code,
               shortcutId: "format.code",
-              children: /* @__PURE__ */ jsx5(IconCode, {})
+              children: /* @__PURE__ */ jsx7(IconCode, {})
             }
           ),
-          features.spoiler && /* @__PURE__ */ jsx5(
+          features.spoiler && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.spoiler,
               active: active.spoiler,
               onClick: format.spoiler,
-              children: /* @__PURE__ */ jsx5(IconSpoiler, {})
+              children: /* @__PURE__ */ jsx7(IconSpoiler, {})
             }
           ),
-          features.quote && /* @__PURE__ */ jsx5(
+          features.quote && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.quote,
               active: active.quote,
               onClick: format.quote,
-              children: /* @__PURE__ */ jsx5(IconQuote, {})
+              children: /* @__PURE__ */ jsx7(IconQuote, {})
             }
           ),
-          features.codeBlock && /* @__PURE__ */ jsx5(
+          features.codeBlock && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.codeBlock,
               active: active.codeBlock,
               onClick: format.codeBlock,
-              children: /* @__PURE__ */ jsx5(IconCodeBlock, {})
+              children: /* @__PURE__ */ jsx7(IconCodeBlock, {})
             }
           ),
-          features.lists && /* @__PURE__ */ jsxs3(Fragment, { children: [
-            /* @__PURE__ */ jsx5(
+          features.lists && /* @__PURE__ */ jsxs4(Fragment2, { children: [
+            /* @__PURE__ */ jsx7(
               ToolbarButton,
               {
                 label: labels.bulletList,
                 active: active.bulletList,
                 onClick: format.bulletList,
-                children: /* @__PURE__ */ jsx5(IconBulletList, {})
+                children: /* @__PURE__ */ jsx7(IconBulletList, {})
               }
             ),
-            /* @__PURE__ */ jsx5(
+            /* @__PURE__ */ jsx7(
               ToolbarButton,
               {
                 label: labels.numberedList,
                 active: active.numberedList,
                 onClick: format.numberedList,
-                children: /* @__PURE__ */ jsx5(IconNumberedList, {})
+                children: /* @__PURE__ */ jsx7(IconNumberedList, {})
               }
             )
           ] }),
-          features.links && /* @__PURE__ */ jsx5(
+          features.links && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.link,
               active: active.link,
               onClick: format.link,
-              children: /* @__PURE__ */ jsx5(IconLink, {})
+              children: /* @__PURE__ */ jsx7(IconLink, {})
             }
           ),
-          features.headings && /* @__PURE__ */ jsx5(
+          features.headings && /* @__PURE__ */ jsx7(
             ToolbarButton,
             {
               label: labels.heading,
               active: active.heading,
               onClick: format.heading,
-              children: /* @__PURE__ */ jsx5(IconHeading, {})
+              children: /* @__PURE__ */ jsx7(IconHeading, {})
             }
           ),
-          showMentionButton && /* @__PURE__ */ jsx5(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ jsx5(IconMention, {}) })
+          showMentionButton && /* @__PURE__ */ jsx7(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ jsx7(IconMention, {}) })
         ] }),
-        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ jsxs3("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
+        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ jsxs4("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
           slots.toolbarEnd,
-          hasMenu && /* @__PURE__ */ jsxs3(Fragment, { children: [
-            /* @__PURE__ */ jsx5(
+          hasMenu && /* @__PURE__ */ jsxs4(Fragment2, { children: [
+            /* @__PURE__ */ jsx7(
               "button",
               {
                 type: "button",
@@ -2689,8 +3097,8 @@ function EditorToolbar({
                 children: "\u22EE"
               }
             ),
-            menuOpen && /* @__PURE__ */ jsxs3(Fragment, { children: [
-              /* @__PURE__ */ jsx5(
+            menuOpen && /* @__PURE__ */ jsxs4(Fragment2, { children: [
+              /* @__PURE__ */ jsx7(
                 "div",
                 {
                   className: "re-toolbar-menu-backdrop",
@@ -2698,7 +3106,7 @@ function EditorToolbar({
                   "aria-hidden": "true"
                 }
               ),
-              /* @__PURE__ */ jsx5(
+              /* @__PURE__ */ jsx7(
                 "div",
                 {
                   id: menuId,
@@ -2744,7 +3152,7 @@ function hasToolbar(features, slots) {
 }
 
 // src/components/RichTextEditor.tsx
-import { Fragment as Fragment2, jsx as jsx6, jsxs as jsxs4 } from "react/jsx-runtime";
+import { Fragment as Fragment3, jsx as jsx8, jsxs as jsxs5 } from "react/jsx-runtime";
 function onError(error) {
   console.error(error);
 }
@@ -2758,8 +3166,8 @@ function exportEditorHtml(editor) {
 function EditorRefPlugin({
   getHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext12();
-  useEffect13(() => {
+  const [editor] = useLexicalComposerContext13();
+  useEffect14(() => {
     getHtmlRef.current = () => exportEditorHtml(editor);
     return () => {
       getHtmlRef.current = null;
@@ -2774,7 +3182,7 @@ function DefaultSubmitButton({
 }) {
   const { isEmpty } = useRichTextEditor();
   if (isEmpty) return null;
-  return /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(
     "button",
     {
       type: "button",
@@ -2783,7 +3191,7 @@ function DefaultSubmitButton({
       className: "re-submit-btn",
       "aria-label": label,
       title: label,
-      children: /* @__PURE__ */ jsx6("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ jsx6("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
+      children: /* @__PURE__ */ jsx8("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ jsx8("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
     }
   );
 }
@@ -2796,10 +3204,10 @@ function SubmitArea({
   showDefault
 }) {
   if (slots.submitButton !== void 0) {
-    return /* @__PURE__ */ jsx6(Fragment2, { children: slots.submitButton });
+    return /* @__PURE__ */ jsx8(Fragment3, { children: slots.submitButton });
   }
   if (!showDefault) return null;
-  return /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsx8(
     DefaultSubmitButton,
     {
       disabled: disabled || sending,
@@ -2822,7 +3230,7 @@ function ContextBridge({
 }) {
   const formatState = useFormatState();
   const format = useFormatActions();
-  const ctx = useMemo2(
+  const ctx = useMemo3(
     () => ({
       getHtml: () => getHtmlRef.current?.() ?? "",
       setHtml: (html) => setHtmlRef.current?.(html),
@@ -2850,7 +3258,7 @@ function ContextBridge({
       onSubmit
     ]
   );
-  return /* @__PURE__ */ jsx6(RichTextEditorProvider, { value: ctx, children });
+  return /* @__PURE__ */ jsx8(RichTextEditorProvider, { value: ctx, children });
 }
 function RichTextEditorInner({
   value,
@@ -2871,32 +3279,32 @@ function RichTextEditorInner({
   mentionSearch,
   children
 }, ref) {
-  const features = useMemo2(() => resolveFeatures(featuresProp), [featuresProp]);
-  const labels = useMemo2(() => resolveLabels(labelsProp), [labelsProp]);
-  const slots = useMemo2(() => collectSlots(children), [children]);
-  const rootId = useId3();
+  const features = useMemo3(() => resolveFeatures(featuresProp), [featuresProp]);
+  const labels = useMemo3(() => resolveLabels(labelsProp), [labelsProp]);
+  const slots = useMemo3(() => collectSlots(children), [children]);
+  const rootId = useId4();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
-  const rootRef = useRef3(null);
-  const bodyRef = useRef3(null);
-  const getHtmlRef = useRef3(null);
-  const setHtmlRef = useRef3(null);
-  const clearRef = useRef3(null);
-  const focusRef = useRef3(null);
-  const [isEmpty, setIsEmpty] = useState5(true);
-  const [sending, setSending] = useState5(false);
-  const inputStyle = useMemo2(
+  const rootRef = useRef4(null);
+  const bodyRef = useRef4(null);
+  const getHtmlRef = useRef4(null);
+  const setHtmlRef = useRef4(null);
+  const clearRef = useRef4(null);
+  const focusRef = useRef4(null);
+  const [isEmpty, setIsEmpty] = useState6(true);
+  const [sending, setSending] = useState6(false);
+  const inputStyle = useMemo3(
     () => ({
       minHeight: `${minRows * EDITOR_LINE_HEIGHT_PX}px`,
       maxHeight: `${maxRows * EDITOR_LINE_HEIGHT_PX}px`
     }),
     [minRows, maxRows]
   );
-  const enterBindings = useMemo2(
+  const enterBindings = useMemo3(
     () => resolveEnterKeyBindings({ enterBehavior, enterKeyBindings }),
     [enterBehavior, enterKeyBindings]
   );
-  const initialConfig = useMemo2(
+  const initialConfig = useMemo3(
     () => ({
       namespace: "RichTextEditor",
       theme: editorTheme,
@@ -2917,12 +3325,12 @@ function RichTextEditorInner({
     }),
     [disabled, features.mentions, features.quote, features.spoiler]
   );
-  const transformers = useMemo2(
+  const transformers = useMemo3(
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
-  const getHtml = useCallback2(() => getHtmlRef.current?.() ?? "", []);
-  const submit = useCallback2(async () => {
+  const getHtml = useCallback4(() => getHtmlRef.current?.() ?? "", []);
+  const submit = useCallback4(async () => {
     if (disabled || sending || isEmpty || !onSubmit) return;
     const html = getHtml();
     if (!html) return;
@@ -2949,13 +3357,13 @@ function RichTextEditorInner({
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
-  return /* @__PURE__ */ jsxs4(LexicalComposer, { initialConfig, children: [
-    /* @__PURE__ */ jsx6(EditorRefPlugin, { getHtmlRef }),
-    /* @__PURE__ */ jsx6(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ jsx6(ClearPlugin, { clearRef }),
-    /* @__PURE__ */ jsx6(FocusPlugin, { focusRef }),
-    /* @__PURE__ */ jsx6(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
-    /* @__PURE__ */ jsx6(
+  return /* @__PURE__ */ jsxs5(LexicalComposer, { initialConfig, children: [
+    /* @__PURE__ */ jsx8(EditorRefPlugin, { getHtmlRef }),
+    /* @__PURE__ */ jsx8(SetHtmlPlugin, { setHtmlRef }),
+    /* @__PURE__ */ jsx8(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ jsx8(FocusPlugin, { focusRef }),
+    /* @__PURE__ */ jsx8(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
+    /* @__PURE__ */ jsx8(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ jsx8(
       ContextBridge,
       {
         disabled,
@@ -2967,7 +3375,7 @@ function RichTextEditorInner({
         setHtmlRef,
         clearRef,
         onSubmit: () => void submit(),
-        children: /* @__PURE__ */ jsxs4(
+        children: /* @__PURE__ */ jsxs5(
           "div",
           {
             ref: rootRef,
@@ -2975,7 +3383,7 @@ function RichTextEditorInner({
             ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
-              showToolbar && /* @__PURE__ */ jsx6(
+              showToolbar && /* @__PURE__ */ jsx8(
                 EditorToolbar,
                 {
                   features,
@@ -2985,7 +3393,7 @@ function RichTextEditorInner({
                   showMentionButton: features.mentions && !!mentionSearch
                 }
               ),
-              /* @__PURE__ */ jsx6(
+              /* @__PURE__ */ jsx8(
                 BlurCapturePlugin,
                 {
                   rootRef,
@@ -2993,15 +3401,15 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ jsxs4("div", { ref: bodyRef, className: "re-editor-body", children: [
-                /* @__PURE__ */ jsx6(BlockBehaviorPlugin, {}),
-                /* @__PURE__ */ jsx6(LineBreakPlugin, {}),
-                features.spoiler && /* @__PURE__ */ jsx6(SpoilerPlugin, {}),
-                /* @__PURE__ */ jsx6(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ jsx6(
+              /* @__PURE__ */ jsxs5("div", { ref: bodyRef, className: "re-editor-body", children: [
+                /* @__PURE__ */ jsx8(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ jsx8(LineBreakPlugin, {}),
+                features.spoiler && /* @__PURE__ */ jsx8(SpoilerPlugin, {}),
+                /* @__PURE__ */ jsx8(InitialHtmlPlugin, { html: value }),
+                /* @__PURE__ */ jsx8(
                   RichTextPlugin,
                   {
-                    contentEditable: /* @__PURE__ */ jsx6(
+                    contentEditable: /* @__PURE__ */ jsx8(
                       ContentEditable,
                       {
                         id: editorInputId,
@@ -3014,26 +3422,26 @@ function RichTextEditorInner({
                         "aria-describedby": placeholder ? placeholderId : void 0
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ jsx6("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                    placeholder: placeholder ? /* @__PURE__ */ jsx8("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
                     ErrorBoundary: LexicalErrorBoundary
                   }
                 ),
-                /* @__PURE__ */ jsx6(HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ jsx6(ListPlugin, {}),
-                features.links && /* @__PURE__ */ jsx6(LinkPlugin, {}),
-                features.codeBlock && /* @__PURE__ */ jsx6(CodeHighlightPlugin, { enabled: !disabled }),
-                transformers.length > 0 && /* @__PURE__ */ jsx6(MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ jsx6(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ jsx6(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ jsx6(MentionsPlugin, { searchMentions: mentionSearch }),
-                /* @__PURE__ */ jsx6(
+                /* @__PURE__ */ jsx8(HistoryPlugin, {}),
+                features.lists && /* @__PURE__ */ jsx8(ListPlugin, {}),
+                features.links && /* @__PURE__ */ jsx8(LinkPlugin, {}),
+                features.codeBlock && /* @__PURE__ */ jsx8(CodeHighlightPlugin, { enabled: !disabled }),
+                transformers.length > 0 && /* @__PURE__ */ jsx8(MarkdownShortcutPlugin, { transformers }),
+                /* @__PURE__ */ jsx8(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ jsx8(KeyboardShortcutsPlugin, { features, disabled }),
+                features.mentions && mentionSearch && /* @__PURE__ */ jsx8(MentionsPlugin, { searchMentions: mentionSearch }),
+                /* @__PURE__ */ jsx8(
                   EnterPlugin,
                   {
                     bindings: enterBindings,
                     onSubmit: onSubmit ? () => void submit() : void 0
                   }
                 ),
-                features.selectionMenu && /* @__PURE__ */ jsx6(
+                features.selectionMenu && /* @__PURE__ */ jsx8(
                   SelectionMenuPlugin,
                   {
                     features,
@@ -3042,7 +3450,7 @@ function RichTextEditorInner({
                     containerRef: bodyRef
                   }
                 ),
-                /* @__PURE__ */ jsx6(
+                /* @__PURE__ */ jsx8(
                   SubmitArea,
                   {
                     slots,
@@ -3054,12 +3462,12 @@ function RichTextEditorInner({
                   }
                 )
               ] }),
-              slots.footer && /* @__PURE__ */ jsx6("div", { className: "re-footer", children: slots.footer })
+              slots.footer && /* @__PURE__ */ jsx8("div", { className: "re-footer", children: slots.footer })
             ]
           }
         )
       }
-    )
+    ) })
   ] });
 }
 var RichTextEditorBase = forwardRef(RichTextEditorInner);
@@ -3077,7 +3485,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-import { useEffect as useEffect14, useLayoutEffect, useMemo as useMemo3, useRef as useRef4 } from "react";
+import { useEffect as useEffect15, useLayoutEffect, useMemo as useMemo4, useRef as useRef5 } from "react";
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -3131,7 +3539,7 @@ async function highlightViewerCodeBlocks(root) {
 }
 
 // src/components/RichTextViewer.tsx
-import { jsx as jsx7 } from "react/jsx-runtime";
+import { jsx as jsx9 } from "react/jsx-runtime";
 function mentionAriaLabel(template, label) {
   return template.replace("{label}", label);
 }
@@ -3151,8 +3559,8 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
-  const ref = useRef4(null);
-  const prepared = useMemo3(
+  const ref = useRef5(null);
+  const prepared = useMemo4(
     () => prepareViewerContent(content, features),
     [content, features]
   );
@@ -3160,7 +3568,7 @@ function RichTextViewer({
     if (prepared.kind !== "html" || !features.codeHighlight) return;
     void highlightViewerCodeBlocks(ref.current);
   }, [prepared, features.codeHighlight]);
-  useEffect14(() => {
+  useEffect15(() => {
     if (prepared.kind !== "html") return;
     const root = ref.current;
     if (!root) return;
@@ -3172,7 +3580,7 @@ function RichTextViewer({
     root.addEventListener("click", onSpoilerClick);
     return () => root.removeEventListener("click", onSpoilerClick);
   }, [prepared]);
-  useEffect14(() => {
+  useEffect15(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
@@ -3215,7 +3623,7 @@ function RichTextViewer({
     };
   }, [labels.mention, onMentionClick, prepared]);
   if (prepared.kind === "plain") {
-    return /* @__PURE__ */ jsx7(
+    return /* @__PURE__ */ jsx9(
       "p",
       {
         ...themeDataAttribute(theme),
@@ -3225,7 +3633,7 @@ function RichTextViewer({
       }
     );
   }
-  return /* @__PURE__ */ jsx7(
+  return /* @__PURE__ */ jsx9(
     "div",
     {
       ref,

@@ -73,10 +73,10 @@ module.exports = __toCommonJS(index_exports);
 // src/components/RichTextEditor.tsx
 var import_html5 = require("@lexical/html");
 var import_code5 = require("@lexical/code");
-var import_link2 = require("@lexical/link");
+var import_link4 = require("@lexical/link");
 var import_list3 = require("@lexical/list");
 var import_LexicalComposer = require("@lexical/react/LexicalComposer");
-var import_LexicalComposerContext12 = require("@lexical/react/LexicalComposerContext");
+var import_LexicalComposerContext13 = require("@lexical/react/LexicalComposerContext");
 var import_LexicalContentEditable = require("@lexical/react/LexicalContentEditable");
 var import_LexicalErrorBoundary = require("@lexical/react/LexicalErrorBoundary");
 var import_LexicalHistoryPlugin = require("@lexical/react/LexicalHistoryPlugin");
@@ -85,7 +85,7 @@ var import_LexicalListPlugin = require("@lexical/react/LexicalListPlugin");
 var import_LexicalMarkdownShortcutPlugin = require("@lexical/react/LexicalMarkdownShortcutPlugin");
 var import_LexicalRichTextPlugin = require("@lexical/react/LexicalRichTextPlugin");
 var import_rich_text6 = require("@lexical/rich-text");
-var import_react15 = require("react");
+var import_react17 = require("react");
 
 // src/context/EditorContext.tsx
 var import_react = require("react");
@@ -138,6 +138,14 @@ var defaultLabels = {
   bulletList: "Bullet list",
   numberedList: "Numbered list",
   link: "Link",
+  linkText: "Text",
+  linkUrl: "URL",
+  linkAdd: "Add link",
+  linkEdit: "Edit link",
+  linkRemove: "Remove link",
+  linkSave: "Save",
+  linkCancel: "Cancel",
+  linkToolbar: "Link actions",
   heading: "Heading",
   mention: "Mention",
   spoiler: "Spoiler",
@@ -165,7 +173,7 @@ var defaultViewerFeatures = {
 function resolveViewerFeatures(partial) {
   return { ...defaultViewerFeatures, ...partial };
 }
-var EDITOR_LINE_HEIGHT_PX = 28;
+var EDITOR_LINE_HEIGHT_PX = 24;
 
 // src/core/enterBindings.ts
 var defaultEnterKeyBindings = [
@@ -806,10 +814,10 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-var import_react12 = require("react");
+var import_react14 = require("react");
 var import_html4 = require("@lexical/html");
-var import_LexicalComposerContext11 = require("@lexical/react/LexicalComposerContext");
-var import_lexical15 = require("lexical");
+var import_LexicalComposerContext12 = require("@lexical/react/LexicalComposerContext");
+var import_lexical17 = require("lexical");
 
 // src/components/plugins/EnterPlugin.tsx
 var import_react2 = require("react");
@@ -1611,7 +1619,7 @@ function CodeHighlightPlugin({ enabled }) {
 }
 
 // src/components/plugins/SelectionMenuPlugin.tsx
-var import_react9 = require("react");
+var import_react10 = require("react");
 var import_react_dom2 = require("react-dom");
 var import_LexicalComposerContext8 = require("@lexical/react/LexicalComposerContext");
 var import_lexical12 = require("lexical");
@@ -1713,9 +1721,24 @@ function IconSpoiler(props) {
     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "3", y1: "3", x2: "21", y2: "21" })
   ] });
 }
+function IconEdit(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 20h9" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" })
+  ] });
+}
+function IconTrash(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M3 6h18" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M8 6V4h8v2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
+  ] });
+}
 
 // src/components/toolbar/useFormatState.ts
-var import_react8 = require("react");
+var import_react9 = require("react");
 var import_LexicalComposerContext7 = require("@lexical/react/LexicalComposerContext");
 var import_code4 = require("@lexical/code");
 var import_link = require("@lexical/link");
@@ -1724,6 +1747,23 @@ var import_rich_text5 = require("@lexical/rich-text");
 var import_selection = require("@lexical/selection");
 var import_utils3 = require("@lexical/utils");
 var import_lexical11 = require("lexical");
+
+// src/context/LinkUiContext.tsx
+var import_react8 = require("react");
+var import_jsx_runtime4 = require("react/jsx-runtime");
+var LinkUiContext = (0, import_react8.createContext)(null);
+function LinkUiProvider({
+  openLinkDialog,
+  children
+}) {
+  const value = (0, import_react8.useMemo)(() => ({ openLinkDialog }), [openLinkDialog]);
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(LinkUiContext.Provider, { value, children });
+}
+function useLinkUiOptional() {
+  return (0, import_react8.useContext)(LinkUiContext);
+}
+
+// src/components/toolbar/useFormatState.ts
 var emptyFormat = {
   bold: false,
   italic: false,
@@ -1739,8 +1779,8 @@ var emptyFormat = {
 };
 function useFormatState() {
   const [editor] = (0, import_LexicalComposerContext7.useLexicalComposerContext)();
-  const [state, setState] = (0, import_react8.useState)(emptyFormat);
-  (0, import_react8.useEffect)(() => {
+  const [state, setState] = (0, import_react9.useState)(emptyFormat);
+  (0, import_react9.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
         const selection = (0, import_lexical11.$getSelection)();
@@ -1783,6 +1823,7 @@ function useFormatState() {
 }
 function useFormatActions() {
   const [editor] = (0, import_LexicalComposerContext7.useLexicalComposerContext)();
+  const linkUi = useLinkUiOptional();
   return {
     bold: () => editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "bold"),
     italic: () => editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "italic"),
@@ -1841,23 +1882,7 @@ function useFormatActions() {
       });
     },
     link: () => {
-      editor.update(() => {
-        const selection = (0, import_lexical11.$getSelection)();
-        if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
-        const existing = (0, import_utils3.$findMatchingParent)(
-          selection.anchor.getNode(),
-          import_link.$isLinkNode
-        );
-        if (existing) {
-          editor.dispatchCommand(import_link.TOGGLE_LINK_COMMAND, null);
-          return;
-        }
-        const url = window.prompt("URL", "https://");
-        if (url === null) return;
-        if (url.trim()) {
-          editor.dispatchCommand(import_link.TOGGLE_LINK_COMMAND, url.trim());
-        }
-      });
+      linkUi?.openLinkDialog();
     },
     heading: () => {
       editor.update(() => {
@@ -1907,7 +1932,7 @@ function useFormatActions() {
 }
 
 // src/components/plugins/SelectionMenuPlugin.tsx
-var import_jsx_runtime4 = require("react/jsx-runtime");
+var import_jsx_runtime5 = require("react/jsx-runtime");
 function isItemEnabled(item, features) {
   switch (item) {
     case "bold":
@@ -1940,29 +1965,29 @@ function isItemEnabled(item, features) {
 function MenuIcon({ item }) {
   switch (item) {
     case "bold":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconBold, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBold, {});
     case "italic":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconItalic, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconItalic, {});
     case "strikethrough":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconStrikethrough, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconStrikethrough, {});
     case "code":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconCode, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconCode, {});
     case "quote":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconQuote, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconQuote, {});
     case "codeBlock":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconCodeBlock, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconCodeBlock, {});
     case "bulletList":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconBulletList, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBulletList, {});
     case "numberedList":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconNumberedList, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconNumberedList, {});
     case "link":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconLink, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconLink, {});
     case "heading":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconHeading, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconHeading, {});
     case "mention":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconMention, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconMention, {});
     case "spoiler":
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconSpoiler, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconSpoiler, {});
     default:
       return null;
   }
@@ -2074,11 +2099,11 @@ function SelectionMenuPlugin({
   const [editor] = (0, import_LexicalComposerContext8.useLexicalComposerContext)();
   const active = useFormatState();
   const format = useFormatActions();
-  const [position, setPosition] = (0, import_react9.useState)(
+  const [position, setPosition] = (0, import_react10.useState)(
     null
   );
   const visibleItems = items.filter((item) => isItemEnabled(item, features));
-  (0, import_react9.useEffect)(() => {
+  (0, import_react10.useEffect)(() => {
     if (!features.selectionMenu || visibleItems.length === 0) {
       setPosition(null);
       return;
@@ -2135,7 +2160,7 @@ function SelectionMenuPlugin({
   if (!features.selectionMenu || !position || visibleItems.length === 0) {
     return null;
   }
-  const menu = /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  const menu = /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
     "div",
     {
       className: "re-selection-menu",
@@ -2145,7 +2170,7 @@ function SelectionMenuPlugin({
       },
       role: "toolbar",
       "aria-label": labels.selectionMenu,
-      children: visibleItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      children: visibleItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
         "button",
         {
           type: "button",
@@ -2159,7 +2184,7 @@ function SelectionMenuPlugin({
             event.preventDefault();
             runItemAction(item, format);
           },
-          children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(MenuIcon, { item })
+          children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(MenuIcon, { item })
         },
         item
       ))
@@ -2169,12 +2194,12 @@ function SelectionMenuPlugin({
 }
 
 // src/components/plugins/LineBreakPlugin.tsx
-var import_react10 = require("react");
+var import_react11 = require("react");
 var import_LexicalComposerContext9 = require("@lexical/react/LexicalComposerContext");
 var import_lexical13 = require("lexical");
 function LineBreakPlugin() {
   const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
-  (0, import_react10.useEffect)(() => {
+  (0, import_react11.useEffect)(() => {
     return editor.registerCommand(
       import_lexical13.INSERT_LINE_BREAK_COMMAND,
       () => {
@@ -2190,15 +2215,382 @@ function LineBreakPlugin() {
   return null;
 }
 
-// src/components/plugins/SpoilerPlugin.tsx
-var import_react11 = require("react");
+// src/components/plugins/LinkUiPlugin.tsx
+var import_react12 = require("react");
+var import_react_dom3 = require("react-dom");
 var import_LexicalComposerContext10 = require("@lexical/react/LexicalComposerContext");
+var import_link3 = require("@lexical/link");
 var import_utils4 = require("@lexical/utils");
+var import_lexical15 = require("lexical");
+
+// src/core/links.ts
+var import_link2 = require("@lexical/link");
 var import_lexical14 = require("lexical");
-function SpoilerPlugin() {
+function $applyLinkForm(values, linkKey) {
+  const text = values.text.trim();
+  const url = values.url.trim();
+  if (!text || !url) return;
+  if (linkKey) {
+    const link2 = (0, import_lexical14.$getNodeByKey)(linkKey);
+    if (!(0, import_link2.$isLinkNode)(link2)) return;
+    const nextLink = (0, import_link2.$createLinkNode)(url, {
+      rel: link2.getRel(),
+      target: link2.getTarget(),
+      title: link2.getTitle()
+    });
+    nextLink.append((0, import_lexical14.$createTextNode)(text));
+    link2.replace(nextLink);
+    nextLink.selectEnd();
+    return;
+  }
+  const selection = (0, import_lexical14.$getSelection)();
+  if (!(0, import_lexical14.$isRangeSelection)(selection)) return;
+  if (!selection.isCollapsed()) {
+    selection.removeText();
+  }
+  const link = (0, import_link2.$createLinkNode)(url);
+  link.append((0, import_lexical14.$createTextNode)(text));
+  selection.insertNodes([link]);
+}
+function $removeLinkByKey(linkKey) {
+  const link = (0, import_lexical14.$getNodeByKey)(linkKey);
+  if (!(0, import_link2.$isLinkNode)(link)) return;
+  const textNode = (0, import_lexical14.$createTextNode)(link.getTextContent());
+  link.replace(textNode);
+  textNode.select();
+}
+
+// src/components/plugins/LinkUiPlugin.tsx
+var import_jsx_runtime6 = require("react/jsx-runtime");
+function LinkModal({
+  state,
+  labels,
+  onClose,
+  onSave
+}) {
+  const titleId = (0, import_react12.useId)();
+  const textId = (0, import_react12.useId)();
+  const urlId = (0, import_react12.useId)();
+  const [text, setText] = (0, import_react12.useState)(state.text);
+  const [url, setUrl] = (0, import_react12.useState)(state.url);
+  const textRef = (0, import_react12.useRef)(null);
+  (0, import_react12.useEffect)(() => {
+    setText(state.text);
+    setUrl(state.url || "https://");
+    const timer = window.setTimeout(() => textRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+  (0, import_react12.useEffect)(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+  const title = state.mode === "edit" ? labels.linkEdit : labels.linkAdd;
+  return (0, import_react_dom3.createPortal)(
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "re-link-modal-backdrop", onMouseDown: onClose, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+      "div",
+      {
+        className: "re-link-modal",
+        role: "dialog",
+        "aria-modal": "true",
+        "aria-labelledby": titleId,
+        onMouseDown: (event) => event.stopPropagation(),
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("h3", { id: titleId, className: "re-link-modal-title", children: title }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("label", { className: "re-link-field", htmlFor: textId, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "re-link-field-label", children: labels.linkText }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "input",
+              {
+                ref: textRef,
+                id: textId,
+                type: "text",
+                className: "re-link-field-input",
+                value: text,
+                onChange: (event) => setText(event.target.value),
+                placeholder: labels.linkText
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("label", { className: "re-link-field", htmlFor: urlId, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "re-link-field-label", children: labels.linkUrl }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "input",
+              {
+                id: urlId,
+                type: "url",
+                className: "re-link-field-input",
+                value: url,
+                onChange: (event) => setUrl(event.target.value),
+                placeholder: "https://"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "re-link-modal-actions", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "re-link-modal-btn re-link-modal-btn-secondary",
+                onClick: onClose,
+                children: labels.linkCancel
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "re-link-modal-btn re-link-modal-btn-primary",
+                onClick: () => onSave(text, url, state.linkKey),
+                disabled: !text.trim() || !url.trim(),
+                children: labels.linkSave
+              }
+            )
+          ] })
+        ]
+      }
+    ) }),
+    document.body
+  );
+}
+function LinkFloatingToolbar({
+  position,
+  labels,
+  onEdit,
+  onRemove
+}) {
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+    "div",
+    {
+      className: "re-link-floating-toolbar",
+      style: {
+        top: `${position.top}px`,
+        left: `${position.left}px`
+      },
+      role: "toolbar",
+      "aria-label": labels.linkToolbar,
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "re-link-floating-btn",
+            "aria-label": labels.linkEdit,
+            title: labels.linkEdit,
+            onMouseDown: (event) => {
+              event.preventDefault();
+              onEdit();
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconEdit, {})
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          "button",
+          {
+            type: "button",
+            className: "re-link-floating-btn re-link-floating-btn-danger",
+            "aria-label": labels.linkRemove,
+            title: labels.linkRemove,
+            onMouseDown: (event) => {
+              event.preventDefault();
+              onRemove();
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconTrash, {})
+          }
+        )
+      ]
+    }
+  );
+}
+function LinkUiPlugin({
+  labels,
+  containerRef,
+  enabled = true,
+  children
+}) {
+  if (!enabled) {
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_jsx_runtime6.Fragment, { children });
+  }
   const [editor] = (0, import_LexicalComposerContext10.useLexicalComposerContext)();
-  const editingRef = (0, import_react11.useRef)(null);
-  (0, import_react11.useEffect)(() => {
+  const [modal, setModal] = (0, import_react12.useState)(null);
+  const [toolbar, setToolbar] = (0, import_react12.useState)(null);
+  const closeModal = (0, import_react12.useCallback)(() => setModal(null), []);
+  const hideToolbar = (0, import_react12.useCallback)(() => setToolbar(null), []);
+  const openLinkDialog = (0, import_react12.useCallback)(() => {
+    editor.getEditorState().read(() => {
+      const selection = (0, import_lexical15.$getSelection)();
+      if (!(0, import_lexical15.$isRangeSelection)(selection)) return;
+      const existing = (0, import_utils4.$findMatchingParent)(selection.anchor.getNode(), import_link3.$isLinkNode);
+      if (existing) {
+        setModal({
+          mode: "edit",
+          text: existing.getTextContent(),
+          url: existing.getURL(),
+          linkKey: existing.getKey()
+        });
+        hideToolbar();
+        return;
+      }
+      setModal({
+        mode: "create",
+        text: selection.getTextContent(),
+        url: "https://"
+      });
+      hideToolbar();
+    });
+  }, [editor, hideToolbar]);
+  const openEditForLinkKey = (0, import_react12.useCallback)(
+    (linkKey) => {
+      editor.getEditorState().read(() => {
+        const link = (0, import_lexical15.$getNodeByKey)(linkKey);
+        if (!(0, import_link3.$isLinkNode)(link)) return;
+        setModal({
+          mode: "edit",
+          text: link.getTextContent(),
+          url: link.getURL(),
+          linkKey: link.getKey()
+        });
+        hideToolbar();
+      });
+    },
+    [editor, hideToolbar]
+  );
+  const handleSaveModal = (0, import_react12.useCallback)(
+    (text, url, linkKey) => {
+      editor.update(() => {
+        $applyLinkForm({ text, url }, linkKey);
+      });
+      closeModal();
+      editor.focus();
+    },
+    [closeModal, editor]
+  );
+  const removeLink = (0, import_react12.useCallback)(
+    (linkKey) => {
+      editor.update(() => {
+        $removeLinkByKey(linkKey);
+      });
+      hideToolbar();
+    },
+    [editor, hideToolbar]
+  );
+  (0, import_react12.useEffect)(() => {
+    const removeClick = editor.registerCommand(
+      import_lexical15.CLICK_COMMAND,
+      (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return false;
+        const anchor = target.closest("a.re-link");
+        if (!anchor || !containerRef.current?.contains(anchor)) return false;
+        event.preventDefault();
+        const node = (0, import_lexical15.$getNearestNodeFromDOMNode)(anchor);
+        const link = node ? (0, import_utils4.$findMatchingParent)(node, import_link3.$isLinkNode) : null;
+        if (!link) return true;
+        const rect = anchor.getBoundingClientRect();
+        const host = containerRef.current.getBoundingClientRect();
+        const toolbarHeight = 36;
+        const gap = 6;
+        const spaceAbove = rect.top - host.top;
+        const showBelow = spaceAbove < toolbarHeight + gap;
+        setToolbar({
+          linkKey: link.getKey(),
+          top: showBelow ? rect.bottom - host.top + gap : rect.top - host.top - toolbarHeight - gap,
+          left: rect.left - host.left + rect.width / 2
+        });
+        setModal(null);
+        return true;
+      },
+      import_lexical15.COMMAND_PRIORITY_HIGH
+    );
+    const onDocumentMouseDown = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest(".re-link-floating-toolbar")) return;
+      if (target.closest(".re-link-modal")) return;
+      if (target.closest("a.re-link")) return;
+      hideToolbar();
+    };
+    document.addEventListener("mousedown", onDocumentMouseDown);
+    return () => {
+      removeClick();
+      document.removeEventListener("mousedown", onDocumentMouseDown);
+    };
+  }, [containerRef, editor, hideToolbar]);
+  (0, import_react12.useEffect)(() => {
+    if (!toolbar) return;
+    const update = () => {
+      editor.getEditorState().read(() => {
+        const link = (0, import_lexical15.$getNodeByKey)(toolbar.linkKey);
+        if (!(0, import_link3.$isLinkNode)(link)) {
+          hideToolbar();
+          return;
+        }
+        const element = editor.getElementByKey(link.getKey());
+        const container = containerRef.current;
+        if (!element || !container) {
+          hideToolbar();
+          return;
+        }
+        const rect = element.getBoundingClientRect();
+        const host = container.getBoundingClientRect();
+        const toolbarHeight = 36;
+        const gap = 6;
+        setToolbar(
+          (current) => current ? {
+            ...current,
+            top: rect.top - host.top - toolbarHeight - gap,
+            left: rect.left - host.left + rect.width / 2
+          } : null
+        );
+      });
+    };
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [containerRef, editor, hideToolbar, toolbar]);
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(LinkUiProvider, { openLinkDialog, children: [
+    children,
+    toolbar && containerRef.current && (0, import_react_dom3.createPortal)(
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        LinkFloatingToolbar,
+        {
+          position: toolbar,
+          labels,
+          onEdit: () => openEditForLinkKey(toolbar.linkKey),
+          onRemove: () => removeLink(toolbar.linkKey)
+        }
+      ),
+      containerRef.current
+    ),
+    modal && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      LinkModal,
+      {
+        state: modal,
+        labels,
+        onClose: closeModal,
+        onSave: handleSaveModal
+      }
+    )
+  ] });
+}
+
+// src/components/plugins/SpoilerPlugin.tsx
+var import_react13 = require("react");
+var import_LexicalComposerContext11 = require("@lexical/react/LexicalComposerContext");
+var import_utils5 = require("@lexical/utils");
+var import_lexical16 = require("lexical");
+function SpoilerPlugin() {
+  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
+  const editingRef = (0, import_react13.useRef)(null);
+  (0, import_react13.useEffect)(() => {
     const root = editor.getRootElement();
     if (!root) return;
     const clearEditing = () => {
@@ -2223,9 +2615,9 @@ function SpoilerPlugin() {
     };
     const removeUpdate = editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const selection = (0, import_lexical14.$getSelection)();
-        if (!(0, import_lexical14.$isRangeSelection)(selection)) return;
-        const spoiler = (0, import_utils4.$findMatchingParent)(
+        const selection = (0, import_lexical16.$getSelection)();
+        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const spoiler = (0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           $isSpoilerNode
         );
@@ -2245,12 +2637,12 @@ function SpoilerPlugin() {
 
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
-  const lastApplied = (0, import_react12.useRef)(void 0);
-  (0, import_react12.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
+  const lastApplied = (0, import_react14.useRef)(void 0);
+  (0, import_react14.useEffect)(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
-      const root = (0, import_lexical15.$getRoot)();
+      const root = (0, import_lexical17.$getRoot)();
       root.clear();
       if (!html?.trim()) {
         lastApplied.current = html;
@@ -2270,8 +2662,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
-  (0, import_react12.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
+  (0, import_react14.useEffect)(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -2288,8 +2680,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
-  (0, import_react12.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
+  (0, import_react14.useEffect)(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -2300,11 +2692,11 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
-  (0, import_react12.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
+  (0, import_react14.useEffect)(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
-        const root = (0, import_lexical15.$getRoot)();
+        const root = (0, import_lexical17.$getRoot)();
         root.clear();
         if (!html.trim()) return;
         const parser = new DOMParser();
@@ -2322,11 +2714,11 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
-  (0, import_react12.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
+  (0, import_react14.useEffect)(() => {
     clearRef.current = () => {
       editor.update(() => {
-        (0, import_lexical15.$getRoot)().clear();
+        (0, import_lexical17.$getRoot)().clear();
       });
     };
     return () => {
@@ -2338,11 +2730,11 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
-  (0, import_react12.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
+  (0, import_react14.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        onEmptyChange((0, import_lexical15.$getRoot)().getTextContent().trim() === "");
+        onEmptyChange((0, import_lexical17.$getRoot)().getTextContent().trim() === "");
       });
     };
     update();
@@ -2352,7 +2744,7 @@ function EmptyStatePlugin({
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-var import_react13 = require("react");
+var import_react15 = require("react");
 
 // src/core/shortcuts.ts
 var formatKeyboardShortcuts = [
@@ -2472,7 +2864,7 @@ function shortcutById(id) {
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-var import_jsx_runtime5 = require("react/jsx-runtime");
+var import_jsx_runtime7 = require("react/jsx-runtime");
 function ToolbarButton({
   label,
   active,
@@ -2481,7 +2873,7 @@ function ToolbarButton({
   children
 }) {
   const shortcut = shortcutId ? shortcutById(shortcutId) : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
     "button",
     {
       type: "button",
@@ -2504,10 +2896,10 @@ function EditorToolbar({
 }) {
   const active = useFormatState();
   const format = useFormatActions();
-  const [menuOpen, setMenuOpen] = (0, import_react13.useState)(false);
-  const menuId = (0, import_react13.useId)();
+  const [menuOpen, setMenuOpen] = (0, import_react15.useState)(false);
+  const menuId = (0, import_react15.useId)();
   const hasMenu = !!slots.toolbarMenu;
-  (0, import_react13.useEffect)(() => {
+  (0, import_react15.useEffect)(() => {
     if (!menuOpen) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -2515,7 +2907,7 @@ function EditorToolbar({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
     "div",
     {
       className: "re-toolbar",
@@ -2523,119 +2915,119 @@ function EditorToolbar({
       "aria-label": labels.toolbar,
       "aria-controls": editorInputId,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
           slots.toolbarStart,
-          features.bold && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.bold && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.bold,
               active: active.bold,
               onClick: format.bold,
               shortcutId: "format.bold",
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBold, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconBold, {})
             }
           ),
-          features.italic && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.italic && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.italic,
               active: active.italic,
               onClick: format.italic,
               shortcutId: "format.italic",
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconItalic, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconItalic, {})
             }
           ),
-          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.strikethrough,
               active: active.strikethrough,
               onClick: format.strikethrough,
               shortcutId: "format.strikethrough",
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconStrikethrough, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconStrikethrough, {})
             }
           ),
-          features.code && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.code,
               active: active.code,
               onClick: format.code,
               shortcutId: "format.code",
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconCode, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconCode, {})
             }
           ),
-          features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.spoiler,
               active: active.spoiler,
               onClick: format.spoiler,
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconSpoiler, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconSpoiler, {})
             }
           ),
-          features.quote && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.quote && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.quote,
               active: active.quote,
               onClick: format.quote,
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconQuote, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconQuote, {})
             }
           ),
-          features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.codeBlock,
               active: active.codeBlock,
               onClick: format.codeBlock,
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconCodeBlock, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconCodeBlock, {})
             }
           ),
-          features.lists && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.lists && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(import_jsx_runtime7.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
               ToolbarButton,
               {
                 label: labels.bulletList,
                 active: active.bulletList,
                 onClick: format.bulletList,
-                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBulletList, {})
+                children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconBulletList, {})
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
               ToolbarButton,
               {
                 label: labels.numberedList,
                 active: active.numberedList,
                 onClick: format.numberedList,
-                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconNumberedList, {})
+                children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconNumberedList, {})
               }
             )
           ] }),
-          features.links && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.links && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.link,
               active: active.link,
               onClick: format.link,
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconLink, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconLink, {})
             }
           ),
-          features.headings && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          features.headings && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
             ToolbarButton,
             {
               label: labels.heading,
               active: active.heading,
               onClick: format.heading,
-              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconHeading, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconHeading, {})
             }
           ),
-          showMentionButton && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconMention, {}) })
+          showMentionButton && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconMention, {}) })
         ] }),
-        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
+        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
           slots.toolbarEnd,
-          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(import_jsx_runtime7.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
               "button",
               {
                 type: "button",
@@ -2649,8 +3041,8 @@ function EditorToolbar({
                 children: "\u22EE"
               }
             ),
-            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(import_jsx_runtime7.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
                 "div",
                 {
                   className: "re-toolbar-menu-backdrop",
@@ -2658,7 +3050,7 @@ function EditorToolbar({
                   "aria-hidden": "true"
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
                 "div",
                 {
                   id: menuId,
@@ -2677,7 +3069,7 @@ function EditorToolbar({
 }
 
 // src/components/slots/createSlot.tsx
-var import_react14 = require("react");
+var import_react16 = require("react");
 function createSlot(name) {
   const Slot = ({ children }) => null;
   Slot.slotName = name;
@@ -2685,11 +3077,11 @@ function createSlot(name) {
   return Slot;
 }
 function isSlotComponent(child) {
-  return (0, import_react14.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
+  return (0, import_react16.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
 }
 function collectSlots(children) {
   const slots = {};
-  import_react14.Children.forEach(children, (child) => {
+  import_react16.Children.forEach(children, (child) => {
     if (!isSlotComponent(child)) return;
     const name = child.type.slotName;
     slots[name] = child.props.children;
@@ -2701,7 +3093,7 @@ function hasToolbar(features, slots) {
 }
 
 // src/components/RichTextEditor.tsx
-var import_jsx_runtime6 = require("react/jsx-runtime");
+var import_jsx_runtime8 = require("react/jsx-runtime");
 function onError(error) {
   console.error(error);
 }
@@ -2715,8 +3107,8 @@ function exportEditorHtml(editor) {
 function EditorRefPlugin({
   getHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
-  (0, import_react15.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
+  (0, import_react17.useEffect)(() => {
     getHtmlRef.current = () => exportEditorHtml(editor);
     return () => {
       getHtmlRef.current = null;
@@ -2731,7 +3123,7 @@ function DefaultSubmitButton({
 }) {
   const { isEmpty } = useRichTextEditor();
   if (isEmpty) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     "button",
     {
       type: "button",
@@ -2740,7 +3132,7 @@ function DefaultSubmitButton({
       className: "re-submit-btn",
       "aria-label": label,
       title: label,
-      children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
+      children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
     }
   );
 }
@@ -2753,10 +3145,10 @@ function SubmitArea({
   showDefault
 }) {
   if (slots.submitButton !== void 0) {
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_jsx_runtime6.Fragment, { children: slots.submitButton });
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_jsx_runtime8.Fragment, { children: slots.submitButton });
   }
   if (!showDefault) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     DefaultSubmitButton,
     {
       disabled: disabled || sending,
@@ -2779,7 +3171,7 @@ function ContextBridge({
 }) {
   const formatState = useFormatState();
   const format = useFormatActions();
-  const ctx = (0, import_react15.useMemo)(
+  const ctx = (0, import_react17.useMemo)(
     () => ({
       getHtml: () => getHtmlRef.current?.() ?? "",
       setHtml: (html) => setHtmlRef.current?.(html),
@@ -2807,7 +3199,7 @@ function ContextBridge({
       onSubmit
     ]
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(RichTextEditorProvider, { value: ctx, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(RichTextEditorProvider, { value: ctx, children });
 }
 function RichTextEditorInner({
   value,
@@ -2828,32 +3220,32 @@ function RichTextEditorInner({
   mentionSearch,
   children
 }, ref) {
-  const features = (0, import_react15.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
-  const labels = (0, import_react15.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
-  const slots = (0, import_react15.useMemo)(() => collectSlots(children), [children]);
-  const rootId = (0, import_react15.useId)();
+  const features = (0, import_react17.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
+  const labels = (0, import_react17.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
+  const slots = (0, import_react17.useMemo)(() => collectSlots(children), [children]);
+  const rootId = (0, import_react17.useId)();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
-  const rootRef = (0, import_react15.useRef)(null);
-  const bodyRef = (0, import_react15.useRef)(null);
-  const getHtmlRef = (0, import_react15.useRef)(null);
-  const setHtmlRef = (0, import_react15.useRef)(null);
-  const clearRef = (0, import_react15.useRef)(null);
-  const focusRef = (0, import_react15.useRef)(null);
-  const [isEmpty, setIsEmpty] = (0, import_react15.useState)(true);
-  const [sending, setSending] = (0, import_react15.useState)(false);
-  const inputStyle = (0, import_react15.useMemo)(
+  const rootRef = (0, import_react17.useRef)(null);
+  const bodyRef = (0, import_react17.useRef)(null);
+  const getHtmlRef = (0, import_react17.useRef)(null);
+  const setHtmlRef = (0, import_react17.useRef)(null);
+  const clearRef = (0, import_react17.useRef)(null);
+  const focusRef = (0, import_react17.useRef)(null);
+  const [isEmpty, setIsEmpty] = (0, import_react17.useState)(true);
+  const [sending, setSending] = (0, import_react17.useState)(false);
+  const inputStyle = (0, import_react17.useMemo)(
     () => ({
       minHeight: `${minRows * EDITOR_LINE_HEIGHT_PX}px`,
       maxHeight: `${maxRows * EDITOR_LINE_HEIGHT_PX}px`
     }),
     [minRows, maxRows]
   );
-  const enterBindings = (0, import_react15.useMemo)(
+  const enterBindings = (0, import_react17.useMemo)(
     () => resolveEnterKeyBindings({ enterBehavior, enterKeyBindings }),
     [enterBehavior, enterKeyBindings]
   );
-  const initialConfig = (0, import_react15.useMemo)(
+  const initialConfig = (0, import_react17.useMemo)(
     () => ({
       namespace: "RichTextEditor",
       theme: editorTheme,
@@ -2866,20 +3258,20 @@ function RichTextEditorInner({
         import_list3.ListItemNode,
         import_code5.CodeNode,
         import_code5.CodeHighlightNode,
-        import_link2.LinkNode,
-        import_link2.AutoLinkNode,
+        import_link4.LinkNode,
+        import_link4.AutoLinkNode,
         ...features.mentions ? [MentionNode] : [],
         ...features.spoiler ? [SpoilerNode] : []
       ]
     }),
     [disabled, features.mentions, features.quote, features.spoiler]
   );
-  const transformers = (0, import_react15.useMemo)(
+  const transformers = (0, import_react17.useMemo)(
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
-  const getHtml = (0, import_react15.useCallback)(() => getHtmlRef.current?.() ?? "", []);
-  const submit = (0, import_react15.useCallback)(async () => {
+  const getHtml = (0, import_react17.useCallback)(() => getHtmlRef.current?.() ?? "", []);
+  const submit = (0, import_react17.useCallback)(async () => {
     if (disabled || sending || isEmpty || !onSubmit) return;
     const html = getHtml();
     if (!html) return;
@@ -2893,7 +3285,7 @@ function RichTextEditorInner({
       setSending(false);
     }
   }, [clearOnSubmit, disabled, getHtml, isEmpty, onSubmit, sending]);
-  (0, import_react15.useImperativeHandle)(
+  (0, import_react17.useImperativeHandle)(
     ref,
     () => ({
       getHtml,
@@ -2906,13 +3298,13 @@ function RichTextEditorInner({
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(EditorRefPlugin, { getHtmlRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ClearPlugin, { clearRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(FocusPlugin, { focusRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(EditorRefPlugin, { getHtmlRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(SetHtmlPlugin, { setHtmlRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(FocusPlugin, { focusRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       ContextBridge,
       {
         disabled,
@@ -2924,7 +3316,7 @@ function RichTextEditorInner({
         setHtmlRef,
         clearRef,
         onSubmit: () => void submit(),
-        children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
           "div",
           {
             ref: rootRef,
@@ -2932,7 +3324,7 @@ function RichTextEditorInner({
             ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
-              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                 EditorToolbar,
                 {
                   features,
@@ -2942,7 +3334,7 @@ function RichTextEditorInner({
                   showMentionButton: features.mentions && !!mentionSearch
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                 BlurCapturePlugin,
                 {
                   rootRef,
@@ -2950,15 +3342,15 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(BlockBehaviorPlugin, {}),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(LineBreakPlugin, {}),
-                features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SpoilerPlugin, {}),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(LineBreakPlugin, {}),
+                features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(SpoilerPlugin, {}),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(InitialHtmlPlugin, { html: value }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                   import_LexicalRichTextPlugin.RichTextPlugin,
                   {
-                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                       import_LexicalContentEditable.ContentEditable,
                       {
                         id: editorInputId,
@@ -2971,26 +3363,26 @@ function RichTextEditorInner({
                         "aria-describedby": placeholder ? placeholderId : void 0
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
                     ErrorBoundary: import_LexicalErrorBoundary.LexicalErrorBoundary
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_LexicalListPlugin.ListPlugin, {}),
-                features.links && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
-                features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
-                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
+                features.lists && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_LexicalListPlugin.ListPlugin, {}),
+                features.links && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
+                features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
+                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
+                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                   EnterPlugin,
                   {
                     bindings: enterBindings,
                     onSubmit: onSubmit ? () => void submit() : void 0
                   }
                 ),
-                features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                   SelectionMenuPlugin,
                   {
                     features,
@@ -2999,7 +3391,7 @@ function RichTextEditorInner({
                     containerRef: bodyRef
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
                   SubmitArea,
                   {
                     slots,
@@ -3011,15 +3403,15 @@ function RichTextEditorInner({
                   }
                 )
               ] }),
-              slots.footer && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "re-footer", children: slots.footer })
+              slots.footer && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { className: "re-footer", children: slots.footer })
             ]
           }
         )
       }
-    )
+    ) })
   ] });
 }
-var RichTextEditorBase = (0, import_react15.forwardRef)(RichTextEditorInner);
+var RichTextEditorBase = (0, import_react17.forwardRef)(RichTextEditorInner);
 var ToolbarStart = createSlot("toolbarStart");
 var ToolbarEnd = createSlot("toolbarEnd");
 var ToolbarMenu = createSlot("toolbarMenu");
@@ -3034,7 +3426,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-var import_react16 = require("react");
+var import_react18 = require("react");
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -3088,7 +3480,7 @@ async function highlightViewerCodeBlocks(root) {
 }
 
 // src/components/RichTextViewer.tsx
-var import_jsx_runtime7 = require("react/jsx-runtime");
+var import_jsx_runtime9 = require("react/jsx-runtime");
 function mentionAriaLabel(template, label) {
   return template.replace("{label}", label);
 }
@@ -3108,16 +3500,16 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
-  const ref = (0, import_react16.useRef)(null);
-  const prepared = (0, import_react16.useMemo)(
+  const ref = (0, import_react18.useRef)(null);
+  const prepared = (0, import_react18.useMemo)(
     () => prepareViewerContent(content, features),
     [content, features]
   );
-  (0, import_react16.useLayoutEffect)(() => {
+  (0, import_react18.useLayoutEffect)(() => {
     if (prepared.kind !== "html" || !features.codeHighlight) return;
     void highlightViewerCodeBlocks(ref.current);
   }, [prepared, features.codeHighlight]);
-  (0, import_react16.useEffect)(() => {
+  (0, import_react18.useEffect)(() => {
     if (prepared.kind !== "html") return;
     const root = ref.current;
     if (!root) return;
@@ -3129,7 +3521,7 @@ function RichTextViewer({
     root.addEventListener("click", onSpoilerClick);
     return () => root.removeEventListener("click", onSpoilerClick);
   }, [prepared]);
-  (0, import_react16.useEffect)(() => {
+  (0, import_react18.useEffect)(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
@@ -3172,7 +3564,7 @@ function RichTextViewer({
     };
   }, [labels.mention, onMentionClick, prepared]);
   if (prepared.kind === "plain") {
-    return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
       "p",
       {
         ...themeDataAttribute(theme),
@@ -3182,7 +3574,7 @@ function RichTextViewer({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
     "div",
     {
       ref,

@@ -50,6 +50,14 @@ export type EditorLabels = {
   bulletList: string;
   numberedList: string;
   link: string;
+  linkText: string;
+  linkUrl: string;
+  linkAdd: string;
+  linkEdit: string;
+  linkRemove: string;
+  linkSave: string;
+  linkCancel: string;
+  linkToolbar: string;
   heading: string;
   mention: string;
   spoiler: string;
@@ -71,6 +79,14 @@ export const defaultLabels: EditorLabels = {
   bulletList: "Bullet list",
   numberedList: "Numbered list",
   link: "Link",
+  linkText: "Text",
+  linkUrl: "URL",
+  linkAdd: "Add link",
+  linkEdit: "Edit link",
+  linkRemove: "Remove link",
+  linkSave: "Save",
+  linkCancel: "Cancel",
+  linkToolbar: "Link actions",
   heading: "Heading",
   mention: "Mention",
   spoiler: "Spoiler",
@@ -123,4 +139,4 @@ export function resolveViewerFeatures(
 }
 
 /** Approximate line height in px for minRows/maxRows sizing. */
-export const EDITOR_LINE_HEIGHT_PX = 28;
+export const EDITOR_LINE_HEIGHT_PX = 24;

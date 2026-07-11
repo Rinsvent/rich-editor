@@ -66,6 +66,7 @@ import {
   InitialHtmlPlugin,
   KeyboardShortcutsPlugin,
   LineBreakPlugin,
+  LinkUiPlugin,
   MarkdownPastePlugin,
   MentionsPlugin,
   SelectionMenuPlugin,
@@ -372,6 +373,7 @@ function RichTextEditorInner(
       <ClearPlugin clearRef={clearRef} />
       <FocusPlugin focusRef={focusRef} />
       <EmptyStatePlugin onEmptyChange={setIsEmpty} />
+      <LinkUiPlugin labels={labels} containerRef={bodyRef} enabled={features.links}>
       <ContextBridge
         disabled={disabled}
         features={features}
@@ -468,6 +470,7 @@ function RichTextEditorInner(
           {slots.footer && <div className="re-footer">{slots.footer}</div>}
         </div>
       </ContextBridge>
+      </LinkUiPlugin>
     </LexicalComposer>
   );
 }

@@ -151,4 +151,5 @@ export { BlockBehaviorPlugin } from "./BlockBehaviorPlugin";
 export { CodeHighlightPlugin } from "./CodeHighlightPlugin";
 export { SelectionMenuPlugin } from "./SelectionMenuPlugin";
 export { LineBreakPlugin } from "./LineBreakPlugin";
+export { LinkUiPlugin } from "./LinkUiPlugin";
 export { SpoilerPlugin } from "./SpoilerPlugin";
