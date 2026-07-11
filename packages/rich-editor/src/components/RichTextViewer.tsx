@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   resolveViewerFeatures,
   resolveViewerLabels,
@@ -57,14 +57,27 @@ export function RichTextViewer({
   attachments = [],
   showAttachments = false,
 }: RichTextViewerProps) {
-  const features = resolveViewerFeatures(featuresProp);
-  const labels = resolveViewerLabels(labelsProp);
+  const features = useMemo(
+    () => resolveViewerFeatures(featuresProp),
+    [featuresProp],
+  );
+  const labels = useMemo(
+    () => resolveViewerLabels(labelsProp),
+    [labelsProp],
+  );
   const ref = useRef<HTMLDivElement>(null);
+  const [displayHtml, setDisplayHtml] = useState<string | null>(null);
 
   const prepared = useMemo(
     () => prepareViewerContent(content, features),
-    [content, features],
+    [content, features.linkTarget],
   );
+
+  const preparedHtml = prepared.kind === "html" ? prepared.html : "";
+
+  useEffect(() => {
+    setDisplayHtml(null);
+  }, [content, features.codeHighlight]);
 
   const attachmentStrip =
     showAttachments && attachments.length > 0 ? (
@@ -74,22 +87,37 @@ export function RichTextViewer({
   useLayoutEffect(() => {
     if (prepared.kind !== "html") return;
 
+    let cancelled = false;
+
     const run = async () => {
       if (features.codeHighlight) {
         await highlightViewerCodeBlocks(ref.current);
+        const highlighted = ref.current?.innerHTML;
+        if (!cancelled && highlighted && highlighted !== preparedHtml) {
+          setDisplayHtml(highlighted);
+        }
       } else {
         storeViewerCodeText(ref.current);
+        if (!cancelled) setDisplayHtml(null);
       }
       return enhanceViewerCodeBlocks(ref.current, labels);
     };
 
     let cleanup: (() => void) | undefined;
     void run().then((dispose) => {
-      cleanup = dispose;
+      if (!cancelled) cleanup = dispose;
     });
 
-    return () => cleanup?.();
-  }, [features.codeHighlight, labels, prepared]);
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [
+    features.codeHighlight,
+    labels.copyCode,
+    labels.copiedCode,
+    preparedHtml,
+  ]);
 
   useEffect(() => {
     if (prepared.kind !== "html") return;
@@ -104,7 +132,7 @@ export function RichTextViewer({
 
     root.addEventListener("click", onSpoilerClick);
     return () => root.removeEventListener("click", onSpoilerClick);
-  }, [prepared]);
+  }, [preparedHtml]);
 
   useEffect(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
@@ -152,7 +180,7 @@ export function RichTextViewer({
       root.removeEventListener("click", onClick);
       root.removeEventListener("keydown", onKeyDown);
     };
-  }, [labels.mention, onMentionClick, prepared]);
+  }, [labels.mention, onMentionClick, preparedHtml]);
 
   if (prepared.kind === "plain") {
     return (
@@ -178,7 +206,7 @@ export function RichTextViewer({
         className="re-viewer"
         role="article"
         aria-label={labels.content}
-        dangerouslySetInnerHTML={{ __html: prepared.html }}
+        dangerouslySetInnerHTML={{ __html: displayHtml ?? preparedHtml }}
       />
       {attachmentStrip}
     </div>

@@ -12,6 +12,12 @@ describe("sanitizeHtml", () => {
     expect(sanitizeHtml('<p>ok</p><script>alert(1)</script>')).toBe("<p>ok</p>");
   });
 
+  it("keeps data-language on code blocks", () => {
+    const html =
+      '<pre class="re-block-code" data-language="javascript">const x = 1;</pre>';
+    expect(sanitizeHtml(html)).toBe(html);
+  });
+
   it("keeps inline images with blob src and width style", () => {
     const html =
       '<p>text<img class="re-image" src="blob:http://localhost/abc" alt="shot" width="240" style="width: 240px; max-width: 100%; height: auto;" data-file-id="1"></p>';

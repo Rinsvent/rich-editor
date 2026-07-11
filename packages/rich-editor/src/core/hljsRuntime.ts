@@ -1,4 +1,5 @@
 import type { HLJSApi } from "highlight.js";
+import { HLJS_LANGUAGE_LOADERS } from "./hljsLanguageLoaders";
 
 const HLJS_LANGUAGE_ALIASES: Record<string, string> = {
   js: "javascript",
@@ -54,15 +55,14 @@ export async function loadHljsLanguage(language: string): Promise<string> {
 
   const loadPromise = (async () => {
     try {
-      const mod = await import(
-        /* @vite-ignore */
-        `highlight.js/lib/languages/${id}`
-      );
+      const loader = HLJS_LANGUAGE_LOADERS[id];
+      if (!loader) return "plaintext";
+      const mod = await loader();
       hljs.registerLanguage(id, mod.default);
       return id;
     } catch {
       if (!hljs.getLanguage("plaintext")) {
-        const plain = await import("highlight.js/lib/languages/plaintext");
+        const plain = await HLJS_LANGUAGE_LOADERS.plaintext();
         hljs.registerLanguage("plaintext", plain.default);
       }
       return "plaintext";

@@ -50,6 +50,7 @@ export function sanitizeHtml(html: string): string {
       "data-file-name",
       "data-file-mime",
       "data-aspect-ratio",
+      "data-language",
     ],
     ALLOWED_URI_REGEXP,
   });

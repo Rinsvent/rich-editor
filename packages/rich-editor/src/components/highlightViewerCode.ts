@@ -5,6 +5,15 @@ import {
   resolveHljsLanguage,
 } from "../core/hljsRuntime";
 
+function isAlreadyHighlighted(element: HTMLElement): boolean {
+  if (element.classList.contains("hljs")) return true;
+  return (
+    element.querySelector(
+      ".token, .hljs, [class*='hljs-']",
+    ) !== null
+  );
+}
+
 function detectLanguage(element: HTMLElement): string {
   const dataLanguage = element.getAttribute("data-language");
   if (dataLanguage) return dataLanguage;
@@ -27,9 +36,7 @@ export async function highlightViewerCodeBlocks(
     "pre code, code.re-block-code, .re-block-code",
   );
 
-  const needsHighlight = [...blocks].filter(
-    (el) => el.querySelector(".token, .hljs") === null,
-  );
+  const needsHighlight = [...blocks].filter((el) => !isAlreadyHighlighted(el));
   if (needsHighlight.length === 0) return;
 
   const languages = needsHighlight.map((el) => detectLanguage(el));

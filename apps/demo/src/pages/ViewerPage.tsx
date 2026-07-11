@@ -1,6 +1,7 @@
 import { RichTextViewer } from "@rinsvent/rich-editor";
 import {
   DEMO_IMAGES,
+  demoCodeBlockHtml,
   demoInlineImageHtml,
   viewerAttachmentSamples,
 } from "../demoContent";
@@ -62,9 +63,51 @@ const samples = [
       "<blockquote>Цитата с <b>форматированием</b></blockquote><ul><li>Пункт 1</li><li>Пункт 2</li></ul><ol><li>Шаг A</li><li>Шаг B</li></ol>",
   },
   {
-    title: "Code block",
-    content:
-      '<pre class="re-block-code" data-language="javascript"><span>const x = 1;\nconsole.log(x);</span></pre>',
+    title: "Code block (JavaScript)",
+    content: demoCodeBlockHtml(
+      "javascript",
+      `async function fetchUser(id) {
+  const res = await fetch(\`/api/users/\${id}\`);
+  if (!res.ok) throw new Error("not found");
+  return res.json();
+}`,
+    ),
+  },
+  {
+    title: "Code block (TypeScript)",
+    content: demoCodeBlockHtml(
+      "typescript",
+      `type RichTextSubmitPayload = {
+  html: string;
+  attachments?: EditorAttachmentPayload[];
+};`,
+    ),
+  },
+  {
+    title: "Code block (Go)",
+    content: demoCodeBlockHtml(
+      "go",
+      `func trimSpace(s string) string {
+\treturn strings.TrimSpace(s)
+}`,
+    ),
+  },
+  {
+    title: "Code block (Python)",
+    content: demoCodeBlockHtml(
+      "python",
+      `def greet(name: str) -> str:
+    return f"Hello, {name}!"`,
+    ),
+  },
+  {
+    title: "Code block (Bash)",
+    content: demoCodeBlockHtml(
+      "bash",
+      `#!/usr/bin/env bash
+set -euo pipefail
+npm run build && npm test`,
+    ),
   },
   {
     title: "Inline code in sentence",
@@ -116,7 +159,7 @@ const samples = [
       "<p>Добавили <b>attachments</b> и <code>useTrim</code>.</p>" +
       "<ul><li>Chat mode</li><li>Task tracker</li></ul>" +
       '<blockquote>Regression: <i>none</i></blockquote>' +
-      '<pre class="re-block-code" data-language="typescript"><span>type Payload = { html: string };</span></pre>',
+      demoCodeBlockHtml("typescript", "type Payload = { html: string };"),
   },
   {
     title: "Attachments strip",

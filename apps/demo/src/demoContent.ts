@@ -30,6 +30,20 @@ export function demoInlineImageHtml({
   );
 }
 
+function escapeCodeHtml(code: string): string {
+  return code
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export function demoCodeBlockHtml(language: string, code: string): string {
+  return (
+    `<pre class="re-block-code" data-language="${language}">` +
+    `${escapeCodeHtml(code)}</pre>`
+  );
+}
+
 export const viewerAttachmentSamples: EditorAttachmentPayload[] = [
   {
     id: "demo-file-1",
@@ -85,8 +99,10 @@ export function generateLargeHtml(paragraphCount: number): string {
 
     if (n % 25 === 0) {
       chunks.push(
-        '<pre class="re-block-code" data-language="javascript">' +
-          `<span>function chunk${n}() {\n  return ${n};\n}</span></pre>`,
+        demoCodeBlockHtml(
+          "javascript",
+          `function chunk${n}() {\n  return ${n};\n}`,
+        ),
       );
     }
   }
