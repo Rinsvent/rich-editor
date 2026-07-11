@@ -422,7 +422,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $getSelection,
   $isRangeSelection,
-  COMMAND_PRIORITY_EDITOR,
+  COMMAND_PRIORITY_LOW,
   KEY_ENTER_COMMAND
 } from "lexical";
 function EnterPlugin({
@@ -472,7 +472,7 @@ function EnterPlugin({
         }
         return false;
       },
-      COMMAND_PRIORITY_EDITOR
+      COMMAND_PRIORITY_LOW
     );
   }, [behavior, editor, onSubmit]);
   return null;
@@ -551,7 +551,7 @@ function MarkdownPastePlugin({
 import { useEffect as useEffect3 } from "react";
 import { useLexicalComposerContext as useLexicalComposerContext3 } from "@lexical/react/LexicalComposerContext";
 import {
-  COMMAND_PRIORITY_LOW,
+  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW2,
   FORMAT_TEXT_COMMAND,
   KEY_DOWN_COMMAND
 } from "lexical";
@@ -594,7 +594,7 @@ function KeyboardShortcutsPlugin({
         }
         return false;
       },
-      COMMAND_PRIORITY_LOW
+      COMMAND_PRIORITY_LOW2
     );
   }, [disabled, editor, features]);
   return null;
@@ -845,7 +845,7 @@ import {
   $createParagraphNode,
   $getSelection as $getSelection3,
   $isRangeSelection as $isRangeSelection3,
-  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW2,
+  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW3,
   FORMAT_TEXT_COMMAND as FORMAT_TEXT_COMMAND2,
   SELECTION_CHANGE_COMMAND
 } from "lexical";
@@ -886,7 +886,7 @@ function useFormatState() {
         update();
         return false;
       },
-      COMMAND_PRIORITY_LOW2
+      COMMAND_PRIORITY_LOW3
     );
     return () => {
       removeUpdate();

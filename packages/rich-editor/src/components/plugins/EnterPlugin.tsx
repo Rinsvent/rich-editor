@@ -5,7 +5,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import {
   $getSelection,
   $isRangeSelection,
-  COMMAND_PRIORITY_EDITOR,
+  COMMAND_PRIORITY_LOW,
   KEY_ENTER_COMMAND,
 } from "lexical";
 import type { EnterBehavior } from "../../core/features";
@@ -64,7 +64,7 @@ export function EnterPlugin({
 
         return false;
       },
-      COMMAND_PRIORITY_EDITOR,
+      COMMAND_PRIORITY_LOW,
     );
   }, [behavior, editor, onSubmit]);
 

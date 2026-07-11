@@ -487,7 +487,7 @@ function EnterPlugin({
         }
         return false;
       },
-      import_lexical2.COMMAND_PRIORITY_EDITOR
+      import_lexical2.COMMAND_PRIORITY_LOW
     );
   }, [behavior, editor, onSubmit]);
   return null;
