@@ -15,6 +15,7 @@ import {
   type LexicalNode,
   type RangeSelection,
 } from "lexical";
+import { $ensureQuoteParagraphStructure } from "./quoteBlocks";
 
 export function $getBlockQuote(node: LexicalNode): QuoteNode | null {
   return $findMatchingParent(node, $isQuoteNode);
@@ -123,9 +124,15 @@ export function $handleQuoteEnter(
   paragraph: ElementNode,
   selection: RangeSelection,
 ): void {
+  $ensureQuoteParagraphStructure(quote);
+
   if (!$isParagraphNode(paragraph) || paragraph.getParent() !== quote) {
-    selection.insertParagraph();
-    return;
+    const resolved = quote.getChildren().find($isParagraphNode);
+    if (!resolved) {
+      selection.insertParagraph();
+      return;
+    }
+    paragraph = resolved;
   }
 
   if (
@@ -136,24 +143,15 @@ export function $handleQuoteEnter(
     return;
   }
 
-  if (!$isAtEndOfBlock(selection)) {
-    selection.insertParagraph();
-    return;
-  }
-
-  const trailingEmpty = $countTrailingEmptyParagraphs(quote);
-  const isEmpty = $isParagraphEmpty(paragraph);
-
-  if (isEmpty) {
+  if ($isAtEndOfBlock(selection) && $isParagraphEmpty(paragraph)) {
+    const trailingEmpty = $countTrailingEmptyParagraphs(quote);
     if (trailingEmpty >= 2) {
       $exitQuoteWithEmptyLines(quote);
-    } else {
-      $insertParagraphInsideQuoteAfter(quote, paragraph);
+      return;
     }
-    return;
   }
 
-  $insertParagraphInsideQuoteAfter(quote, paragraph);
+  selection.insertParagraph();
 }
 
 export function $handleQuoteBackspace(
@@ -182,9 +180,7 @@ export function $handleQuoteBackspace(
     return;
   }
 
-  if (quote.getChildrenSize() > 1) {
-    $unwrapParagraphFromQuote(paragraph);
-  }
+  $unwrapParagraphFromQuote(paragraph);
 }
 
 export function $mergeAdjacentQuoteBlocks(): void {
@@ -194,6 +190,8 @@ export function $mergeAdjacentQuoteBlocks(): void {
     const current = children[i];
     const next = children[i + 1];
     if ($isQuoteNode(current) && $isQuoteNode(next)) {
+      $ensureQuoteParagraphStructure(current);
+      $ensureQuoteParagraphStructure(next);
       for (const child of [...next.getChildren()]) {
         current.append(child);
       }

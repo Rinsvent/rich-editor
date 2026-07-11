@@ -150,3 +150,5 @@ export { MentionsPlugin } from "./MentionsPlugin";
 export { BlockBehaviorPlugin } from "./BlockBehaviorPlugin";
 export { CodeHighlightPlugin } from "./CodeHighlightPlugin";
 export { SelectionMenuPlugin } from "./SelectionMenuPlugin";
+export { LineBreakPlugin } from "./LineBreakPlugin";
+export { SpoilerPlugin } from "./SpoilerPlugin";

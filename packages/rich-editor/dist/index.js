@@ -6,7 +6,7 @@ import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { useLexicalComposerContext as useLexicalComposerContext10 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext12 } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
@@ -14,15 +14,15 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { HeadingNode } from "@lexical/rich-text";
+import { HeadingNode, QuoteNode as QuoteNode3 } from "@lexical/rich-text";
 import {
   forwardRef,
   useCallback as useCallback2,
-  useEffect as useEffect11,
+  useEffect as useEffect13,
   useId as useId3,
   useImperativeHandle,
   useMemo as useMemo2,
-  useRef as useRef2,
+  useRef as useRef3,
   useState as useState5
 } from "react";
 
@@ -425,21 +425,6 @@ function $isSpoilerNode(node) {
   return node instanceof SpoilerNode;
 }
 
-// src/nodes/RichQuoteNode.ts
-import { QuoteNode } from "@lexical/rich-text";
-import { $applyNodeReplacement as $applyNodeReplacement3 } from "lexical";
-var RichQuoteNode = class _RichQuoteNode extends QuoteNode {
-  static getType() {
-    return "quote";
-  }
-  static clone(node) {
-    return new _RichQuoteNode(node.__key);
-  }
-};
-function $createRichQuoteNode() {
-  return $applyNodeReplacement3(new RichQuoteNode());
-}
-
 // src/core/html.ts
 import DOMPurify from "isomorphic-dompurify";
 var ALLOWED_TAGS = [
@@ -546,6 +531,7 @@ function normalizeHtml(html) {
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
+    if (code.classList.contains("re-block-code")) return;
     while (span.firstChild) {
       code.insertBefore(span.firstChild, span);
     }
@@ -608,11 +594,15 @@ import {
   ITALIC_UNDERSCORE,
   LINK,
   ORDERED_LIST,
-  QUOTE,
   STRIKETHROUGH,
   UNORDERED_LIST
 } from "@lexical/markdown";
-import { $createTextNode } from "lexical";
+import {
+  $createQuoteNode,
+  $isQuoteNode,
+  QuoteNode
+} from "@lexical/rich-text";
+import { $createParagraphNode, $createTextNode } from "lexical";
 import { marked } from "marked";
 marked.setOptions({ gfm: true, breaks: true });
 marked.use({
@@ -646,6 +636,37 @@ var SPOILER = {
   },
   trigger: "|",
   type: "text-match"
+};
+var QUOTE_REGEX = /^>\s/;
+var QUOTE = {
+  dependencies: [QuoteNode],
+  export: (node, exportChildren) => {
+    if (!$isQuoteNode(node)) return null;
+    const lines = exportChildren(node).split("\n");
+    return lines.map((line) => `> ${line}`).join("\n");
+  },
+  regExp: QUOTE_REGEX,
+  replace: (parentNode, children, _match, isImport) => {
+    if (isImport) {
+      const previousNode = parentNode.getPreviousSibling();
+      if ($isQuoteNode(previousNode)) {
+        const paragraph2 = $createParagraphNode();
+        paragraph2.append(...children);
+        previousNode.append(paragraph2);
+        parentNode.remove();
+        return;
+      }
+    }
+    const quote = $createQuoteNode();
+    const paragraph = $createParagraphNode();
+    paragraph.append(...children);
+    quote.append(paragraph);
+    parentNode.replace(quote);
+    if (!isImport) {
+      paragraph.select(0, 0);
+    }
+  },
+  type: "element"
 };
 function buildMarkdownTransformers(features) {
   const transformers = [];
@@ -749,10 +770,10 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-import { useEffect as useEffect9, useRef } from "react";
+import { useEffect as useEffect11, useRef as useRef2 } from "react";
 import { $generateNodesFromDOM as $generateNodesFromDOM2 } from "@lexical/html";
-import { useLexicalComposerContext as useLexicalComposerContext9 } from "@lexical/react/LexicalComposerContext";
-import { $getRoot as $getRoot3 } from "lexical";
+import { useLexicalComposerContext as useLexicalComposerContext11 } from "@lexical/react/LexicalComposerContext";
+import { $getRoot as $getRoot4 } from "lexical";
 
 // src/components/plugins/EnterPlugin.tsx
 import { useEffect } from "react";
@@ -1076,14 +1097,13 @@ function MentionsPlugin({
 import { useEffect as useEffect5 } from "react";
 import { useLexicalComposerContext as useLexicalComposerContext5 } from "@lexical/react/LexicalComposerContext";
 import { $isCodeNode as $isCodeNode2 } from "@lexical/code";
-import { $isQuoteNode as $isQuoteNode2 } from "@lexical/rich-text";
+import { $isQuoteNode as $isQuoteNode4 } from "@lexical/rich-text";
 import {
-  $getRoot as $getRoot2,
+  $getRoot as $getRoot3,
   $getSelection as $getSelection4,
-  $isParagraphNode as $isParagraphNode2,
+  $isParagraphNode as $isParagraphNode3,
   $isRangeSelection as $isRangeSelection4,
   COMMAND_PRIORITY_CRITICAL,
-  COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH3,
   KEY_BACKSPACE_COMMAND,
   KEY_ENTER_COMMAND as KEY_ENTER_COMMAND2
 } from "lexical";
@@ -1091,26 +1111,158 @@ import {
 // src/core/blockBehavior.ts
 import { $isCodeNode } from "@lexical/code";
 import { $isListItemNode } from "@lexical/list";
-import { $isQuoteNode } from "@lexical/rich-text";
-import { $findMatchingParent } from "@lexical/utils";
+import { $isQuoteNode as $isQuoteNode3 } from "@lexical/rich-text";
+import { $findMatchingParent as $findMatchingParent2 } from "@lexical/utils";
 import {
-  $createParagraphNode,
+  $createParagraphNode as $createParagraphNode3,
   $createTextNode as $createTextNode2,
-  $getRoot,
+  $getRoot as $getRoot2,
   $getSelection as $getSelection3,
-  $isElementNode,
-  $isParagraphNode,
+  $isElementNode as $isElementNode2,
+  $isParagraphNode as $isParagraphNode2,
   $isRangeSelection as $isRangeSelection3,
   $isTextNode
 } from "lexical";
+
+// src/core/quoteBlocks.ts
+import { $isQuoteNode as $isQuoteNode2, $createQuoteNode as $createQuoteNode2 } from "@lexical/rich-text";
+import { $findMatchingParent } from "@lexical/utils";
+import {
+  $createParagraphNode as $createParagraphNode2,
+  $getRoot,
+  $isElementNode,
+  $isParagraphNode,
+  $isRootOrShadowRoot
+} from "lexical";
+function $getTopLevelBlock(node) {
+  let current = node;
+  while (current !== null && !$isRootOrShadowRoot(current.getParent())) {
+    current = current.getParent();
+  }
+  return $isElementNode(current) ? current : null;
+}
+function $getSelectedTopLevelBlocks(selection) {
+  const blocks = /* @__PURE__ */ new Map();
+  for (const node of selection.getNodes()) {
+    const block = $getTopLevelBlock(node);
+    if (block) blocks.set(block.getKey(), block);
+  }
+  const anchorBlock = $getTopLevelBlock(selection.anchor.getNode());
+  const focusBlock = $getTopLevelBlock(selection.focus.getNode());
+  if (anchorBlock) blocks.set(anchorBlock.getKey(), anchorBlock);
+  if (focusBlock) blocks.set(focusBlock.getKey(), focusBlock);
+  return [...blocks.values()];
+}
+function $ensureQuoteParagraphStructure(quote) {
+  const children = [...quote.getChildren()];
+  if (children.length > 0 && children.every($isParagraphNode)) return;
+  const normalized = [];
+  let pending = null;
+  for (const child of children) {
+    if ($isParagraphNode(child)) {
+      normalized.push(child);
+      pending = null;
+      continue;
+    }
+    if (!pending) {
+      pending = $createParagraphNode2();
+      normalized.push(pending);
+    }
+    pending.append(child);
+  }
+  if (normalized.length === 0) {
+    normalized.push($createParagraphNode2());
+  }
+  quote.clear();
+  quote.append(...normalized);
+}
+function $getQuoteParagraph(node) {
+  const quote = $findMatchingParent(node, $isQuoteNode2);
+  if (!quote) return null;
+  let current = node;
+  while (current !== null && current !== quote) {
+    if ($isParagraphNode(current) && current.getParent() === quote) {
+      return current;
+    }
+    current = current.getParent();
+  }
+  $ensureQuoteParagraphStructure(quote);
+  current = node;
+  while (current !== null && current !== quote) {
+    if ($isParagraphNode(current) && current.getParent() === quote) {
+      return current;
+    }
+    current = current.getParent();
+  }
+  const first = quote.getFirstChild();
+  return $isParagraphNode(first) ? first : null;
+}
+function $unwrapQuote(quote) {
+  $ensureQuoteParagraphStructure(quote);
+  const paragraphs = quote.getChildren().filter($isParagraphNode);
+  if (paragraphs.length === 0) {
+    quote.replace($createParagraphNode2());
+    return;
+  }
+  const [first, ...rest] = paragraphs;
+  quote.insertBefore(first);
+  let previous = first;
+  for (const paragraph of rest) {
+    previous.insertAfter(paragraph);
+    previous = paragraph;
+  }
+  quote.remove();
+}
+function $wrapParagraphInQuote(paragraph) {
+  const quote = $createQuoteNode2();
+  const inner = $createParagraphNode2();
+  inner.append(...paragraph.getChildren());
+  quote.append(inner);
+  paragraph.replace(quote);
+  return quote;
+}
+function $applyQuoteToSelection(selection) {
+  const inQuote = $findMatchingParent(selection.anchor.getNode(), $isQuoteNode2);
+  if (inQuote) {
+    $unwrapQuote(inQuote);
+    return;
+  }
+  const blocks = $getSelectedTopLevelBlocks(selection);
+  const paragraphs = blocks.filter($isParagraphNode);
+  if (paragraphs.length === 0) return;
+  if (paragraphs.length === 1) {
+    $wrapParagraphInQuote(paragraphs[0]);
+    return;
+  }
+  const quote = $createQuoteNode2();
+  for (const block of paragraphs) {
+    const inner = $createParagraphNode2();
+    inner.append(...block.getChildren());
+    quote.append(inner);
+  }
+  paragraphs[0].replace(quote);
+  for (let i = 1; i < paragraphs.length; i++) {
+    paragraphs[i].remove();
+  }
+  quote.selectEnd();
+}
+function $normalizeAllQuotes() {
+  for (const child of $getRoot().getChildren()) {
+    if ($isQuoteNode2(child)) {
+      $ensureQuoteParagraphStructure(child);
+    }
+  }
+}
+
+// src/core/blockBehavior.ts
 function $getBlockQuote(node) {
-  return $findMatchingParent(node, $isQuoteNode);
+  return $findMatchingParent2(node, $isQuoteNode3);
 }
 function $getBlockCode(node) {
-  return $findMatchingParent(node, $isCodeNode);
+  return $findMatchingParent2(node, $isCodeNode);
 }
 function $isParagraphEmpty(node) {
-  return $isParagraphNode(node) && node.getTextContent().trim() === "";
+  return $isParagraphNode2(node) && node.getTextContent().trim() === "";
 }
 function $countTrailingEmptyParagraphs(quote) {
   const children = quote.getChildren();
@@ -1127,12 +1279,12 @@ function $isAtStartOfBlock(selection) {
   const node = anchor.getNode();
   if ($isTextNode(node)) {
     const parent = node.getParent();
-    if ($isElementNode(parent)) {
+    if ($isElementNode2(parent)) {
       const firstChild = parent.getFirstChild();
       return firstChild === node || firstChild === null;
     }
   }
-  if ($isParagraphNode(node)) return true;
+  if ($isParagraphNode2(node)) return true;
   return false;
 }
 function $isAtEndOfBlock(selection) {
@@ -1141,7 +1293,7 @@ function $isAtEndOfBlock(selection) {
   if ($isTextNode(node)) {
     return focus.offset === node.getTextContentSize();
   }
-  if ($isParagraphNode(node)) {
+  if ($isParagraphNode2(node)) {
     const lastDescendant = node.getLastDescendant();
     if (!lastDescendant) return true;
     if ($isTextNode(lastDescendant)) {
@@ -1152,8 +1304,8 @@ function $isAtEndOfBlock(selection) {
 }
 function $unwrapParagraphFromQuote(paragraph) {
   const quote = paragraph.getParent();
-  if (!$isQuoteNode(quote)) return;
-  const newParagraph = $createParagraphNode();
+  if (!$isQuoteNode3(quote)) return;
+  const newParagraph = $createParagraphNode3();
   newParagraph.append(...paragraph.getChildren());
   quote.insertAfter(newParagraph);
   if (quote.getChildrenSize() === 1 && quote.getFirstChild() === paragraph) {
@@ -1166,20 +1318,15 @@ function $unwrapParagraphFromQuote(paragraph) {
   }
 }
 function $insertParagraphBeforeBlock(block) {
-  const paragraph = $createParagraphNode();
+  const paragraph = $createParagraphNode3();
   block.insertBefore(paragraph);
   paragraph.selectEnd();
-}
-function $insertParagraphInsideQuoteAfter(quote, after) {
-  const paragraph = $createParagraphNode();
-  after.insertAfter(paragraph);
-  paragraph.selectStart();
 }
 function $exitQuoteWithEmptyLines(quote) {
   while (quote.getLastChild() && $isParagraphEmpty(quote.getLastChild())) {
     quote.getLastChild().remove();
   }
-  const exitParagraph = $createParagraphNode();
+  const exitParagraph = $createParagraphNode3();
   quote.insertAfter(exitParagraph);
   exitParagraph.selectStart();
   if (quote.getChildrenSize() === 0) {
@@ -1187,60 +1334,58 @@ function $exitQuoteWithEmptyLines(quote) {
   }
 }
 function $handleQuoteEnter(quote, paragraph, selection) {
-  if (!$isParagraphNode(paragraph) || paragraph.getParent() !== quote) {
-    selection.insertParagraph();
-    return;
+  $ensureQuoteParagraphStructure(quote);
+  if (!$isParagraphNode2(paragraph) || paragraph.getParent() !== quote) {
+    const resolved = quote.getChildren().find($isParagraphNode2);
+    if (!resolved) {
+      selection.insertParagraph();
+      return;
+    }
+    paragraph = resolved;
   }
   if ($isAtStartOfBlock(selection) && paragraph === quote.getFirstChild()) {
     $insertParagraphBeforeBlock(quote);
     return;
   }
-  if (!$isAtEndOfBlock(selection)) {
-    selection.insertParagraph();
-    return;
-  }
-  const trailingEmpty = $countTrailingEmptyParagraphs(quote);
-  const isEmpty = $isParagraphEmpty(paragraph);
-  if (isEmpty) {
+  if ($isAtEndOfBlock(selection) && $isParagraphEmpty(paragraph)) {
+    const trailingEmpty = $countTrailingEmptyParagraphs(quote);
     if (trailingEmpty >= 2) {
       $exitQuoteWithEmptyLines(quote);
-    } else {
-      $insertParagraphInsideQuoteAfter(quote, paragraph);
+      return;
     }
-    return;
   }
-  $insertParagraphInsideQuoteAfter(quote, paragraph);
+  selection.insertParagraph();
 }
 function $handleQuoteBackspace(quote, paragraph, selection) {
-  if (!$isParagraphNode(paragraph) || paragraph.getParent() !== quote) return;
+  if (!$isParagraphNode2(paragraph) || paragraph.getParent() !== quote) return;
   if (!$isAtStartOfBlock(selection)) return;
   if ($isParagraphEmpty(paragraph)) {
     if (quote.getChildrenSize() <= 1) {
-      const replacement = $createParagraphNode();
+      const replacement = $createParagraphNode3();
       quote.replace(replacement);
       replacement.selectStart();
       return;
     }
     const prev = paragraph.getPreviousSibling();
     paragraph.remove();
-    if (prev && $isParagraphNode(prev)) {
+    if (prev && $isParagraphNode2(prev)) {
       prev.selectEnd();
     } else {
       quote.getFirstChild()?.selectStart();
     }
     return;
   }
-  if (quote.getChildrenSize() > 1) {
-    $unwrapParagraphFromQuote(paragraph);
-  }
+  $unwrapParagraphFromQuote(paragraph);
 }
 function $mergeAdjacentQuoteBlocks() {
-  const root = $getRoot();
+  const root = $getRoot2();
   const children = [...root.getChildren()];
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
     const next = children[i + 1];
-    if ($isQuoteNode(current) && $isQuoteNode(next)) {
+    if ($isQuoteNode3(current) && $isQuoteNode3(next)) {
+      $ensureQuoteParagraphStructure(current);
+      $ensureQuoteParagraphStructure(next);
       for (const child of [...next.getChildren()]) {
         current.append(child);
       }
@@ -1251,7 +1396,7 @@ function $mergeAdjacentQuoteBlocks() {
   }
 }
 function $mergeAdjacentCodeBlocks() {
-  const root = $getRoot();
+  const root = $getRoot2();
   const children = [...root.getChildren()];
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
@@ -1289,7 +1434,7 @@ function $exitCodeBlock(codeNode) {
   if (text) {
     codeNode.append($createTextNode2(text));
   }
-  const exitParagraph = $createParagraphNode();
+  const exitParagraph = $createParagraphNode3();
   codeNode.insertAfter(exitParagraph);
   exitParagraph.selectStart();
 }
@@ -1297,17 +1442,27 @@ function $shouldSkipBlockBehavior() {
   const selection = $getSelection3();
   if (!$isRangeSelection3(selection)) return true;
   const node = selection.anchor.getNode();
-  if ($findMatchingParent(node, $isListItemNode)) return true;
+  if ($findMatchingParent2(node, $isListItemNode)) return true;
   return false;
 }
 
 // src/components/plugins/BlockBehaviorPlugin.tsx
+function $needsQuoteNormalization() {
+  for (const child of $getRoot3().getChildren()) {
+    if (!$isQuoteNode4(child)) continue;
+    const children = child.getChildren();
+    if (children.length === 0 || children.some((node) => !$isParagraphNode3(node))) {
+      return true;
+    }
+  }
+  return false;
+}
 function $needsBlockMerge() {
-  const children = $getRoot2().getChildren();
+  const children = $getRoot3().getChildren();
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
     const next = children[i + 1];
-    if ($isQuoteNode2(current) && $isQuoteNode2(next)) return true;
+    if ($isQuoteNode4(current) && $isQuoteNode4(next)) return true;
     if ($isCodeNode2(current) && $isCodeNode2(next)) return true;
   }
   return false;
@@ -1316,10 +1471,13 @@ function BlockBehaviorPlugin() {
   const [editor] = useLexicalComposerContext5();
   useEffect5(() => {
     const removeMerge = editor.registerUpdateListener(({ editorState }) => {
-      const needsMerge = editorState.read(() => $needsBlockMerge());
-      if (!needsMerge) return;
+      const needsWork = editorState.read(
+        () => $needsBlockMerge() || $needsQuoteNormalization()
+      );
+      if (!needsWork) return;
       editor.update(
         () => {
+          $normalizeAllQuotes();
           $mergeAdjacentQuoteBlocks();
           $mergeAdjacentCodeBlocks();
         },
@@ -1330,53 +1488,83 @@ function BlockBehaviorPlugin() {
       KEY_ENTER_COMMAND2,
       (event) => {
         if ($shouldSkipBlockBehavior()) return false;
-        let handled = false;
-        editor.update(() => {
+        const quoteContext = editor.getEditorState().read(() => {
           const selection = $getSelection4();
-          if (!$isRangeSelection4(selection)) return;
+          if (!$isRangeSelection4(selection)) return null;
           const quote = $getBlockQuote(selection.anchor.getNode());
-          if (quote && $isQuoteNode2(quote)) {
-            event?.preventDefault();
-            const paragraph = selection.anchor.getNode().getTopLevelElementOrThrow();
-            $handleQuoteEnter(quote, paragraph, selection);
-            handled = true;
-            return;
-          }
-          const code = $getBlockCode(selection.anchor.getNode());
-          if (code && $isCodeNode2(code) && $isAtEndOfCodeBlock(selection)) {
-            const trailingEmpty = $getCodeTrailingEmptyLines(code);
-            const text = code.getTextContent();
-            const atEmptyLine = selection.focus.offset === text.length && text.endsWith("\n");
-            if (atEmptyLine && trailingEmpty >= 2) {
-              event?.preventDefault();
-              $exitCodeBlock(code);
-              handled = true;
-            }
-          }
+          if (!quote || !$isQuoteNode4(quote)) return null;
+          const paragraph = $getQuoteParagraph(selection.anchor.getNode());
+          if (!paragraph || paragraph.getParent() !== quote) return null;
+          return { quote, paragraph };
         });
-        return handled;
+        if (quoteContext) {
+          event?.preventDefault();
+          editor.update(() => {
+            const selection = $getSelection4();
+            if (!$isRangeSelection4(selection)) return;
+            $handleQuoteEnter(
+              quoteContext.quote,
+              quoteContext.paragraph,
+              selection
+            );
+          });
+          return true;
+        }
+        const shouldExitCode = editor.getEditorState().read(() => {
+          const selection = $getSelection4();
+          if (!$isRangeSelection4(selection)) return false;
+          const code = $getBlockCode(selection.anchor.getNode());
+          if (!code || !$isCodeNode2(code) || !$isAtEndOfCodeBlock(selection)) {
+            return false;
+          }
+          const trailingEmpty = $getCodeTrailingEmptyLines(code);
+          const text = code.getTextContent();
+          const atEmptyLine = selection.focus.offset === text.length && text.endsWith("\n");
+          return atEmptyLine && trailingEmpty >= 2;
+        });
+        if (shouldExitCode) {
+          event?.preventDefault();
+          editor.update(() => {
+            const selection = $getSelection4();
+            if (!$isRangeSelection4(selection)) return;
+            const code = $getBlockCode(selection.anchor.getNode());
+            if (code && $isCodeNode2(code)) {
+              $exitCodeBlock(code);
+            }
+          });
+          return true;
+        }
+        return false;
       },
-      COMMAND_PRIORITY_HIGH3
+      COMMAND_PRIORITY_CRITICAL
     );
     const removeBackspace = editor.registerCommand(
       KEY_BACKSPACE_COMMAND,
       (event) => {
         if ($shouldSkipBlockBehavior()) return false;
-        let handled = false;
+        const quoteContext = editor.getEditorState().read(() => {
+          const selection = $getSelection4();
+          if (!$isRangeSelection4(selection) || !selection.isCollapsed()) {
+            return null;
+          }
+          const quote = $getBlockQuote(selection.anchor.getNode());
+          if (!quote || !$isQuoteNode4(quote)) return null;
+          const paragraph = $getQuoteParagraph(selection.anchor.getNode());
+          if (!paragraph || paragraph.getParent() !== quote) return null;
+          return { quote, paragraph };
+        });
+        if (!quoteContext) return false;
+        event?.preventDefault();
         editor.update(() => {
           const selection = $getSelection4();
           if (!$isRangeSelection4(selection) || !selection.isCollapsed()) return;
-          const quote = $getBlockQuote(selection.anchor.getNode());
-          if (!quote || !$isQuoteNode2(quote)) return;
-          const paragraph = selection.anchor.getNode().getTopLevelElementOrThrow();
-          if (!$isParagraphNode2(paragraph) || paragraph.getParent() !== quote) {
-            return;
-          }
-          event?.preventDefault();
-          $handleQuoteBackspace(quote, paragraph, selection);
-          handled = true;
+          $handleQuoteBackspace(
+            quoteContext.quote,
+            quoteContext.paragraph,
+            selection
+          );
         });
-        return handled;
+        return true;
       },
       COMMAND_PRIORITY_CRITICAL
     );
@@ -1525,12 +1713,12 @@ import {
 import {
   $createHeadingNode,
   $isHeadingNode,
-  $isQuoteNode as $isQuoteNode3
+  $isQuoteNode as $isQuoteNode5
 } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
-import { $findMatchingParent as $findMatchingParent2 } from "@lexical/utils";
+import { $findMatchingParent as $findMatchingParent3 } from "@lexical/utils";
 import {
-  $createParagraphNode as $createParagraphNode2,
+  $createParagraphNode as $createParagraphNode4,
   $createTextNode as $createTextNode3,
   $getSelection as $getSelection5,
   $isRangeSelection as $isRangeSelection5,
@@ -1563,19 +1751,19 @@ function useFormatState() {
           return;
         }
         const anchorNode = selection.anchor.getNode();
-        const listNode = $findMatchingParent2(anchorNode, $isListNode);
+        const listNode = $findMatchingParent3(anchorNode, $isListNode);
         setState({
           bold: selection.hasFormat("bold"),
           italic: selection.hasFormat("italic"),
           strikethrough: selection.hasFormat("strikethrough"),
           code: selection.hasFormat("code"),
-          quote: !!$findMatchingParent2(anchorNode, $isQuoteNode3),
-          codeBlock: !!$findMatchingParent2(anchorNode, $isCodeNode3),
+          quote: !!$findMatchingParent3(anchorNode, $isQuoteNode5),
+          codeBlock: !!$findMatchingParent3(anchorNode, $isCodeNode3),
           bulletList: listNode?.getListType() === "bullet",
           numberedList: listNode?.getListType() === "number",
-          link: !!$findMatchingParent2(anchorNode, $isLinkNode),
-          heading: !!$findMatchingParent2(anchorNode, $isHeadingNode),
-          spoiler: !!$findMatchingParent2(anchorNode, $isSpoilerNode)
+          link: !!$findMatchingParent3(anchorNode, $isLinkNode),
+          heading: !!$findMatchingParent3(anchorNode, $isHeadingNode),
+          spoiler: !!$findMatchingParent3(anchorNode, $isSpoilerNode)
         });
       });
     };
@@ -1606,27 +1794,19 @@ function useFormatActions() {
       editor.update(() => {
         const selection = $getSelection5();
         if (!$isRangeSelection5(selection)) return;
-        const inQuote = !!$findMatchingParent2(
-          selection.anchor.getNode(),
-          $isQuoteNode3
-        );
-        if (inQuote) {
-          $setBlocksType(selection, () => $createParagraphNode2());
-        } else {
-          $setBlocksType(selection, () => $createRichQuoteNode());
-        }
+        $applyQuoteToSelection(selection);
       });
     },
     codeBlock: () => {
       editor.update(() => {
         const selection = $getSelection5();
         if (!$isRangeSelection5(selection)) return;
-        const inCode = !!$findMatchingParent2(
+        const inCode = !!$findMatchingParent3(
           selection.anchor.getNode(),
           $isCodeNode3
         );
         if (inCode) {
-          $setBlocksType(selection, () => $createParagraphNode2());
+          $setBlocksType(selection, () => $createParagraphNode4());
         } else {
           $setBlocksType(selection, () => $createCodeNode());
         }
@@ -1636,7 +1816,7 @@ function useFormatActions() {
       editor.update(() => {
         const selection = $getSelection5();
         if (!$isRangeSelection5(selection)) return;
-        const listNode = $findMatchingParent2(
+        const listNode = $findMatchingParent3(
           selection.anchor.getNode(),
           $isListNode
         );
@@ -1651,7 +1831,7 @@ function useFormatActions() {
       editor.update(() => {
         const selection = $getSelection5();
         if (!$isRangeSelection5(selection)) return;
-        const listNode = $findMatchingParent2(
+        const listNode = $findMatchingParent3(
           selection.anchor.getNode(),
           $isListNode
         );
@@ -1666,7 +1846,7 @@ function useFormatActions() {
       editor.update(() => {
         const selection = $getSelection5();
         if (!$isRangeSelection5(selection)) return;
-        const existing = $findMatchingParent2(
+        const existing = $findMatchingParent3(
           selection.anchor.getNode(),
           $isLinkNode
         );
@@ -1685,12 +1865,12 @@ function useFormatActions() {
       editor.update(() => {
         const selection = $getSelection5();
         if (!$isRangeSelection5(selection)) return;
-        const heading = $findMatchingParent2(
+        const heading = $findMatchingParent3(
           selection.anchor.getNode(),
           $isHeadingNode
         );
         if (heading) {
-          $setBlocksType(selection, () => $createParagraphNode2());
+          $setBlocksType(selection, () => $createParagraphNode4());
         } else {
           $setBlocksType(selection, () => $createHeadingNode("h2"));
         }
@@ -1710,7 +1890,7 @@ function useFormatActions() {
         const selection = $getSelection5();
         if (!$isRangeSelection5(selection) || selection.isCollapsed()) return;
         const anchorNode = selection.anchor.getNode();
-        const existing = $findMatchingParent2(anchorNode, $isSpoilerNode);
+        const existing = $findMatchingParent3(anchorNode, $isSpoilerNode);
         if (existing) {
           const textNode = $createTextNode3(existing.getTextContent());
           existing.replace(textNode);
@@ -1990,14 +2170,94 @@ function SelectionMenuPlugin({
   return createPortal2(menu, containerRef.current ?? document.body);
 }
 
+// src/components/plugins/LineBreakPlugin.tsx
+import { useEffect as useEffect9 } from "react";
+import { useLexicalComposerContext as useLexicalComposerContext9 } from "@lexical/react/LexicalComposerContext";
+import {
+  $getSelection as $getSelection7,
+  $isRangeSelection as $isRangeSelection7,
+  COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH4,
+  INSERT_LINE_BREAK_COMMAND
+} from "lexical";
+function LineBreakPlugin() {
+  const [editor] = useLexicalComposerContext9();
+  useEffect9(() => {
+    return editor.registerCommand(
+      INSERT_LINE_BREAK_COMMAND,
+      () => {
+        const selection = $getSelection7();
+        if (!$isRangeSelection7(selection)) return false;
+        if ($getBlockCode(selection.anchor.getNode())) return false;
+        selection.insertParagraph();
+        return true;
+      },
+      COMMAND_PRIORITY_HIGH4
+    );
+  }, [editor]);
+  return null;
+}
+
+// src/components/plugins/SpoilerPlugin.tsx
+import { useEffect as useEffect10, useRef } from "react";
+import { useLexicalComposerContext as useLexicalComposerContext10 } from "@lexical/react/LexicalComposerContext";
+import { $findMatchingParent as $findMatchingParent4 } from "@lexical/utils";
+import { $getSelection as $getSelection8, $isRangeSelection as $isRangeSelection8 } from "lexical";
+function SpoilerPlugin() {
+  const [editor] = useLexicalComposerContext10();
+  const editingRef = useRef(null);
+  useEffect10(() => {
+    const root = editor.getRootElement();
+    if (!root) return;
+    const clearEditing = () => {
+      if (editingRef.current) {
+        editingRef.current.classList.remove("re-spoiler-editing");
+        editingRef.current = null;
+      }
+    };
+    const markEditing = (element) => {
+      clearEditing();
+      if (!element) return;
+      element.classList.add("re-spoiler-editing");
+      editingRef.current = element;
+    };
+    const onClick = (event) => {
+      const target = event.target.closest(".re-spoiler");
+      if (!target || !root.contains(target)) {
+        clearEditing();
+        return;
+      }
+      markEditing(target);
+    };
+    const removeUpdate = editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection)) return;
+        const spoiler = $findMatchingParent4(
+          selection.anchor.getNode(),
+          $isSpoilerNode
+        );
+        if (!spoiler) return;
+        markEditing(editor.getElementByKey(spoiler.getKey()));
+      });
+    });
+    root.addEventListener("click", onClick);
+    return () => {
+      root.removeEventListener("click", onClick);
+      removeUpdate();
+      clearEditing();
+    };
+  }, [editor]);
+  return null;
+}
+
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = useLexicalComposerContext9();
-  const lastApplied = useRef(void 0);
-  useEffect9(() => {
+  const [editor] = useLexicalComposerContext11();
+  const lastApplied = useRef2(void 0);
+  useEffect11(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
-      const root = $getRoot3();
+      const root = $getRoot4();
       root.clear();
       if (!html?.trim()) {
         lastApplied.current = html;
@@ -2017,8 +2277,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = useLexicalComposerContext9();
-  useEffect9(() => {
+  const [editor] = useLexicalComposerContext11();
+  useEffect11(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -2035,8 +2295,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = useLexicalComposerContext9();
-  useEffect9(() => {
+  const [editor] = useLexicalComposerContext11();
+  useEffect11(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -2047,11 +2307,11 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext9();
-  useEffect9(() => {
+  const [editor] = useLexicalComposerContext11();
+  useEffect11(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
-        const root = $getRoot3();
+        const root = $getRoot4();
         root.clear();
         if (!html.trim()) return;
         const parser = new DOMParser();
@@ -2069,11 +2329,11 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = useLexicalComposerContext9();
-  useEffect9(() => {
+  const [editor] = useLexicalComposerContext11();
+  useEffect11(() => {
     clearRef.current = () => {
       editor.update(() => {
-        $getRoot3().clear();
+        $getRoot4().clear();
       });
     };
     return () => {
@@ -2085,11 +2345,11 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = useLexicalComposerContext9();
-  useEffect9(() => {
+  const [editor] = useLexicalComposerContext11();
+  useEffect11(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        onEmptyChange($getRoot3().getTextContent().trim() === "");
+        onEmptyChange($getRoot4().getTextContent().trim() === "");
       });
     };
     update();
@@ -2099,7 +2359,7 @@ function EmptyStatePlugin({
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-import { useState as useState4, useId as useId2, useEffect as useEffect10 } from "react";
+import { useState as useState4, useId as useId2, useEffect as useEffect12 } from "react";
 
 // src/core/shortcuts.ts
 var formatKeyboardShortcuts = [
@@ -2254,7 +2514,7 @@ function EditorToolbar({
   const [menuOpen, setMenuOpen] = useState4(false);
   const menuId = useId2();
   const hasMenu = !!slots.toolbarMenu;
-  useEffect10(() => {
+  useEffect12(() => {
     if (!menuOpen) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -2465,8 +2725,8 @@ function exportEditorHtml(editor) {
 function EditorRefPlugin({
   getHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext10();
-  useEffect11(() => {
+  const [editor] = useLexicalComposerContext12();
+  useEffect13(() => {
     getHtmlRef.current = () => exportEditorHtml(editor);
     return () => {
       getHtmlRef.current = null;
@@ -2584,12 +2844,12 @@ function RichTextEditorInner({
   const rootId = useId3();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
-  const rootRef = useRef2(null);
-  const bodyRef = useRef2(null);
-  const getHtmlRef = useRef2(null);
-  const setHtmlRef = useRef2(null);
-  const clearRef = useRef2(null);
-  const focusRef = useRef2(null);
+  const rootRef = useRef3(null);
+  const bodyRef = useRef3(null);
+  const getHtmlRef = useRef3(null);
+  const setHtmlRef = useRef3(null);
+  const clearRef = useRef3(null);
+  const focusRef = useRef3(null);
   const [isEmpty, setIsEmpty] = useState5(true);
   const [sending, setSending] = useState5(false);
   const inputStyle = useMemo2(
@@ -2611,7 +2871,7 @@ function RichTextEditorInner({
       onError,
       nodes: [
         HeadingNode,
-        ...features.quote ? [RichQuoteNode] : [],
+        ...features.quote ? [QuoteNode3] : [],
         ListNode,
         ListItemNode,
         CodeNode,
@@ -2702,6 +2962,8 @@ function RichTextEditorInner({
               ),
               /* @__PURE__ */ jsxs4("div", { ref: bodyRef, className: "re-editor-body", children: [
                 /* @__PURE__ */ jsx6(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ jsx6(LineBreakPlugin, {}),
+                features.spoiler && /* @__PURE__ */ jsx6(SpoilerPlugin, {}),
                 /* @__PURE__ */ jsx6(InitialHtmlPlugin, { html: value }),
                 /* @__PURE__ */ jsx6(
                   RichTextPlugin,
@@ -2782,7 +3044,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-import { useEffect as useEffect12, useMemo as useMemo3, useRef as useRef3 } from "react";
+import { useEffect as useEffect14, useLayoutEffect, useMemo as useMemo3, useRef as useRef4 } from "react";
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -2799,6 +3061,13 @@ function prepareViewerContent(content, features) {
 // src/components/highlightViewerCode.ts
 async function highlightViewerCodeBlocks(root) {
   if (!root) return;
+  const blocks = root.querySelectorAll(
+    "pre code, code.re-block-code, .re-block-code"
+  );
+  const needsHighlight = [...blocks].filter(
+    (el) => el.querySelector(".token, .hljs") === null
+  );
+  if (needsHighlight.length === 0) return;
   const [hljsModule, javascript, typescript, json, plaintext] = await Promise.all([
     import("highlight.js/lib/core"),
     import("highlight.js/lib/languages/javascript"),
@@ -2813,9 +3082,19 @@ async function highlightViewerCodeBlocks(root) {
   hljs.registerLanguage("ts", typescript.default);
   hljs.registerLanguage("json", json.default);
   hljs.registerLanguage("plaintext", plaintext.default);
-  root.querySelectorAll("pre code").forEach((el) => {
-    hljs.highlightElement(el);
-  });
+  for (const el of needsHighlight) {
+    const text = el.textContent ?? "";
+    if (!text.trim()) continue;
+    const languageClass = [...el.classList].find(
+      (name) => name.startsWith("language-")
+    );
+    const language = languageClass?.slice("language-".length) ?? "plaintext";
+    const result = hljs.highlight(text, {
+      language: hljs.getLanguage(language) ? language : "plaintext"
+    });
+    el.innerHTML = result.value;
+    el.classList.add("hljs");
+  }
 }
 
 // src/components/RichTextViewer.tsx
@@ -2839,16 +3118,16 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
-  const ref = useRef3(null);
+  const ref = useRef4(null);
   const prepared = useMemo3(
     () => prepareViewerContent(content, features),
     [content, features]
   );
-  useEffect12(() => {
+  useLayoutEffect(() => {
     if (prepared.kind !== "html" || !features.codeHighlight) return;
     void highlightViewerCodeBlocks(ref.current);
   }, [prepared, features.codeHighlight]);
-  useEffect12(() => {
+  useEffect14(() => {
     if (prepared.kind !== "html") return;
     const root = ref.current;
     if (!root) return;
@@ -2860,7 +3139,7 @@ function RichTextViewer({
     root.addEventListener("click", onSpoilerClick);
     return () => root.removeEventListener("click", onSpoilerClick);
   }, [prepared]);
-  useEffect12(() => {
+  useEffect14(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;

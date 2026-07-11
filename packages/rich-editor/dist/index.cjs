@@ -76,7 +76,7 @@ var import_code5 = require("@lexical/code");
 var import_link2 = require("@lexical/link");
 var import_list3 = require("@lexical/list");
 var import_LexicalComposer = require("@lexical/react/LexicalComposer");
-var import_LexicalComposerContext10 = require("@lexical/react/LexicalComposerContext");
+var import_LexicalComposerContext12 = require("@lexical/react/LexicalComposerContext");
 var import_LexicalContentEditable = require("@lexical/react/LexicalContentEditable");
 var import_LexicalErrorBoundary = require("@lexical/react/LexicalErrorBoundary");
 var import_LexicalHistoryPlugin = require("@lexical/react/LexicalHistoryPlugin");
@@ -84,8 +84,8 @@ var import_LexicalLinkPlugin = require("@lexical/react/LexicalLinkPlugin");
 var import_LexicalListPlugin = require("@lexical/react/LexicalListPlugin");
 var import_LexicalMarkdownShortcutPlugin = require("@lexical/react/LexicalMarkdownShortcutPlugin");
 var import_LexicalRichTextPlugin = require("@lexical/react/LexicalRichTextPlugin");
-var import_rich_text5 = require("@lexical/rich-text");
-var import_react13 = require("react");
+var import_rich_text6 = require("@lexical/rich-text");
+var import_react15 = require("react");
 
 // src/context/EditorContext.tsx
 var import_react = require("react");
@@ -477,21 +477,6 @@ function $isSpoilerNode(node) {
   return node instanceof SpoilerNode;
 }
 
-// src/nodes/RichQuoteNode.ts
-var import_rich_text = require("@lexical/rich-text");
-var import_lexical3 = require("lexical");
-var RichQuoteNode = class _RichQuoteNode extends import_rich_text.QuoteNode {
-  static getType() {
-    return "quote";
-  }
-  static clone(node) {
-    return new _RichQuoteNode(node.__key);
-  }
-};
-function $createRichQuoteNode() {
-  return (0, import_lexical3.$applyNodeReplacement)(new RichQuoteNode());
-}
-
 // src/core/html.ts
 var import_isomorphic_dompurify = __toESM(require("isomorphic-dompurify"), 1);
 var ALLOWED_TAGS = [
@@ -598,6 +583,7 @@ function normalizeHtml(html) {
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
+    if (code.classList.contains("re-block-code")) return;
     while (span.firstChild) {
       code.insertBefore(span.firstChild, span);
     }
@@ -651,7 +637,8 @@ function flattenTag(container, tagName) {
 
 // src/core/markdown.ts
 var import_markdown = require("@lexical/markdown");
-var import_lexical4 = require("lexical");
+var import_rich_text = require("@lexical/rich-text");
+var import_lexical3 = require("lexical");
 var import_marked = require("marked");
 import_marked.marked.setOptions({ gfm: true, breaks: true });
 import_marked.marked.use({
@@ -680,16 +667,47 @@ var SPOILER = {
   regExp: /\|\|([^|]+?)\|\|$/,
   replace: (textNode, match) => {
     const spoiler = $createSpoilerNode();
-    spoiler.append((0, import_lexical4.$createTextNode)(match[1]));
+    spoiler.append((0, import_lexical3.$createTextNode)(match[1]));
     textNode.replace(spoiler);
   },
   trigger: "|",
   type: "text-match"
 };
+var QUOTE_REGEX = /^>\s/;
+var QUOTE = {
+  dependencies: [import_rich_text.QuoteNode],
+  export: (node, exportChildren) => {
+    if (!(0, import_rich_text.$isQuoteNode)(node)) return null;
+    const lines = exportChildren(node).split("\n");
+    return lines.map((line) => `> ${line}`).join("\n");
+  },
+  regExp: QUOTE_REGEX,
+  replace: (parentNode, children, _match, isImport) => {
+    if (isImport) {
+      const previousNode = parentNode.getPreviousSibling();
+      if ((0, import_rich_text.$isQuoteNode)(previousNode)) {
+        const paragraph2 = (0, import_lexical3.$createParagraphNode)();
+        paragraph2.append(...children);
+        previousNode.append(paragraph2);
+        parentNode.remove();
+        return;
+      }
+    }
+    const quote = (0, import_rich_text.$createQuoteNode)();
+    const paragraph = (0, import_lexical3.$createParagraphNode)();
+    paragraph.append(...children);
+    quote.append(paragraph);
+    parentNode.replace(quote);
+    if (!isImport) {
+      paragraph.select(0, 0);
+    }
+  },
+  type: "element"
+};
 function buildMarkdownTransformers(features) {
   const transformers = [];
   if (features.headings) transformers.push(import_markdown.HEADING);
-  if (features.quote) transformers.push(import_markdown.QUOTE);
+  if (features.quote) transformers.push(QUOTE);
   if (features.lists) {
     transformers.push(import_markdown.UNORDERED_LIST, import_markdown.ORDERED_LIST);
   }
@@ -788,15 +806,15 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-var import_react10 = require("react");
+var import_react12 = require("react");
 var import_html4 = require("@lexical/html");
-var import_LexicalComposerContext9 = require("@lexical/react/LexicalComposerContext");
-var import_lexical13 = require("lexical");
+var import_LexicalComposerContext11 = require("@lexical/react/LexicalComposerContext");
+var import_lexical15 = require("lexical");
 
 // src/components/plugins/EnterPlugin.tsx
 var import_react2 = require("react");
 var import_LexicalComposerContext = require("@lexical/react/LexicalComposerContext");
-var import_lexical5 = require("lexical");
+var import_lexical4 = require("lexical");
 function EnterPlugin({
   bindings,
   onSubmit
@@ -805,7 +823,7 @@ function EnterPlugin({
   (0, import_react2.useEffect)(() => {
     if (!bindings.length) return;
     return editor.registerCommand(
-      import_lexical5.KEY_ENTER_COMMAND,
+      import_lexical4.KEY_ENTER_COMMAND,
       (event) => {
         if (!(event instanceof KeyboardEvent)) return false;
         const action = matchEnterKeyAction(event, bindings);
@@ -816,8 +834,8 @@ function EnterPlugin({
         if (action === "newline") {
           event.preventDefault();
           editor.update(() => {
-            const selection = (0, import_lexical5.$getSelection)();
-            if ((0, import_lexical5.$isRangeSelection)(selection)) {
+            const selection = (0, import_lexical4.$getSelection)();
+            if ((0, import_lexical4.$isRangeSelection)(selection)) {
               selection.insertParagraph();
             }
           });
@@ -830,7 +848,7 @@ function EnterPlugin({
         }
         return false;
       },
-      import_lexical5.COMMAND_PRIORITY_LOW
+      import_lexical4.COMMAND_PRIORITY_LOW
     );
   }, [bindings, editor, onSubmit]);
   return null;
@@ -839,7 +857,7 @@ function EnterPlugin({
 // src/components/plugins/MarkdownPastePlugin.tsx
 var import_html2 = require("@lexical/html");
 var import_LexicalComposerContext2 = require("@lexical/react/LexicalComposerContext");
-var import_lexical6 = require("lexical");
+var import_lexical5 = require("lexical");
 var import_react3 = require("react");
 function htmlToNodes(editor, html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -852,7 +870,7 @@ function MarkdownPastePlugin({
   (0, import_react3.useEffect)(() => {
     if (!features.markdownPaste) return;
     return editor.registerCommand(
-      import_lexical6.PASTE_COMMAND,
+      import_lexical5.PASTE_COMMAND,
       (event) => {
         if (!(event instanceof ClipboardEvent)) return false;
         const clipboard = event.clipboardData;
@@ -863,14 +881,14 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = markdownToHtml(text);
           editor.update(() => {
-            const selection = (0, import_lexical6.$getSelection)();
-            if (!(0, import_lexical6.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical5.$getSelection)();
+            if (!(0, import_lexical5.$isRangeSelection)(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
             const nodes = htmlToNodes(editor, html);
             if (nodes.length > 0) {
-              (0, import_lexical6.$insertNodes)(nodes);
+              (0, import_lexical5.$insertNodes)(nodes);
             }
           });
           return true;
@@ -879,21 +897,21 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = sanitizeHtml(htmlRaw);
           editor.update(() => {
-            const selection = (0, import_lexical6.$getSelection)();
-            if (!(0, import_lexical6.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical5.$getSelection)();
+            if (!(0, import_lexical5.$isRangeSelection)(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
             const nodes = htmlToNodes(editor, html);
             if (nodes.length > 0) {
-              (0, import_lexical6.$insertNodes)(nodes);
+              (0, import_lexical5.$insertNodes)(nodes);
             }
           });
           return true;
         }
         return false;
       },
-      import_lexical6.COMMAND_PRIORITY_HIGH
+      import_lexical5.COMMAND_PRIORITY_HIGH
     );
   }, [editor, features.markdownPaste]);
   return null;
@@ -902,7 +920,7 @@ function MarkdownPastePlugin({
 // src/components/plugins/KeyboardShortcutsPlugin.tsx
 var import_react4 = require("react");
 var import_LexicalComposerContext3 = require("@lexical/react/LexicalComposerContext");
-var import_lexical7 = require("lexical");
+var import_lexical6 = require("lexical");
 function isModKey(event) {
   return event.metaKey || event.ctrlKey;
 }
@@ -914,7 +932,7 @@ function KeyboardShortcutsPlugin({
   (0, import_react4.useEffect)(() => {
     if (!features.keyboardShortcuts || disabled) return;
     return editor.registerCommand(
-      import_lexical7.KEY_DOWN_COMMAND,
+      import_lexical6.KEY_DOWN_COMMAND,
       (event) => {
         if (!(event instanceof KeyboardEvent) || !isModKey(event)) {
           return false;
@@ -922,27 +940,27 @@ function KeyboardShortcutsPlugin({
         const key = event.key.toLowerCase();
         if (key === "b" && features.bold) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "bold");
+          editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "bold");
           return true;
         }
         if (key === "i" && features.italic) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "italic");
+          editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "italic");
           return true;
         }
         if (key === "e" && features.code && !event.shiftKey) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "code");
+          editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "code");
           return true;
         }
         if (event.shiftKey && key === "x" && features.strikethrough) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "strikethrough");
+          editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "strikethrough");
           return true;
         }
         return false;
       },
-      import_lexical7.COMMAND_PRIORITY_LOW
+      import_lexical6.COMMAND_PRIORITY_LOW
     );
   }, [disabled, editor, features]);
   return null;
@@ -953,7 +971,7 @@ var import_LexicalTypeaheadMenuPlugin = require("@lexical/react/LexicalTypeahead
 var import_LexicalComposerContext4 = require("@lexical/react/LexicalComposerContext");
 var import_react5 = require("react");
 var import_react_dom = require("react-dom");
-var import_lexical8 = require("lexical");
+var import_lexical7 = require("lexical");
 var import_jsx_runtime2 = require("react/jsx-runtime");
 var MentionMenuOption = class extends import_LexicalTypeaheadMenuPlugin.MenuOption {
   constructor(option) {
@@ -1081,7 +1099,7 @@ function MentionsPlugin({
       triggerFn,
       options,
       menuRenderFn,
-      commandPriority: import_lexical8.COMMAND_PRIORITY_HIGH
+      commandPriority: import_lexical7.COMMAND_PRIORITY_HIGH
     }
   );
 }
@@ -1090,20 +1108,146 @@ function MentionsPlugin({
 var import_react6 = require("react");
 var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
 var import_code2 = require("@lexical/code");
-var import_rich_text3 = require("@lexical/rich-text");
+var import_rich_text4 = require("@lexical/rich-text");
 var import_lexical10 = require("lexical");
 
 // src/core/blockBehavior.ts
 var import_code = require("@lexical/code");
 var import_list = require("@lexical/list");
+var import_rich_text3 = require("@lexical/rich-text");
+var import_utils2 = require("@lexical/utils");
+var import_lexical9 = require("lexical");
+
+// src/core/quoteBlocks.ts
 var import_rich_text2 = require("@lexical/rich-text");
 var import_utils = require("@lexical/utils");
-var import_lexical9 = require("lexical");
+var import_lexical8 = require("lexical");
+function $getTopLevelBlock(node) {
+  let current = node;
+  while (current !== null && !(0, import_lexical8.$isRootOrShadowRoot)(current.getParent())) {
+    current = current.getParent();
+  }
+  return (0, import_lexical8.$isElementNode)(current) ? current : null;
+}
+function $getSelectedTopLevelBlocks(selection) {
+  const blocks = /* @__PURE__ */ new Map();
+  for (const node of selection.getNodes()) {
+    const block = $getTopLevelBlock(node);
+    if (block) blocks.set(block.getKey(), block);
+  }
+  const anchorBlock = $getTopLevelBlock(selection.anchor.getNode());
+  const focusBlock = $getTopLevelBlock(selection.focus.getNode());
+  if (anchorBlock) blocks.set(anchorBlock.getKey(), anchorBlock);
+  if (focusBlock) blocks.set(focusBlock.getKey(), focusBlock);
+  return [...blocks.values()];
+}
+function $ensureQuoteParagraphStructure(quote) {
+  const children = [...quote.getChildren()];
+  if (children.length > 0 && children.every(import_lexical8.$isParagraphNode)) return;
+  const normalized = [];
+  let pending = null;
+  for (const child of children) {
+    if ((0, import_lexical8.$isParagraphNode)(child)) {
+      normalized.push(child);
+      pending = null;
+      continue;
+    }
+    if (!pending) {
+      pending = (0, import_lexical8.$createParagraphNode)();
+      normalized.push(pending);
+    }
+    pending.append(child);
+  }
+  if (normalized.length === 0) {
+    normalized.push((0, import_lexical8.$createParagraphNode)());
+  }
+  quote.clear();
+  quote.append(...normalized);
+}
+function $getQuoteParagraph(node) {
+  const quote = (0, import_utils.$findMatchingParent)(node, import_rich_text2.$isQuoteNode);
+  if (!quote) return null;
+  let current = node;
+  while (current !== null && current !== quote) {
+    if ((0, import_lexical8.$isParagraphNode)(current) && current.getParent() === quote) {
+      return current;
+    }
+    current = current.getParent();
+  }
+  $ensureQuoteParagraphStructure(quote);
+  current = node;
+  while (current !== null && current !== quote) {
+    if ((0, import_lexical8.$isParagraphNode)(current) && current.getParent() === quote) {
+      return current;
+    }
+    current = current.getParent();
+  }
+  const first = quote.getFirstChild();
+  return (0, import_lexical8.$isParagraphNode)(first) ? first : null;
+}
+function $unwrapQuote(quote) {
+  $ensureQuoteParagraphStructure(quote);
+  const paragraphs = quote.getChildren().filter(import_lexical8.$isParagraphNode);
+  if (paragraphs.length === 0) {
+    quote.replace((0, import_lexical8.$createParagraphNode)());
+    return;
+  }
+  const [first, ...rest] = paragraphs;
+  quote.insertBefore(first);
+  let previous = first;
+  for (const paragraph of rest) {
+    previous.insertAfter(paragraph);
+    previous = paragraph;
+  }
+  quote.remove();
+}
+function $wrapParagraphInQuote(paragraph) {
+  const quote = (0, import_rich_text2.$createQuoteNode)();
+  const inner = (0, import_lexical8.$createParagraphNode)();
+  inner.append(...paragraph.getChildren());
+  quote.append(inner);
+  paragraph.replace(quote);
+  return quote;
+}
+function $applyQuoteToSelection(selection) {
+  const inQuote = (0, import_utils.$findMatchingParent)(selection.anchor.getNode(), import_rich_text2.$isQuoteNode);
+  if (inQuote) {
+    $unwrapQuote(inQuote);
+    return;
+  }
+  const blocks = $getSelectedTopLevelBlocks(selection);
+  const paragraphs = blocks.filter(import_lexical8.$isParagraphNode);
+  if (paragraphs.length === 0) return;
+  if (paragraphs.length === 1) {
+    $wrapParagraphInQuote(paragraphs[0]);
+    return;
+  }
+  const quote = (0, import_rich_text2.$createQuoteNode)();
+  for (const block of paragraphs) {
+    const inner = (0, import_lexical8.$createParagraphNode)();
+    inner.append(...block.getChildren());
+    quote.append(inner);
+  }
+  paragraphs[0].replace(quote);
+  for (let i = 1; i < paragraphs.length; i++) {
+    paragraphs[i].remove();
+  }
+  quote.selectEnd();
+}
+function $normalizeAllQuotes() {
+  for (const child of (0, import_lexical8.$getRoot)().getChildren()) {
+    if ((0, import_rich_text2.$isQuoteNode)(child)) {
+      $ensureQuoteParagraphStructure(child);
+    }
+  }
+}
+
+// src/core/blockBehavior.ts
 function $getBlockQuote(node) {
-  return (0, import_utils.$findMatchingParent)(node, import_rich_text2.$isQuoteNode);
+  return (0, import_utils2.$findMatchingParent)(node, import_rich_text3.$isQuoteNode);
 }
 function $getBlockCode(node) {
-  return (0, import_utils.$findMatchingParent)(node, import_code.$isCodeNode);
+  return (0, import_utils2.$findMatchingParent)(node, import_code.$isCodeNode);
 }
 function $isParagraphEmpty(node) {
   return (0, import_lexical9.$isParagraphNode)(node) && node.getTextContent().trim() === "";
@@ -1148,7 +1292,7 @@ function $isAtEndOfBlock(selection) {
 }
 function $unwrapParagraphFromQuote(paragraph) {
   const quote = paragraph.getParent();
-  if (!(0, import_rich_text2.$isQuoteNode)(quote)) return;
+  if (!(0, import_rich_text3.$isQuoteNode)(quote)) return;
   const newParagraph = (0, import_lexical9.$createParagraphNode)();
   newParagraph.append(...paragraph.getChildren());
   quote.insertAfter(newParagraph);
@@ -1166,11 +1310,6 @@ function $insertParagraphBeforeBlock(block) {
   block.insertBefore(paragraph);
   paragraph.selectEnd();
 }
-function $insertParagraphInsideQuoteAfter(quote, after) {
-  const paragraph = (0, import_lexical9.$createParagraphNode)();
-  after.insertAfter(paragraph);
-  paragraph.selectStart();
-}
 function $exitQuoteWithEmptyLines(quote) {
   while (quote.getLastChild() && $isParagraphEmpty(quote.getLastChild())) {
     quote.getLastChild().remove();
@@ -1183,29 +1322,27 @@ function $exitQuoteWithEmptyLines(quote) {
   }
 }
 function $handleQuoteEnter(quote, paragraph, selection) {
+  $ensureQuoteParagraphStructure(quote);
   if (!(0, import_lexical9.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) {
-    selection.insertParagraph();
-    return;
+    const resolved = quote.getChildren().find(import_lexical9.$isParagraphNode);
+    if (!resolved) {
+      selection.insertParagraph();
+      return;
+    }
+    paragraph = resolved;
   }
   if ($isAtStartOfBlock(selection) && paragraph === quote.getFirstChild()) {
     $insertParagraphBeforeBlock(quote);
     return;
   }
-  if (!$isAtEndOfBlock(selection)) {
-    selection.insertParagraph();
-    return;
-  }
-  const trailingEmpty = $countTrailingEmptyParagraphs(quote);
-  const isEmpty = $isParagraphEmpty(paragraph);
-  if (isEmpty) {
+  if ($isAtEndOfBlock(selection) && $isParagraphEmpty(paragraph)) {
+    const trailingEmpty = $countTrailingEmptyParagraphs(quote);
     if (trailingEmpty >= 2) {
       $exitQuoteWithEmptyLines(quote);
-    } else {
-      $insertParagraphInsideQuoteAfter(quote, paragraph);
+      return;
     }
-    return;
   }
-  $insertParagraphInsideQuoteAfter(quote, paragraph);
+  selection.insertParagraph();
 }
 function $handleQuoteBackspace(quote, paragraph, selection) {
   if (!(0, import_lexical9.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) return;
@@ -1226,9 +1363,7 @@ function $handleQuoteBackspace(quote, paragraph, selection) {
     }
     return;
   }
-  if (quote.getChildrenSize() > 1) {
-    $unwrapParagraphFromQuote(paragraph);
-  }
+  $unwrapParagraphFromQuote(paragraph);
 }
 function $mergeAdjacentQuoteBlocks() {
   const root = (0, import_lexical9.$getRoot)();
@@ -1236,7 +1371,9 @@ function $mergeAdjacentQuoteBlocks() {
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
     const next = children[i + 1];
-    if ((0, import_rich_text2.$isQuoteNode)(current) && (0, import_rich_text2.$isQuoteNode)(next)) {
+    if ((0, import_rich_text3.$isQuoteNode)(current) && (0, import_rich_text3.$isQuoteNode)(next)) {
+      $ensureQuoteParagraphStructure(current);
+      $ensureQuoteParagraphStructure(next);
       for (const child of [...next.getChildren()]) {
         current.append(child);
       }
@@ -1293,17 +1430,27 @@ function $shouldSkipBlockBehavior() {
   const selection = (0, import_lexical9.$getSelection)();
   if (!(0, import_lexical9.$isRangeSelection)(selection)) return true;
   const node = selection.anchor.getNode();
-  if ((0, import_utils.$findMatchingParent)(node, import_list.$isListItemNode)) return true;
+  if ((0, import_utils2.$findMatchingParent)(node, import_list.$isListItemNode)) return true;
   return false;
 }
 
 // src/components/plugins/BlockBehaviorPlugin.tsx
+function $needsQuoteNormalization() {
+  for (const child of (0, import_lexical10.$getRoot)().getChildren()) {
+    if (!(0, import_rich_text4.$isQuoteNode)(child)) continue;
+    const children = child.getChildren();
+    if (children.length === 0 || children.some((node) => !(0, import_lexical10.$isParagraphNode)(node))) {
+      return true;
+    }
+  }
+  return false;
+}
 function $needsBlockMerge() {
   const children = (0, import_lexical10.$getRoot)().getChildren();
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
     const next = children[i + 1];
-    if ((0, import_rich_text3.$isQuoteNode)(current) && (0, import_rich_text3.$isQuoteNode)(next)) return true;
+    if ((0, import_rich_text4.$isQuoteNode)(current) && (0, import_rich_text4.$isQuoteNode)(next)) return true;
     if ((0, import_code2.$isCodeNode)(current) && (0, import_code2.$isCodeNode)(next)) return true;
   }
   return false;
@@ -1312,10 +1459,13 @@ function BlockBehaviorPlugin() {
   const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
   (0, import_react6.useEffect)(() => {
     const removeMerge = editor.registerUpdateListener(({ editorState }) => {
-      const needsMerge = editorState.read(() => $needsBlockMerge());
-      if (!needsMerge) return;
+      const needsWork = editorState.read(
+        () => $needsBlockMerge() || $needsQuoteNormalization()
+      );
+      if (!needsWork) return;
       editor.update(
         () => {
+          $normalizeAllQuotes();
           $mergeAdjacentQuoteBlocks();
           $mergeAdjacentCodeBlocks();
         },
@@ -1326,53 +1476,83 @@ function BlockBehaviorPlugin() {
       import_lexical10.KEY_ENTER_COMMAND,
       (event) => {
         if ($shouldSkipBlockBehavior()) return false;
-        let handled = false;
-        editor.update(() => {
+        const quoteContext = editor.getEditorState().read(() => {
           const selection = (0, import_lexical10.$getSelection)();
-          if (!(0, import_lexical10.$isRangeSelection)(selection)) return;
+          if (!(0, import_lexical10.$isRangeSelection)(selection)) return null;
           const quote = $getBlockQuote(selection.anchor.getNode());
-          if (quote && (0, import_rich_text3.$isQuoteNode)(quote)) {
-            event?.preventDefault();
-            const paragraph = selection.anchor.getNode().getTopLevelElementOrThrow();
-            $handleQuoteEnter(quote, paragraph, selection);
-            handled = true;
-            return;
-          }
-          const code = $getBlockCode(selection.anchor.getNode());
-          if (code && (0, import_code2.$isCodeNode)(code) && $isAtEndOfCodeBlock(selection)) {
-            const trailingEmpty = $getCodeTrailingEmptyLines(code);
-            const text = code.getTextContent();
-            const atEmptyLine = selection.focus.offset === text.length && text.endsWith("\n");
-            if (atEmptyLine && trailingEmpty >= 2) {
-              event?.preventDefault();
-              $exitCodeBlock(code);
-              handled = true;
-            }
-          }
+          if (!quote || !(0, import_rich_text4.$isQuoteNode)(quote)) return null;
+          const paragraph = $getQuoteParagraph(selection.anchor.getNode());
+          if (!paragraph || paragraph.getParent() !== quote) return null;
+          return { quote, paragraph };
         });
-        return handled;
+        if (quoteContext) {
+          event?.preventDefault();
+          editor.update(() => {
+            const selection = (0, import_lexical10.$getSelection)();
+            if (!(0, import_lexical10.$isRangeSelection)(selection)) return;
+            $handleQuoteEnter(
+              quoteContext.quote,
+              quoteContext.paragraph,
+              selection
+            );
+          });
+          return true;
+        }
+        const shouldExitCode = editor.getEditorState().read(() => {
+          const selection = (0, import_lexical10.$getSelection)();
+          if (!(0, import_lexical10.$isRangeSelection)(selection)) return false;
+          const code = $getBlockCode(selection.anchor.getNode());
+          if (!code || !(0, import_code2.$isCodeNode)(code) || !$isAtEndOfCodeBlock(selection)) {
+            return false;
+          }
+          const trailingEmpty = $getCodeTrailingEmptyLines(code);
+          const text = code.getTextContent();
+          const atEmptyLine = selection.focus.offset === text.length && text.endsWith("\n");
+          return atEmptyLine && trailingEmpty >= 2;
+        });
+        if (shouldExitCode) {
+          event?.preventDefault();
+          editor.update(() => {
+            const selection = (0, import_lexical10.$getSelection)();
+            if (!(0, import_lexical10.$isRangeSelection)(selection)) return;
+            const code = $getBlockCode(selection.anchor.getNode());
+            if (code && (0, import_code2.$isCodeNode)(code)) {
+              $exitCodeBlock(code);
+            }
+          });
+          return true;
+        }
+        return false;
       },
-      import_lexical10.COMMAND_PRIORITY_HIGH
+      import_lexical10.COMMAND_PRIORITY_CRITICAL
     );
     const removeBackspace = editor.registerCommand(
       import_lexical10.KEY_BACKSPACE_COMMAND,
       (event) => {
         if ($shouldSkipBlockBehavior()) return false;
-        let handled = false;
+        const quoteContext = editor.getEditorState().read(() => {
+          const selection = (0, import_lexical10.$getSelection)();
+          if (!(0, import_lexical10.$isRangeSelection)(selection) || !selection.isCollapsed()) {
+            return null;
+          }
+          const quote = $getBlockQuote(selection.anchor.getNode());
+          if (!quote || !(0, import_rich_text4.$isQuoteNode)(quote)) return null;
+          const paragraph = $getQuoteParagraph(selection.anchor.getNode());
+          if (!paragraph || paragraph.getParent() !== quote) return null;
+          return { quote, paragraph };
+        });
+        if (!quoteContext) return false;
+        event?.preventDefault();
         editor.update(() => {
           const selection = (0, import_lexical10.$getSelection)();
           if (!(0, import_lexical10.$isRangeSelection)(selection) || !selection.isCollapsed()) return;
-          const quote = $getBlockQuote(selection.anchor.getNode());
-          if (!quote || !(0, import_rich_text3.$isQuoteNode)(quote)) return;
-          const paragraph = selection.anchor.getNode().getTopLevelElementOrThrow();
-          if (!(0, import_lexical10.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) {
-            return;
-          }
-          event?.preventDefault();
-          $handleQuoteBackspace(quote, paragraph, selection);
-          handled = true;
+          $handleQuoteBackspace(
+            quoteContext.quote,
+            quoteContext.paragraph,
+            selection
+          );
         });
-        return handled;
+        return true;
       },
       import_lexical10.COMMAND_PRIORITY_CRITICAL
     );
@@ -1508,9 +1688,9 @@ var import_LexicalComposerContext7 = require("@lexical/react/LexicalComposerCont
 var import_code4 = require("@lexical/code");
 var import_link = require("@lexical/link");
 var import_list2 = require("@lexical/list");
-var import_rich_text4 = require("@lexical/rich-text");
+var import_rich_text5 = require("@lexical/rich-text");
 var import_selection = require("@lexical/selection");
-var import_utils2 = require("@lexical/utils");
+var import_utils3 = require("@lexical/utils");
 var import_lexical11 = require("lexical");
 var emptyFormat = {
   bold: false,
@@ -1537,19 +1717,19 @@ function useFormatState() {
           return;
         }
         const anchorNode = selection.anchor.getNode();
-        const listNode = (0, import_utils2.$findMatchingParent)(anchorNode, import_list2.$isListNode);
+        const listNode = (0, import_utils3.$findMatchingParent)(anchorNode, import_list2.$isListNode);
         setState({
           bold: selection.hasFormat("bold"),
           italic: selection.hasFormat("italic"),
           strikethrough: selection.hasFormat("strikethrough"),
           code: selection.hasFormat("code"),
-          quote: !!(0, import_utils2.$findMatchingParent)(anchorNode, import_rich_text4.$isQuoteNode),
-          codeBlock: !!(0, import_utils2.$findMatchingParent)(anchorNode, import_code4.$isCodeNode),
+          quote: !!(0, import_utils3.$findMatchingParent)(anchorNode, import_rich_text5.$isQuoteNode),
+          codeBlock: !!(0, import_utils3.$findMatchingParent)(anchorNode, import_code4.$isCodeNode),
           bulletList: listNode?.getListType() === "bullet",
           numberedList: listNode?.getListType() === "number",
-          link: !!(0, import_utils2.$findMatchingParent)(anchorNode, import_link.$isLinkNode),
-          heading: !!(0, import_utils2.$findMatchingParent)(anchorNode, import_rich_text4.$isHeadingNode),
-          spoiler: !!(0, import_utils2.$findMatchingParent)(anchorNode, $isSpoilerNode)
+          link: !!(0, import_utils3.$findMatchingParent)(anchorNode, import_link.$isLinkNode),
+          heading: !!(0, import_utils3.$findMatchingParent)(anchorNode, import_rich_text5.$isHeadingNode),
+          spoiler: !!(0, import_utils3.$findMatchingParent)(anchorNode, $isSpoilerNode)
         });
       });
     };
@@ -1580,22 +1760,14 @@ function useFormatActions() {
       editor.update(() => {
         const selection = (0, import_lexical11.$getSelection)();
         if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
-        const inQuote = !!(0, import_utils2.$findMatchingParent)(
-          selection.anchor.getNode(),
-          import_rich_text4.$isQuoteNode
-        );
-        if (inQuote) {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical11.$createParagraphNode)());
-        } else {
-          (0, import_selection.$setBlocksType)(selection, () => $createRichQuoteNode());
-        }
+        $applyQuoteToSelection(selection);
       });
     },
     codeBlock: () => {
       editor.update(() => {
         const selection = (0, import_lexical11.$getSelection)();
         if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
-        const inCode = !!(0, import_utils2.$findMatchingParent)(
+        const inCode = !!(0, import_utils3.$findMatchingParent)(
           selection.anchor.getNode(),
           import_code4.$isCodeNode
         );
@@ -1610,7 +1782,7 @@ function useFormatActions() {
       editor.update(() => {
         const selection = (0, import_lexical11.$getSelection)();
         if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
-        const listNode = (0, import_utils2.$findMatchingParent)(
+        const listNode = (0, import_utils3.$findMatchingParent)(
           selection.anchor.getNode(),
           import_list2.$isListNode
         );
@@ -1625,7 +1797,7 @@ function useFormatActions() {
       editor.update(() => {
         const selection = (0, import_lexical11.$getSelection)();
         if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
-        const listNode = (0, import_utils2.$findMatchingParent)(
+        const listNode = (0, import_utils3.$findMatchingParent)(
           selection.anchor.getNode(),
           import_list2.$isListNode
         );
@@ -1640,7 +1812,7 @@ function useFormatActions() {
       editor.update(() => {
         const selection = (0, import_lexical11.$getSelection)();
         if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
-        const existing = (0, import_utils2.$findMatchingParent)(
+        const existing = (0, import_utils3.$findMatchingParent)(
           selection.anchor.getNode(),
           import_link.$isLinkNode
         );
@@ -1659,14 +1831,14 @@ function useFormatActions() {
       editor.update(() => {
         const selection = (0, import_lexical11.$getSelection)();
         if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
-        const heading = (0, import_utils2.$findMatchingParent)(
+        const heading = (0, import_utils3.$findMatchingParent)(
           selection.anchor.getNode(),
-          import_rich_text4.$isHeadingNode
+          import_rich_text5.$isHeadingNode
         );
         if (heading) {
           (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical11.$createParagraphNode)());
         } else {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_rich_text4.$createHeadingNode)("h2"));
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_rich_text5.$createHeadingNode)("h2"));
         }
       });
     },
@@ -1684,7 +1856,7 @@ function useFormatActions() {
         const selection = (0, import_lexical11.$getSelection)();
         if (!(0, import_lexical11.$isRangeSelection)(selection) || selection.isCollapsed()) return;
         const anchorNode = selection.anchor.getNode();
-        const existing = (0, import_utils2.$findMatchingParent)(anchorNode, $isSpoilerNode);
+        const existing = (0, import_utils3.$findMatchingParent)(anchorNode, $isSpoilerNode);
         if (existing) {
           const textNode = (0, import_lexical11.$createTextNode)(existing.getTextContent());
           existing.replace(textNode);
@@ -1964,14 +2136,89 @@ function SelectionMenuPlugin({
   return (0, import_react_dom2.createPortal)(menu, containerRef.current ?? document.body);
 }
 
+// src/components/plugins/LineBreakPlugin.tsx
+var import_react10 = require("react");
+var import_LexicalComposerContext9 = require("@lexical/react/LexicalComposerContext");
+var import_lexical13 = require("lexical");
+function LineBreakPlugin() {
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  (0, import_react10.useEffect)(() => {
+    return editor.registerCommand(
+      import_lexical13.INSERT_LINE_BREAK_COMMAND,
+      () => {
+        const selection = (0, import_lexical13.$getSelection)();
+        if (!(0, import_lexical13.$isRangeSelection)(selection)) return false;
+        if ($getBlockCode(selection.anchor.getNode())) return false;
+        selection.insertParagraph();
+        return true;
+      },
+      import_lexical13.COMMAND_PRIORITY_HIGH
+    );
+  }, [editor]);
+  return null;
+}
+
+// src/components/plugins/SpoilerPlugin.tsx
+var import_react11 = require("react");
+var import_LexicalComposerContext10 = require("@lexical/react/LexicalComposerContext");
+var import_utils4 = require("@lexical/utils");
+var import_lexical14 = require("lexical");
+function SpoilerPlugin() {
+  const [editor] = (0, import_LexicalComposerContext10.useLexicalComposerContext)();
+  const editingRef = (0, import_react11.useRef)(null);
+  (0, import_react11.useEffect)(() => {
+    const root = editor.getRootElement();
+    if (!root) return;
+    const clearEditing = () => {
+      if (editingRef.current) {
+        editingRef.current.classList.remove("re-spoiler-editing");
+        editingRef.current = null;
+      }
+    };
+    const markEditing = (element) => {
+      clearEditing();
+      if (!element) return;
+      element.classList.add("re-spoiler-editing");
+      editingRef.current = element;
+    };
+    const onClick = (event) => {
+      const target = event.target.closest(".re-spoiler");
+      if (!target || !root.contains(target)) {
+        clearEditing();
+        return;
+      }
+      markEditing(target);
+    };
+    const removeUpdate = editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        const selection = (0, import_lexical14.$getSelection)();
+        if (!(0, import_lexical14.$isRangeSelection)(selection)) return;
+        const spoiler = (0, import_utils4.$findMatchingParent)(
+          selection.anchor.getNode(),
+          $isSpoilerNode
+        );
+        if (!spoiler) return;
+        markEditing(editor.getElementByKey(spoiler.getKey()));
+      });
+    });
+    root.addEventListener("click", onClick);
+    return () => {
+      root.removeEventListener("click", onClick);
+      removeUpdate();
+      clearEditing();
+    };
+  }, [editor]);
+  return null;
+}
+
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
-  const lastApplied = (0, import_react10.useRef)(void 0);
-  (0, import_react10.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
+  const lastApplied = (0, import_react12.useRef)(void 0);
+  (0, import_react12.useEffect)(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
-      const root = (0, import_lexical13.$getRoot)();
+      const root = (0, import_lexical15.$getRoot)();
       root.clear();
       if (!html?.trim()) {
         lastApplied.current = html;
@@ -1991,8 +2238,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
-  (0, import_react10.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
+  (0, import_react12.useEffect)(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -2009,8 +2256,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
-  (0, import_react10.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
+  (0, import_react12.useEffect)(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -2021,11 +2268,11 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
-  (0, import_react10.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
+  (0, import_react12.useEffect)(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
-        const root = (0, import_lexical13.$getRoot)();
+        const root = (0, import_lexical15.$getRoot)();
         root.clear();
         if (!html.trim()) return;
         const parser = new DOMParser();
@@ -2043,11 +2290,11 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
-  (0, import_react10.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
+  (0, import_react12.useEffect)(() => {
     clearRef.current = () => {
       editor.update(() => {
-        (0, import_lexical13.$getRoot)().clear();
+        (0, import_lexical15.$getRoot)().clear();
       });
     };
     return () => {
@@ -2059,11 +2306,11 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
-  (0, import_react10.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
+  (0, import_react12.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        onEmptyChange((0, import_lexical13.$getRoot)().getTextContent().trim() === "");
+        onEmptyChange((0, import_lexical15.$getRoot)().getTextContent().trim() === "");
       });
     };
     update();
@@ -2073,7 +2320,7 @@ function EmptyStatePlugin({
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-var import_react11 = require("react");
+var import_react13 = require("react");
 
 // src/core/shortcuts.ts
 var formatKeyboardShortcuts = [
@@ -2225,10 +2472,10 @@ function EditorToolbar({
 }) {
   const active = useFormatState();
   const format = useFormatActions();
-  const [menuOpen, setMenuOpen] = (0, import_react11.useState)(false);
-  const menuId = (0, import_react11.useId)();
+  const [menuOpen, setMenuOpen] = (0, import_react13.useState)(false);
+  const menuId = (0, import_react13.useId)();
   const hasMenu = !!slots.toolbarMenu;
-  (0, import_react11.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     if (!menuOpen) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -2398,7 +2645,7 @@ function EditorToolbar({
 }
 
 // src/components/slots/createSlot.tsx
-var import_react12 = require("react");
+var import_react14 = require("react");
 function createSlot(name) {
   const Slot = ({ children }) => null;
   Slot.slotName = name;
@@ -2406,11 +2653,11 @@ function createSlot(name) {
   return Slot;
 }
 function isSlotComponent(child) {
-  return (0, import_react12.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
+  return (0, import_react14.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
 }
 function collectSlots(children) {
   const slots = {};
-  import_react12.Children.forEach(children, (child) => {
+  import_react14.Children.forEach(children, (child) => {
     if (!isSlotComponent(child)) return;
     const name = child.type.slotName;
     slots[name] = child.props.children;
@@ -2436,8 +2683,8 @@ function exportEditorHtml(editor) {
 function EditorRefPlugin({
   getHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext10.useLexicalComposerContext)();
-  (0, import_react13.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
+  (0, import_react15.useEffect)(() => {
     getHtmlRef.current = () => exportEditorHtml(editor);
     return () => {
       getHtmlRef.current = null;
@@ -2500,7 +2747,7 @@ function ContextBridge({
 }) {
   const formatState = useFormatState();
   const format = useFormatActions();
-  const ctx = (0, import_react13.useMemo)(
+  const ctx = (0, import_react15.useMemo)(
     () => ({
       getHtml: () => getHtmlRef.current?.() ?? "",
       setHtml: (html) => setHtmlRef.current?.(html),
@@ -2549,40 +2796,40 @@ function RichTextEditorInner({
   mentionSearch,
   children
 }, ref) {
-  const features = (0, import_react13.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
-  const labels = (0, import_react13.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
-  const slots = (0, import_react13.useMemo)(() => collectSlots(children), [children]);
-  const rootId = (0, import_react13.useId)();
+  const features = (0, import_react15.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
+  const labels = (0, import_react15.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
+  const slots = (0, import_react15.useMemo)(() => collectSlots(children), [children]);
+  const rootId = (0, import_react15.useId)();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
-  const rootRef = (0, import_react13.useRef)(null);
-  const bodyRef = (0, import_react13.useRef)(null);
-  const getHtmlRef = (0, import_react13.useRef)(null);
-  const setHtmlRef = (0, import_react13.useRef)(null);
-  const clearRef = (0, import_react13.useRef)(null);
-  const focusRef = (0, import_react13.useRef)(null);
-  const [isEmpty, setIsEmpty] = (0, import_react13.useState)(true);
-  const [sending, setSending] = (0, import_react13.useState)(false);
-  const inputStyle = (0, import_react13.useMemo)(
+  const rootRef = (0, import_react15.useRef)(null);
+  const bodyRef = (0, import_react15.useRef)(null);
+  const getHtmlRef = (0, import_react15.useRef)(null);
+  const setHtmlRef = (0, import_react15.useRef)(null);
+  const clearRef = (0, import_react15.useRef)(null);
+  const focusRef = (0, import_react15.useRef)(null);
+  const [isEmpty, setIsEmpty] = (0, import_react15.useState)(true);
+  const [sending, setSending] = (0, import_react15.useState)(false);
+  const inputStyle = (0, import_react15.useMemo)(
     () => ({
       minHeight: `${minRows * EDITOR_LINE_HEIGHT_PX}px`,
       maxHeight: `${maxRows * EDITOR_LINE_HEIGHT_PX}px`
     }),
     [minRows, maxRows]
   );
-  const enterBindings = (0, import_react13.useMemo)(
+  const enterBindings = (0, import_react15.useMemo)(
     () => resolveEnterKeyBindings({ enterBehavior, enterKeyBindings }),
     [enterBehavior, enterKeyBindings]
   );
-  const initialConfig = (0, import_react13.useMemo)(
+  const initialConfig = (0, import_react15.useMemo)(
     () => ({
       namespace: "RichTextEditor",
       theme: editorTheme,
       editable: !disabled,
       onError,
       nodes: [
-        import_rich_text5.HeadingNode,
-        ...features.quote ? [RichQuoteNode] : [],
+        import_rich_text6.HeadingNode,
+        ...features.quote ? [import_rich_text6.QuoteNode] : [],
         import_list3.ListNode,
         import_list3.ListItemNode,
         import_code5.CodeNode,
@@ -2595,12 +2842,12 @@ function RichTextEditorInner({
     }),
     [disabled, features.mentions, features.quote, features.spoiler]
   );
-  const transformers = (0, import_react13.useMemo)(
+  const transformers = (0, import_react15.useMemo)(
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
-  const getHtml = (0, import_react13.useCallback)(() => getHtmlRef.current?.() ?? "", []);
-  const submit = (0, import_react13.useCallback)(async () => {
+  const getHtml = (0, import_react15.useCallback)(() => getHtmlRef.current?.() ?? "", []);
+  const submit = (0, import_react15.useCallback)(async () => {
     if (disabled || sending || isEmpty || !onSubmit) return;
     const html = getHtml();
     if (!html) return;
@@ -2614,7 +2861,7 @@ function RichTextEditorInner({
       setSending(false);
     }
   }, [clearOnSubmit, disabled, getHtml, isEmpty, onSubmit, sending]);
-  (0, import_react13.useImperativeHandle)(
+  (0, import_react15.useImperativeHandle)(
     ref,
     () => ({
       getHtml,
@@ -2673,6 +2920,8 @@ function RichTextEditorInner({
               ),
               /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
                 /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(LineBreakPlugin, {}),
+                features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SpoilerPlugin, {}),
                 /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(InitialHtmlPlugin, { html: value }),
                 /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                   import_LexicalRichTextPlugin.RichTextPlugin,
@@ -2738,7 +2987,7 @@ function RichTextEditorInner({
     )
   ] });
 }
-var RichTextEditorBase = (0, import_react13.forwardRef)(RichTextEditorInner);
+var RichTextEditorBase = (0, import_react15.forwardRef)(RichTextEditorInner);
 var ToolbarStart = createSlot("toolbarStart");
 var ToolbarEnd = createSlot("toolbarEnd");
 var ToolbarMenu = createSlot("toolbarMenu");
@@ -2753,7 +3002,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-var import_react14 = require("react");
+var import_react16 = require("react");
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -2770,6 +3019,13 @@ function prepareViewerContent(content, features) {
 // src/components/highlightViewerCode.ts
 async function highlightViewerCodeBlocks(root) {
   if (!root) return;
+  const blocks = root.querySelectorAll(
+    "pre code, code.re-block-code, .re-block-code"
+  );
+  const needsHighlight = [...blocks].filter(
+    (el) => el.querySelector(".token, .hljs") === null
+  );
+  if (needsHighlight.length === 0) return;
   const [hljsModule, javascript, typescript, json, plaintext] = await Promise.all([
     import("highlight.js/lib/core"),
     import("highlight.js/lib/languages/javascript"),
@@ -2784,9 +3040,19 @@ async function highlightViewerCodeBlocks(root) {
   hljs.registerLanguage("ts", typescript.default);
   hljs.registerLanguage("json", json.default);
   hljs.registerLanguage("plaintext", plaintext.default);
-  root.querySelectorAll("pre code").forEach((el) => {
-    hljs.highlightElement(el);
-  });
+  for (const el of needsHighlight) {
+    const text = el.textContent ?? "";
+    if (!text.trim()) continue;
+    const languageClass = [...el.classList].find(
+      (name) => name.startsWith("language-")
+    );
+    const language = languageClass?.slice("language-".length) ?? "plaintext";
+    const result = hljs.highlight(text, {
+      language: hljs.getLanguage(language) ? language : "plaintext"
+    });
+    el.innerHTML = result.value;
+    el.classList.add("hljs");
+  }
 }
 
 // src/components/RichTextViewer.tsx
@@ -2810,16 +3076,16 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
-  const ref = (0, import_react14.useRef)(null);
-  const prepared = (0, import_react14.useMemo)(
+  const ref = (0, import_react16.useRef)(null);
+  const prepared = (0, import_react16.useMemo)(
     () => prepareViewerContent(content, features),
     [content, features]
   );
-  (0, import_react14.useEffect)(() => {
+  (0, import_react16.useLayoutEffect)(() => {
     if (prepared.kind !== "html" || !features.codeHighlight) return;
     void highlightViewerCodeBlocks(ref.current);
   }, [prepared, features.codeHighlight]);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react16.useEffect)(() => {
     if (prepared.kind !== "html") return;
     const root = ref.current;
     if (!root) return;
@@ -2831,7 +3097,7 @@ function RichTextViewer({
     root.addEventListener("click", onSpoilerClick);
     return () => root.removeEventListener("click", onSpoilerClick);
   }, [prepared]);
-  (0, import_react14.useEffect)(() => {
+  (0, import_react16.useEffect)(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;

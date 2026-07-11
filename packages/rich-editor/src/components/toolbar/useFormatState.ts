@@ -27,7 +27,7 @@ import {
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
 import type { FormatState } from "../../context/EditorContext";
-import { $createRichQuoteNode } from "../../nodes/RichQuoteNode";
+import { $applyQuoteToSelection } from "../../core/quoteBlocks";
 import { $createSpoilerNode, $isSpoilerNode } from "../../nodes/SpoilerNode";
 
 const emptyFormat: FormatState = {
@@ -107,15 +107,7 @@ export function useFormatActions() {
       editor.update(() => {
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) return;
-        const inQuote = !!$findMatchingParent(
-          selection.anchor.getNode(),
-          $isQuoteNode,
-        );
-        if (inQuote) {
-          $setBlocksType(selection, () => $createParagraphNode());
-        } else {
-          $setBlocksType(selection, () => $createRichQuoteNode());
-        }
+        $applyQuoteToSelection(selection);
       });
     },
     codeBlock: () => {

@@ -13,7 +13,7 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { HeadingNode } from "@lexical/rich-text";
+import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { type LexicalEditor } from "lexical";
 import {
   forwardRef,
@@ -51,7 +51,6 @@ import {
 import { themeDataAttribute } from "../core/themePresets";
 import { MentionNode } from "../nodes/MentionNode";
 import { SpoilerNode } from "../nodes/SpoilerNode";
-import { RichQuoteNode } from "../nodes/RichQuoteNode";
 import { normalizeHtml } from "../core/html";
 import { buildMarkdownTransformers } from "../core/markdown";
 import { editorTheme } from "../core/theme";
@@ -66,10 +65,12 @@ import {
   FocusPlugin,
   InitialHtmlPlugin,
   KeyboardShortcutsPlugin,
+  LineBreakPlugin,
   MarkdownPastePlugin,
   MentionsPlugin,
   SelectionMenuPlugin,
   SetHtmlPlugin,
+  SpoilerPlugin,
 } from "./plugins";
 import { EditorToolbar } from "./toolbar/EditorToolbar";
 import { useFormatActions, useFormatState } from "./toolbar/useFormatState";
@@ -312,7 +313,7 @@ function RichTextEditorInner(
       onError,
       nodes: [
         HeadingNode,
-        ...(features.quote ? [RichQuoteNode] : []),
+        ...(features.quote ? [QuoteNode] : []),
         ListNode,
         ListItemNode,
         CodeNode,
@@ -404,6 +405,8 @@ function RichTextEditorInner(
           />
           <div ref={bodyRef} className="re-editor-body">
             <BlockBehaviorPlugin />
+            <LineBreakPlugin />
+            {features.spoiler && <SpoilerPlugin />}
             <InitialHtmlPlugin html={value} />
             <RichTextPlugin
               contentEditable={

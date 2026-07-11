@@ -8,13 +8,18 @@ import {
   ITALIC_UNDERSCORE,
   LINK,
   ORDERED_LIST,
-  QUOTE,
   STRIKETHROUGH,
   UNORDERED_LIST,
+  type ElementTransformer,
   type TextMatchTransformer,
   type Transformer,
 } from "@lexical/markdown";
-import { $createTextNode } from "lexical";
+import {
+  $createQuoteNode,
+  $isQuoteNode,
+  QuoteNode,
+} from "@lexical/rich-text";
+import { $createParagraphNode, $createTextNode } from "lexical";
 import { marked } from "marked";
 import type { EditorFeatures } from "./features";
 import { sanitizeHtml } from "./html";
@@ -54,6 +59,40 @@ const SPOILER: TextMatchTransformer = {
   },
   trigger: "|",
   type: "text-match",
+};
+
+const QUOTE_REGEX = /^>\s/;
+
+const QUOTE: ElementTransformer = {
+  dependencies: [QuoteNode],
+  export: (node, exportChildren) => {
+    if (!$isQuoteNode(node)) return null;
+    const lines = exportChildren(node).split("\n");
+    return lines.map((line) => `> ${line}`).join("\n");
+  },
+  regExp: QUOTE_REGEX,
+  replace: (parentNode, children, _match, isImport) => {
+    if (isImport) {
+      const previousNode = parentNode.getPreviousSibling();
+      if ($isQuoteNode(previousNode)) {
+        const paragraph = $createParagraphNode();
+        paragraph.append(...children);
+        previousNode.append(paragraph);
+        parentNode.remove();
+        return;
+      }
+    }
+
+    const quote = $createQuoteNode();
+    const paragraph = $createParagraphNode();
+    paragraph.append(...children);
+    quote.append(paragraph);
+    parentNode.replace(quote);
+    if (!isImport) {
+      paragraph.select(0, 0);
+    }
+  },
+  type: "element",
 };
 
 export function buildMarkdownTransformers(

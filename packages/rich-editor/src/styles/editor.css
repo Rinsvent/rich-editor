@@ -381,6 +381,97 @@
   padding: 0;
 }
 
+.re-viewer .re-block-code .token.comment,
+.re-viewer .re-block-code .token.prolog,
+.re-viewer .re-block-code .token.doctype,
+.re-viewer .re-block-code .token.cdata {
+  color: #8b98a5;
+}
+
+.re-viewer .re-block-code .token.punctuation {
+  color: var(--re-muted);
+}
+
+.re-viewer .re-block-code .token.property,
+.re-viewer .re-block-code .token.tag,
+.re-viewer .re-block-code .token.boolean,
+.re-viewer .re-block-code .token.number,
+.re-viewer .re-block-code .token.constant,
+.re-viewer .re-block-code .token.symbol {
+  color: #f78c6c;
+}
+
+.re-viewer .re-block-code .token.selector,
+.re-viewer .re-block-code .token.attr-name,
+.re-viewer .re-block-code .token.string,
+.re-viewer .re-block-code .token.char,
+.re-viewer .re-block-code .token.builtin {
+  color: #c3e88d;
+}
+
+.re-viewer .re-block-code .token.operator,
+.re-viewer .re-block-code .token.entity,
+.re-viewer .re-block-code .token.url,
+.re-viewer .re-block-code .token.variable {
+  color: #89ddff;
+}
+
+.re-viewer .re-block-code .token.atrule,
+.re-viewer .re-block-code .token.attr-value,
+.re-viewer .re-block-code .token.function,
+.re-viewer .re-block-code .token.class-name {
+  color: #82aaff;
+}
+
+.re-viewer .re-block-code .token.keyword {
+  color: #c792ea;
+}
+
+.re-viewer .re-block-code .token,
+.re-viewer code.re-block-code .token {
+  font-style: inherit;
+  font-weight: inherit;
+}
+
+.re-viewer .hljs .hljs-comment,
+.re-viewer .hljs .hljs-quote {
+  color: #8b98a5;
+}
+
+.re-viewer .hljs .hljs-keyword,
+.re-viewer .hljs .hljs-selector-tag,
+.re-viewer .hljs .hljs-built_in {
+  color: #c792ea;
+}
+
+.re-viewer .hljs .hljs-string,
+.re-viewer .hljs .hljs-attr,
+.re-viewer .hljs .hljs-symbol,
+.re-viewer .hljs .hljs-bullet {
+  color: #c3e88d;
+}
+
+.re-viewer .hljs .hljs-number,
+.re-viewer .hljs .hljs-literal,
+.re-viewer .hljs .hljs-variable,
+.re-viewer .hljs .hljs-template-variable {
+  color: #f78c6c;
+}
+
+.re-viewer .hljs .hljs-title,
+.re-viewer .hljs .hljs-section,
+.re-viewer .hljs .hljs-type,
+.re-viewer .hljs .hljs-name,
+.re-viewer .hljs .hljs-function {
+  color: #82aaff;
+}
+
+.re-viewer .hljs .hljs-params,
+.re-viewer .hljs .hljs-meta,
+.re-viewer .hljs .hljs-operator {
+  color: #89ddff;
+}
+
 .re-viewer ul { list-style: disc; padding-left: 1.25rem; }
 .re-viewer ol { list-style: decimal; padding-left: 1.25rem; }
 
@@ -425,6 +516,14 @@
 .re-viewer .re-spoiler.re-spoiler-revealed {
   color: var(--re-text);
   background: var(--re-hover);
+}
+
+.re-editor-input .re-spoiler.re-spoiler-editing,
+.re-editor-input .re-spoiler:focus-within {
+  color: var(--re-text);
+  background: color-mix(in srgb, var(--re-accent) 12%, var(--re-hover));
+  outline: 1px dashed color-mix(in srgb, var(--re-accent) 50%, transparent);
+  outline-offset: 2px;
 }
 
 .re-editor-input pre,
