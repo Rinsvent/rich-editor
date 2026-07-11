@@ -17,12 +17,12 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode as QuoteNode3 } from "@lexical/rich-text";
 import {
   forwardRef,
-  useCallback as useCallback4,
+  useCallback as useCallback5,
   useEffect as useEffect15,
   useId as useId4,
   useImperativeHandle,
   useMemo as useMemo4,
-  useRef as useRef4,
+  useRef as useRef5,
   useState as useState7
 } from "react";
 
@@ -781,10 +781,10 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-import { useEffect as useEffect13, useRef as useRef3 } from "react";
+import { useEffect as useEffect13, useRef as useRef4 } from "react";
 import { $generateNodesFromDOM as $generateNodesFromDOM2 } from "@lexical/html";
 import { useLexicalComposerContext as useLexicalComposerContext13 } from "@lexical/react/LexicalComposerContext";
-import { $getRoot as $getRoot4 } from "lexical";
+import { $createParagraphNode as $createParagraphNode5, $getRoot as $getRoot4 } from "lexical";
 
 // src/components/plugins/EnterPlugin.tsx
 import { useEffect } from "react";
@@ -996,7 +996,7 @@ function MentionMenu({
       "div",
       {
         id: menuId,
-        className: "re-mention-menu",
+        className: "re-mention-menu re-scrollbar",
         role: "listbox",
         "aria-label": menuLabel,
         "aria-activedescendant": activeDescendantId,
@@ -1635,7 +1635,7 @@ function CodeHighlightPlugin({ enabled }) {
 }
 
 // src/components/plugins/CodeLanguagePlugin.tsx
-import { useEffect as useEffect7, useMemo as useMemo2, useState as useState2 } from "react";
+import { useCallback as useCallback2, useEffect as useEffect7, useMemo as useMemo2, useRef, useState as useState2 } from "react";
 import { createPortal as createPortal2 } from "react-dom";
 import { useLexicalComposerContext as useLexicalComposerContext7 } from "@lexical/react/LexicalComposerContext";
 import { $isCodeNode as $isCodeNode3, normalizeCodeLanguage } from "@lexical/code";
@@ -1847,6 +1847,11 @@ var HLJS_LANGUAGE_IDS = Object.keys(HLJS_LANGUAGE_LABELS).sort();
 function getHljsLanguageLabel(id) {
   return HLJS_LANGUAGE_LABELS[id] ?? id;
 }
+function resolveCodeLanguages(ids) {
+  if (!ids || ids.length === 0) return HLJS_LANGUAGE_IDS;
+  const allowed = new Set(ids.map((id) => id.trim().toLowerCase()).filter(Boolean));
+  return HLJS_LANGUAGE_IDS.filter((id) => allowed.has(id));
+}
 
 // src/components/plugins/CodeLanguagePlugin.tsx
 import { jsx as jsx3, jsxs as jsxs2 } from "react/jsx-runtime";
@@ -1863,53 +1868,63 @@ function toSelectLanguage(language) {
 }
 function CodeLanguagePlugin({
   labels,
-  containerRef
+  containerRef,
+  codeLanguages
 }) {
   const [editor] = useLexicalComposerContext7();
   const [toolbar, setToolbar] = useState2(null);
-  const languageOptions = useMemo2(
-    () => HLJS_LANGUAGE_IDS.map((id) => ({
+  const [menuOpen, setMenuOpen] = useState2(false);
+  const toolbarRef = useRef(null);
+  const languageOptions = useMemo2(() => {
+    const ids = resolveCodeLanguages(codeLanguages);
+    return ids.map((id) => ({
       id,
       label: getHljsLanguageLabel(id)
-    })).sort((a, b) => a.label.localeCompare(b.label)),
-    []
+    })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [codeLanguages]);
+  const allowedLanguages = useMemo2(
+    () => new Set(languageOptions.map((option) => option.id)),
+    [languageOptions]
   );
-  useEffect7(() => {
-    const update = () => {
-      editor.getEditorState().read(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection)) {
-          setToolbar(null);
-          return;
+  const update = useCallback2(() => {
+    editor.getEditorState().read(() => {
+      const selection = $getSelection5();
+      if (!$isRangeSelection5(selection)) {
+        setToolbar(null);
+        setMenuOpen(false);
+        return;
+      }
+      const code = $findMatchingParent3(selection.anchor.getNode(), $isCodeNode3);
+      if (!code || !code.isAttached()) {
+        setToolbar(null);
+        setMenuOpen(false);
+        return;
+      }
+      const element = editor.getElementByKey(code.getKey());
+      const container = containerRef.current;
+      if (!element || !container || !container.contains(element)) {
+        setToolbar(null);
+        setMenuOpen(false);
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      const host = container.getBoundingClientRect();
+      const language = toSelectLanguage(code.getLanguage());
+      setToolbar((prev) => {
+        const next = {
+          codeKey: code.getKey(),
+          language,
+          top: rect.top - host.top + 6,
+          right: host.right - rect.right + 6
+        };
+        if (prev && prev.codeKey === next.codeKey && prev.language === next.language && prev.top === next.top && prev.right === next.right) {
+          return prev;
         }
-        const code = $findMatchingParent3(selection.anchor.getNode(), $isCodeNode3);
-        if (!code) {
-          setToolbar(null);
-          return;
-        }
-        const element = editor.getElementByKey(code.getKey());
-        const container = containerRef.current;
-        if (!element || !container) {
-          setToolbar(null);
-          return;
-        }
-        const rect = element.getBoundingClientRect();
-        const host = container.getBoundingClientRect();
-        const language = toSelectLanguage(code.getLanguage());
-        setToolbar((prev) => {
-          const next = {
-            codeKey: code.getKey(),
-            language,
-            top: rect.top - host.top + 6,
-            right: host.right - rect.right + 6
-          };
-          if (prev && prev.codeKey === next.codeKey && prev.language === next.language && prev.top === next.top && prev.right === next.right) {
-            return prev;
-          }
-          return next;
-        });
+        return next;
       });
-    };
+    });
+  }, [containerRef, editor]);
+  useEffect7(() => {
     update();
     const removeSelection = editor.registerCommand(
       SELECTION_CHANGE_COMMAND,
@@ -1919,15 +1934,29 @@ function CodeLanguagePlugin({
       },
       COMMAND_PRIORITY_LOW3
     );
+    const removeUpdate = editor.registerUpdateListener(() => {
+      update();
+    });
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
     return () => {
       removeSelection();
+      removeUpdate();
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [containerRef, editor]);
-  const onChange = (language) => {
+  }, [editor, update]);
+  useEffect7(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (event) => {
+      const target = event.target;
+      if (toolbarRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [menuOpen]);
+  const setLanguage = (language) => {
     if (!toolbar) return;
     const codeKey = toolbar.codeKey;
     editor.update(() => {
@@ -1938,28 +1967,76 @@ function CodeLanguagePlugin({
     setToolbar(
       (current) => current ? { ...current, language } : current
     );
+    setMenuOpen(false);
   };
   if (!toolbar || !containerRef.current) return null;
+  const currentLabel = languageOptions.find((option) => option.id === toolbar.language)?.label ?? getHljsLanguageLabel(toolbar.language);
+  const resolvedLanguage = allowedLanguages.has(toolbar.language) ? toolbar.language : languageOptions[0]?.id ?? toolbar.language;
   return createPortal2(
     /* @__PURE__ */ jsx3(
       "div",
       {
+        ref: toolbarRef,
         className: "re-code-language-toolbar",
         style: {
           top: `${toolbar.top}px`,
           right: `${toolbar.right}px`
         },
-        children: /* @__PURE__ */ jsxs2("label", { className: "re-code-language-label", children: [
-          /* @__PURE__ */ jsx3("span", { className: "sr-only", children: labels.codeLanguage }),
-          /* @__PURE__ */ jsx3(
-            "select",
+        children: /* @__PURE__ */ jsxs2("div", { className: "re-code-language-picker", children: [
+          /* @__PURE__ */ jsxs2(
+            "button",
             {
-              className: "re-code-language-select",
-              value: toolbar.language,
+              type: "button",
+              className: "re-code-language-trigger",
               "aria-label": labels.codeLanguage,
+              "aria-haspopup": "listbox",
+              "aria-expanded": menuOpen,
               onMouseDown: (event) => event.stopPropagation(),
-              onChange: (event) => onChange(event.target.value),
-              children: languageOptions.map((option) => /* @__PURE__ */ jsx3("option", { value: option.id, children: option.label }, option.id))
+              onClick: () => setMenuOpen((open) => !open),
+              children: [
+                /* @__PURE__ */ jsx3("span", { className: "re-code-language-trigger-label", children: currentLabel }),
+                /* @__PURE__ */ jsx3(
+                  "svg",
+                  {
+                    className: "re-code-language-chevron",
+                    width: "10",
+                    height: "10",
+                    viewBox: "0 0 10 10",
+                    "aria-hidden": "true",
+                    children: /* @__PURE__ */ jsx3(
+                      "path",
+                      {
+                        d: "M2 3.5 5 6.5 8 3.5",
+                        fill: "none",
+                        stroke: "currentColor",
+                        strokeWidth: "1.5",
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round"
+                      }
+                    )
+                  }
+                )
+              ]
+            }
+          ),
+          menuOpen && /* @__PURE__ */ jsx3(
+            "ul",
+            {
+              className: "re-code-language-menu re-scrollbar",
+              role: "listbox",
+              "aria-label": labels.codeLanguage,
+              children: languageOptions.map((option) => /* @__PURE__ */ jsx3("li", { role: "none", children: /* @__PURE__ */ jsx3(
+                "button",
+                {
+                  type: "button",
+                  role: "option",
+                  "aria-selected": option.id === resolvedLanguage,
+                  className: "re-code-language-menu-item",
+                  onMouseDown: (event) => event.stopPropagation(),
+                  onClick: () => setLanguage(option.id),
+                  children: option.label
+                }
+              ) }, option.id))
             }
           )
         ] })
@@ -2598,7 +2675,7 @@ function LineBreakPlugin() {
 }
 
 // src/components/plugins/LinkUiPlugin.tsx
-import { useCallback as useCallback3, useEffect as useEffect11, useId as useId2, useRef, useState as useState5 } from "react";
+import { useCallback as useCallback4, useEffect as useEffect11, useId as useId2, useRef as useRef2, useState as useState5 } from "react";
 import { createPortal as createPortal4 } from "react-dom";
 import { useLexicalComposerContext as useLexicalComposerContext11 } from "@lexical/react/LexicalComposerContext";
 import { $isLinkNode as $isLinkNode3 } from "@lexical/link";
@@ -2667,7 +2744,7 @@ function LinkModal({
   const urlId = useId2();
   const [text, setText] = useState5(state.text);
   const [url, setUrl] = useState5(state.url);
-  const textRef = useRef(null);
+  const textRef = useRef2(null);
   useEffect11(() => {
     setText(state.text);
     setUrl(state.url || "https://");
@@ -2820,9 +2897,9 @@ function LinkUiPluginInner({
   const [editor] = useLexicalComposerContext11();
   const [modal, setModal] = useState5(null);
   const [toolbar, setToolbar] = useState5(null);
-  const closeModal = useCallback3(() => setModal(null), []);
-  const hideToolbar = useCallback3(() => setToolbar(null), []);
-  const openLinkDialog = useCallback3(() => {
+  const closeModal = useCallback4(() => setModal(null), []);
+  const hideToolbar = useCallback4(() => setToolbar(null), []);
+  const openLinkDialog = useCallback4(() => {
     editor.getEditorState().read(() => {
       const selection = $getSelection10();
       if (!$isRangeSelection10(selection)) return;
@@ -2845,7 +2922,7 @@ function LinkUiPluginInner({
       hideToolbar();
     });
   }, [editor, hideToolbar]);
-  const openEditForLinkKey = useCallback3(
+  const openEditForLinkKey = useCallback4(
     (linkKey) => {
       editor.getEditorState().read(() => {
         const link = $getNodeByKey4(linkKey);
@@ -2861,7 +2938,7 @@ function LinkUiPluginInner({
     },
     [editor, hideToolbar]
   );
-  const handleSaveModal = useCallback3(
+  const handleSaveModal = useCallback4(
     (text, url, linkKey) => {
       editor.update(() => {
         $applyLinkForm({ text, url }, linkKey);
@@ -2871,7 +2948,7 @@ function LinkUiPluginInner({
     },
     [closeModal, editor]
   );
-  const removeLink = useCallback3(
+  const removeLink = useCallback4(
     (linkKey) => {
       editor.update(() => {
         $removeLinkByKey(linkKey);
@@ -2984,13 +3061,13 @@ function LinkUiPluginInner({
 }
 
 // src/components/plugins/SpoilerPlugin.tsx
-import { useEffect as useEffect12, useRef as useRef2 } from "react";
+import { useEffect as useEffect12, useRef as useRef3 } from "react";
 import { useLexicalComposerContext as useLexicalComposerContext12 } from "@lexical/react/LexicalComposerContext";
 import { $findMatchingParent as $findMatchingParent6 } from "@lexical/utils";
 import { $getSelection as $getSelection11, $isRangeSelection as $isRangeSelection11 } from "lexical";
 function SpoilerPlugin() {
   const [editor] = useLexicalComposerContext12();
-  const editingRef = useRef2(null);
+  const editingRef = useRef3(null);
   useEffect12(() => {
     const root = editor.getRootElement();
     if (!root) return;
@@ -3039,13 +3116,16 @@ function SpoilerPlugin() {
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
   const [editor] = useLexicalComposerContext13();
-  const lastApplied = useRef3(void 0);
+  const lastApplied = useRef4(void 0);
   useEffect13(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
       const root = $getRoot4();
       root.clear();
       if (!html?.trim()) {
+        const paragraph = $createParagraphNode5();
+        root.append(paragraph);
+        paragraph.select();
         lastApplied.current = html;
         return;
       }
@@ -3099,7 +3179,12 @@ function SetHtmlPlugin({
       editor.update(() => {
         const root = $getRoot4();
         root.clear();
-        if (!html.trim()) return;
+        if (!html.trim()) {
+          const paragraph = $createParagraphNode5();
+          root.append(paragraph);
+          paragraph.select();
+          return;
+        }
         const parser = new DOMParser();
         const dom = parser.parseFromString(html, "text/html");
         const nodes = $generateNodesFromDOM2(editor, dom.body);
@@ -3119,8 +3204,13 @@ function ClearPlugin({
   useEffect13(() => {
     clearRef.current = () => {
       editor.update(() => {
-        $getRoot4().clear();
+        const root = $getRoot4();
+        root.clear();
+        const paragraph = $createParagraphNode5();
+        root.append(paragraph);
+        paragraph.select();
       });
+      editor.focus();
     };
     return () => {
       clearRef.current = null;
@@ -3617,6 +3707,7 @@ function RichTextEditorInner({
   enterKeyBindings,
   selectionMenuItems = defaultSelectionMenuItems,
   clearOnSubmit = false,
+  codeLanguages,
   className,
   theme = defaultEditorTheme,
   minRows = 1,
@@ -3630,12 +3721,12 @@ function RichTextEditorInner({
   const rootId = useId4();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
-  const rootRef = useRef4(null);
-  const bodyRef = useRef4(null);
-  const getHtmlRef = useRef4(null);
-  const setHtmlRef = useRef4(null);
-  const clearRef = useRef4(null);
-  const focusRef = useRef4(null);
+  const rootRef = useRef5(null);
+  const bodyRef = useRef5(null);
+  const getHtmlRef = useRef5(null);
+  const setHtmlRef = useRef5(null);
+  const clearRef = useRef5(null);
+  const focusRef = useRef5(null);
   const [isEmpty, setIsEmpty] = useState7(true);
   const [sending, setSending] = useState7(false);
   const inputStyle = useMemo4(
@@ -3674,8 +3765,8 @@ function RichTextEditorInner({
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
-  const getHtml = useCallback4(() => getHtmlRef.current?.() ?? "", []);
-  const submit = useCallback4(async () => {
+  const getHtml = useCallback5(() => getHtmlRef.current?.() ?? "", []);
+  const submit = useCallback5(async () => {
     if (disabled || sending || isEmpty || !onSubmit) return;
     const html = getHtml();
     if (!html) return;
@@ -3776,7 +3867,14 @@ function RichTextEditorInner({
                 features.links && /* @__PURE__ */ jsx9(LinkPlugin, {}),
                 features.codeBlock && /* @__PURE__ */ jsxs6(Fragment3, { children: [
                   /* @__PURE__ */ jsx9(CodeHighlightPlugin, { enabled: !disabled }),
-                  /* @__PURE__ */ jsx9(CodeLanguagePlugin, { labels, containerRef: bodyRef })
+                  /* @__PURE__ */ jsx9(
+                    CodeLanguagePlugin,
+                    {
+                      labels,
+                      containerRef: bodyRef,
+                      codeLanguages
+                    }
+                  )
                 ] }),
                 transformers.length > 0 && /* @__PURE__ */ jsx9(MarkdownShortcutPlugin, { transformers }),
                 /* @__PURE__ */ jsx9(MarkdownPastePlugin, { features }),
@@ -3833,7 +3931,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-import { useEffect as useEffect16, useLayoutEffect, useMemo as useMemo5, useRef as useRef5 } from "react";
+import { useEffect as useEffect16, useLayoutEffect, useMemo as useMemo5, useRef as useRef6 } from "react";
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -3989,6 +4087,17 @@ function collectCodeBlocks(root) {
   });
   return blocks;
 }
+function collectInlineCodeElements(root) {
+  const elements = [];
+  root.querySelectorAll("code.re-text-code, .re-text-code").forEach((code) => {
+    if (!(code instanceof HTMLElement)) return;
+    if (code.classList.contains("re-block-code")) return;
+    if (code.closest("pre")) return;
+    if (code.closest(".re-code-block-wrap")) return;
+    elements.push(code);
+  });
+  return elements;
+}
 function getCodeElement(block) {
   if (block instanceof HTMLPreElement) {
     return block.querySelector("code") ?? block;
@@ -4025,6 +4134,15 @@ function flashCopied(button, labels) {
     button.title = previous;
   }, 1500);
 }
+function flashCopiedInline(element, labels) {
+  const previous = element.title;
+  element.classList.add("re-inline-code-copied");
+  element.title = labels.copiedCode;
+  window.setTimeout(() => {
+    element.classList.remove("re-inline-code-copied");
+    element.title = previous;
+  }, 1500);
+}
 function enhanceViewerCodeBlocks(root, labels) {
   if (!root) return () => {
   };
@@ -4059,6 +4177,39 @@ function enhanceViewerCodeBlocks(root, labels) {
       codeElement.classList.remove("re-code-copyable");
     });
   });
+  collectInlineCodeElements(root).forEach((element) => {
+    const copy = async () => {
+      const copied = await copyTextToClipboard(getCodeText(element));
+      if (copied) flashCopiedInline(element, labels);
+    };
+    const onClick = (event) => {
+      event.preventDefault();
+      void copy();
+    };
+    element.addEventListener("click", onClick);
+    element.classList.add("re-code-copyable", "re-inline-code-copyable");
+    element.setAttribute("role", "button");
+    element.setAttribute("tabindex", "0");
+    element.setAttribute("aria-label", labels.copyCode);
+    const onKeyDown = (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      void copy();
+    };
+    element.addEventListener("keydown", onKeyDown);
+    cleanups.push(() => {
+      element.removeEventListener("click", onClick);
+      element.removeEventListener("keydown", onKeyDown);
+      element.classList.remove(
+        "re-code-copyable",
+        "re-inline-code-copyable",
+        "re-inline-code-copied"
+      );
+      element.removeAttribute("role");
+      element.removeAttribute("tabindex");
+      element.removeAttribute("aria-label");
+    });
+  });
   return () => {
     for (const cleanup of cleanups) cleanup();
   };
@@ -4085,7 +4236,7 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
-  const ref = useRef5(null);
+  const ref = useRef6(null);
   const prepared = useMemo5(
     () => prepareViewerContent(content, features),
     [content, features]

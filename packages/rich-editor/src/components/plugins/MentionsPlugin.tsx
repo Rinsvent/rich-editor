@@ -56,7 +56,7 @@ function MentionMenu({
   return createPortal(
     <div
       id={menuId}
-      className="re-mention-menu"
+      className="re-mention-menu re-scrollbar"
       role="listbox"
       aria-label={menuLabel}
       aria-activedescendant={activeDescendantId}

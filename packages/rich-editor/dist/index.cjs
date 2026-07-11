@@ -1007,7 +1007,7 @@ function MentionMenu({
       "div",
       {
         id: menuId,
-        className: "re-mention-menu",
+        className: "re-mention-menu re-scrollbar",
         role: "listbox",
         "aria-label": menuLabel,
         "aria-activedescendant": activeDescendantId,
@@ -1828,6 +1828,11 @@ var HLJS_LANGUAGE_IDS = Object.keys(HLJS_LANGUAGE_LABELS).sort();
 function getHljsLanguageLabel(id) {
   return HLJS_LANGUAGE_LABELS[id] ?? id;
 }
+function resolveCodeLanguages(ids) {
+  if (!ids || ids.length === 0) return HLJS_LANGUAGE_IDS;
+  const allowed = new Set(ids.map((id) => id.trim().toLowerCase()).filter(Boolean));
+  return HLJS_LANGUAGE_IDS.filter((id) => allowed.has(id));
+}
 
 // src/components/plugins/CodeLanguagePlugin.tsx
 var import_jsx_runtime3 = require("react/jsx-runtime");
@@ -1844,53 +1849,63 @@ function toSelectLanguage(language) {
 }
 function CodeLanguagePlugin({
   labels,
-  containerRef
+  containerRef,
+  codeLanguages
 }) {
   const [editor] = (0, import_LexicalComposerContext7.useLexicalComposerContext)();
   const [toolbar, setToolbar] = (0, import_react8.useState)(null);
-  const languageOptions = (0, import_react8.useMemo)(
-    () => HLJS_LANGUAGE_IDS.map((id) => ({
+  const [menuOpen, setMenuOpen] = (0, import_react8.useState)(false);
+  const toolbarRef = (0, import_react8.useRef)(null);
+  const languageOptions = (0, import_react8.useMemo)(() => {
+    const ids = resolveCodeLanguages(codeLanguages);
+    return ids.map((id) => ({
       id,
       label: getHljsLanguageLabel(id)
-    })).sort((a, b) => a.label.localeCompare(b.label)),
-    []
+    })).sort((a, b) => a.label.localeCompare(b.label));
+  }, [codeLanguages]);
+  const allowedLanguages = (0, import_react8.useMemo)(
+    () => new Set(languageOptions.map((option) => option.id)),
+    [languageOptions]
   );
-  (0, import_react8.useEffect)(() => {
-    const update = () => {
-      editor.getEditorState().read(() => {
-        const selection = (0, import_lexical11.$getSelection)();
-        if (!(0, import_lexical11.$isRangeSelection)(selection)) {
-          setToolbar(null);
-          return;
+  const update = (0, import_react8.useCallback)(() => {
+    editor.getEditorState().read(() => {
+      const selection = (0, import_lexical11.$getSelection)();
+      if (!(0, import_lexical11.$isRangeSelection)(selection)) {
+        setToolbar(null);
+        setMenuOpen(false);
+        return;
+      }
+      const code = (0, import_utils3.$findMatchingParent)(selection.anchor.getNode(), import_code4.$isCodeNode);
+      if (!code || !code.isAttached()) {
+        setToolbar(null);
+        setMenuOpen(false);
+        return;
+      }
+      const element = editor.getElementByKey(code.getKey());
+      const container = containerRef.current;
+      if (!element || !container || !container.contains(element)) {
+        setToolbar(null);
+        setMenuOpen(false);
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      const host = container.getBoundingClientRect();
+      const language = toSelectLanguage(code.getLanguage());
+      setToolbar((prev) => {
+        const next = {
+          codeKey: code.getKey(),
+          language,
+          top: rect.top - host.top + 6,
+          right: host.right - rect.right + 6
+        };
+        if (prev && prev.codeKey === next.codeKey && prev.language === next.language && prev.top === next.top && prev.right === next.right) {
+          return prev;
         }
-        const code = (0, import_utils3.$findMatchingParent)(selection.anchor.getNode(), import_code4.$isCodeNode);
-        if (!code) {
-          setToolbar(null);
-          return;
-        }
-        const element = editor.getElementByKey(code.getKey());
-        const container = containerRef.current;
-        if (!element || !container) {
-          setToolbar(null);
-          return;
-        }
-        const rect = element.getBoundingClientRect();
-        const host = container.getBoundingClientRect();
-        const language = toSelectLanguage(code.getLanguage());
-        setToolbar((prev) => {
-          const next = {
-            codeKey: code.getKey(),
-            language,
-            top: rect.top - host.top + 6,
-            right: host.right - rect.right + 6
-          };
-          if (prev && prev.codeKey === next.codeKey && prev.language === next.language && prev.top === next.top && prev.right === next.right) {
-            return prev;
-          }
-          return next;
-        });
+        return next;
       });
-    };
+    });
+  }, [containerRef, editor]);
+  (0, import_react8.useEffect)(() => {
     update();
     const removeSelection = editor.registerCommand(
       import_lexical11.SELECTION_CHANGE_COMMAND,
@@ -1900,15 +1915,29 @@ function CodeLanguagePlugin({
       },
       import_lexical11.COMMAND_PRIORITY_LOW
     );
+    const removeUpdate = editor.registerUpdateListener(() => {
+      update();
+    });
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
     return () => {
       removeSelection();
+      removeUpdate();
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [containerRef, editor]);
-  const onChange = (language) => {
+  }, [editor, update]);
+  (0, import_react8.useEffect)(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (event) => {
+      const target = event.target;
+      if (toolbarRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [menuOpen]);
+  const setLanguage = (language) => {
     if (!toolbar) return;
     const codeKey = toolbar.codeKey;
     editor.update(() => {
@@ -1919,28 +1948,76 @@ function CodeLanguagePlugin({
     setToolbar(
       (current) => current ? { ...current, language } : current
     );
+    setMenuOpen(false);
   };
   if (!toolbar || !containerRef.current) return null;
+  const currentLabel = languageOptions.find((option) => option.id === toolbar.language)?.label ?? getHljsLanguageLabel(toolbar.language);
+  const resolvedLanguage = allowedLanguages.has(toolbar.language) ? toolbar.language : languageOptions[0]?.id ?? toolbar.language;
   return (0, import_react_dom2.createPortal)(
     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
       "div",
       {
+        ref: toolbarRef,
         className: "re-code-language-toolbar",
         style: {
           top: `${toolbar.top}px`,
           right: `${toolbar.right}px`
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("label", { className: "re-code-language-label", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "sr-only", children: labels.codeLanguage }),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            "select",
+        children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-code-language-picker", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+            "button",
             {
-              className: "re-code-language-select",
-              value: toolbar.language,
+              type: "button",
+              className: "re-code-language-trigger",
               "aria-label": labels.codeLanguage,
+              "aria-haspopup": "listbox",
+              "aria-expanded": menuOpen,
               onMouseDown: (event) => event.stopPropagation(),
-              onChange: (event) => onChange(event.target.value),
-              children: languageOptions.map((option) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("option", { value: option.id, children: option.label }, option.id))
+              onClick: () => setMenuOpen((open) => !open),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "re-code-language-trigger-label", children: currentLabel }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "svg",
+                  {
+                    className: "re-code-language-chevron",
+                    width: "10",
+                    height: "10",
+                    viewBox: "0 0 10 10",
+                    "aria-hidden": "true",
+                    children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                      "path",
+                      {
+                        d: "M2 3.5 5 6.5 8 3.5",
+                        fill: "none",
+                        stroke: "currentColor",
+                        strokeWidth: "1.5",
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round"
+                      }
+                    )
+                  }
+                )
+              ]
+            }
+          ),
+          menuOpen && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "ul",
+            {
+              className: "re-code-language-menu re-scrollbar",
+              role: "listbox",
+              "aria-label": labels.codeLanguage,
+              children: languageOptions.map((option) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("li", { role: "none", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "button",
+                {
+                  type: "button",
+                  role: "option",
+                  "aria-selected": option.id === resolvedLanguage,
+                  className: "re-code-language-menu-item",
+                  onMouseDown: (event) => event.stopPropagation(),
+                  onClick: () => setLanguage(option.id),
+                  children: option.label
+                }
+              ) }, option.id))
             }
           )
         ] })
@@ -2984,6 +3061,9 @@ function InitialHtmlPlugin({ html }) {
       const root = (0, import_lexical18.$getRoot)();
       root.clear();
       if (!html?.trim()) {
+        const paragraph = (0, import_lexical18.$createParagraphNode)();
+        root.append(paragraph);
+        paragraph.select();
         lastApplied.current = html;
         return;
       }
@@ -3037,7 +3117,12 @@ function SetHtmlPlugin({
       editor.update(() => {
         const root = (0, import_lexical18.$getRoot)();
         root.clear();
-        if (!html.trim()) return;
+        if (!html.trim()) {
+          const paragraph = (0, import_lexical18.$createParagraphNode)();
+          root.append(paragraph);
+          paragraph.select();
+          return;
+        }
         const parser = new DOMParser();
         const dom = parser.parseFromString(html, "text/html");
         const nodes = (0, import_html4.$generateNodesFromDOM)(editor, dom.body);
@@ -3057,8 +3142,13 @@ function ClearPlugin({
   (0, import_react15.useEffect)(() => {
     clearRef.current = () => {
       editor.update(() => {
-        (0, import_lexical18.$getRoot)().clear();
+        const root = (0, import_lexical18.$getRoot)();
+        root.clear();
+        const paragraph = (0, import_lexical18.$createParagraphNode)();
+        root.append(paragraph);
+        paragraph.select();
       });
+      editor.focus();
     };
     return () => {
       clearRef.current = null;
@@ -3552,6 +3642,7 @@ function RichTextEditorInner({
   enterKeyBindings,
   selectionMenuItems = defaultSelectionMenuItems,
   clearOnSubmit = false,
+  codeLanguages,
   className,
   theme = defaultEditorTheme,
   minRows = 1,
@@ -3711,7 +3802,14 @@ function RichTextEditorInner({
                 features.links && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
                 features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
-                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(CodeLanguagePlugin, { labels, containerRef: bodyRef })
+                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                    CodeLanguagePlugin,
+                    {
+                      labels,
+                      containerRef: bodyRef,
+                      codeLanguages
+                    }
+                  )
                 ] }),
                 transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
                 /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(MarkdownPastePlugin, { features }),
@@ -3924,6 +4022,17 @@ function collectCodeBlocks(root) {
   });
   return blocks;
 }
+function collectInlineCodeElements(root) {
+  const elements = [];
+  root.querySelectorAll("code.re-text-code, .re-text-code").forEach((code) => {
+    if (!(code instanceof HTMLElement)) return;
+    if (code.classList.contains("re-block-code")) return;
+    if (code.closest("pre")) return;
+    if (code.closest(".re-code-block-wrap")) return;
+    elements.push(code);
+  });
+  return elements;
+}
 function getCodeElement(block) {
   if (block instanceof HTMLPreElement) {
     return block.querySelector("code") ?? block;
@@ -3960,6 +4069,15 @@ function flashCopied(button, labels) {
     button.title = previous;
   }, 1500);
 }
+function flashCopiedInline(element, labels) {
+  const previous = element.title;
+  element.classList.add("re-inline-code-copied");
+  element.title = labels.copiedCode;
+  window.setTimeout(() => {
+    element.classList.remove("re-inline-code-copied");
+    element.title = previous;
+  }, 1500);
+}
 function enhanceViewerCodeBlocks(root, labels) {
   if (!root) return () => {
   };
@@ -3992,6 +4110,39 @@ function enhanceViewerCodeBlocks(root, labels) {
       button?.removeEventListener("click", onButtonClick);
       codeElement.removeEventListener("click", onCodeClick);
       codeElement.classList.remove("re-code-copyable");
+    });
+  });
+  collectInlineCodeElements(root).forEach((element) => {
+    const copy = async () => {
+      const copied = await copyTextToClipboard(getCodeText(element));
+      if (copied) flashCopiedInline(element, labels);
+    };
+    const onClick = (event) => {
+      event.preventDefault();
+      void copy();
+    };
+    element.addEventListener("click", onClick);
+    element.classList.add("re-code-copyable", "re-inline-code-copyable");
+    element.setAttribute("role", "button");
+    element.setAttribute("tabindex", "0");
+    element.setAttribute("aria-label", labels.copyCode);
+    const onKeyDown = (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      void copy();
+    };
+    element.addEventListener("keydown", onKeyDown);
+    cleanups.push(() => {
+      element.removeEventListener("click", onClick);
+      element.removeEventListener("keydown", onKeyDown);
+      element.classList.remove(
+        "re-code-copyable",
+        "re-inline-code-copyable",
+        "re-inline-code-copied"
+      );
+      element.removeAttribute("role");
+      element.removeAttribute("tabindex");
+      element.removeAttribute("aria-label");
     });
   });
   return () => {

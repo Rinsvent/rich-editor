@@ -197,3 +197,9 @@ export const HLJS_LANGUAGE_IDS = Object.keys(HLJS_LANGUAGE_LABELS).sort();
 export function getHljsLanguageLabel(id: string): string {
   return HLJS_LANGUAGE_LABELS[id] ?? id;
 }
+
+export function resolveCodeLanguages(ids?: string[]): string[] {
+  if (!ids || ids.length === 0) return HLJS_LANGUAGE_IDS;
+  const allowed = new Set(ids.map((id) => id.trim().toLowerCase()).filter(Boolean));
+  return HLJS_LANGUAGE_IDS.filter((id) => allowed.has(id));
+}

@@ -138,6 +138,8 @@ type RichTextEditorProps = {
     enterKeyBindings?: EnterKeyBinding[];
     selectionMenuItems?: SelectionMenuItem[];
     clearOnSubmit?: boolean;
+    /** Limit code block language options. All highlight.js languages when omitted. */
+    codeLanguages?: string[];
     className?: string;
     theme?: EditorTheme;
     minRows?: number;

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $getRoot } from "lexical";
+import { $createParagraphNode, $getRoot } from "lexical";
 
 export function InitialHtmlPlugin({ html }: { html?: string }) {
   const [editor] = useLexicalComposerContext();
@@ -12,13 +12,16 @@ export function InitialHtmlPlugin({ html }: { html?: string }) {
   useEffect(() => {
     if (html === lastApplied.current) return;
 
-    editor.update(() => {
-      const root = $getRoot();
-      root.clear();
-      if (!html?.trim()) {
-        lastApplied.current = html;
-        return;
-      }
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        if (!html?.trim()) {
+          const paragraph = $createParagraphNode();
+          root.append(paragraph);
+          paragraph.select();
+          lastApplied.current = html;
+          return;
+        }
       const parser = new DOMParser();
       const dom = parser.parseFromString(html, "text/html");
       const nodes = $generateNodesFromDOM(editor, dom.body);
@@ -87,7 +90,12 @@ export function SetHtmlPlugin({
       editor.update(() => {
         const root = $getRoot();
         root.clear();
-        if (!html.trim()) return;
+        if (!html.trim()) {
+          const paragraph = $createParagraphNode();
+          root.append(paragraph);
+          paragraph.select();
+          return;
+        }
         const parser = new DOMParser();
         const dom = parser.parseFromString(html, "text/html");
         const nodes = $generateNodesFromDOM(editor, dom.body);
@@ -112,8 +120,13 @@ export function ClearPlugin({
   useEffect(() => {
     clearRef.current = () => {
       editor.update(() => {
-        $getRoot().clear();
+        const root = $getRoot();
+        root.clear();
+        const paragraph = $createParagraphNode();
+        root.append(paragraph);
+        paragraph.select();
       });
+      editor.focus();
     };
     return () => {
       clearRef.current = null;
