@@ -266,6 +266,8 @@ function RichTextEditorInner(
   const labels = useMemo(() => resolveLabels(labelsProp), [labelsProp]);
   const slots = useMemo(() => collectSlots(children), [children]);
   const rootId = useId();
+  const editorInputId = `${rootId}-input`;
+  const placeholderId = `${rootId}-placeholder`;
   const rootRef = useRef<HTMLDivElement>(null);
   const getHtmlRef = useRef<(() => string) | null>(null);
   const setHtmlRef = useRef<((html: string) => void) | null>(null);
@@ -366,7 +368,12 @@ function RichTextEditorInner(
           className={cn("re-editor-root", className)}
         >
           {showToolbar && (
-            <EditorToolbar features={features} labels={labels} slots={slots} />
+            <EditorToolbar
+              features={features}
+              labels={labels}
+              slots={slots}
+              editorInputId={editorInputId}
+            />
           )}
           <BlurCapturePlugin
             rootRef={rootRef}
@@ -378,13 +385,21 @@ function RichTextEditorInner(
             <RichTextPlugin
               contentEditable={
                 <ContentEditable
+                  id={editorInputId}
                   className="re-editor-input"
                   style={inputStyle}
+                  role="textbox"
+                  aria-label={labels.editor}
+                  aria-multiline
+                  aria-disabled={disabled}
+                  aria-describedby={placeholder ? placeholderId : undefined}
                 />
               }
               placeholder={
                 placeholder ? (
-                  <div className="re-editor-placeholder">{placeholder}</div>
+                  <div id={placeholderId} className="re-editor-placeholder" aria-hidden="true">
+                    {placeholder}
+                  </div>
                 ) : null
               }
               ErrorBoundary={LexicalErrorBoundary}

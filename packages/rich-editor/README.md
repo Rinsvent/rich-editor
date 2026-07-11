@@ -98,6 +98,62 @@ Override variables on a wrapper:
 }
 ```
 
+### Accessibility
+
+Both components expose customizable accessible names via `labels`:
+
+```tsx
+<RichTextEditor
+  labels={{
+    editor: "Message input",
+    toolbar: "Formatting",
+    mentionMenu: "People to mention",
+    bold: "Bold",
+    submit: "Send",
+  }}
+/>
+
+<RichTextViewer
+  labels={{ content: "Message", mention: "Open profile for {label}" }}
+  onMentionClick={({ id }) => …}
+/>
+```
+
+Built-in semantics:
+
+- Editor: `role="textbox"`, `aria-multiline`, toolbar `role="toolbar"` with `aria-controls`
+- Toolbar buttons: `aria-pressed`, `aria-keyshortcuts` (when applicable)
+- Mentions menu: `role="listbox"` / `role="option"`, `aria-activedescendant`
+- Viewer: `role="article"`; clickable mentions are focusable buttons (Enter / Space)
+- Visible `:focus-visible` rings on interactive controls
+
+Shortcut reference (also exported from the package):
+
+```tsx
+import {
+  formatKeyboardShortcuts,
+  markdownShortcuts,
+  mentionKeyboardShortcuts,
+  getEnterBehaviorDescription,
+} from "@rinsvent/rich-editor";
+```
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl/Cmd+B | Bold |
+| Ctrl/Cmd+I | Italic |
+| Ctrl/Cmd+E | Inline code |
+| Ctrl/Cmd+Shift+X | Strikethrough |
+| `@` | Open mentions menu |
+| ↑ / ↓ | Navigate mentions |
+| Enter | Select mention / submit (depends on `enterBehavior`) |
+| Esc | Close mentions menu |
+| Shift+Enter | New line (when `enterBehavior="submit"`) |
+
+Markdown typing shortcuts (`**bold**`, `` `code` ``, `> quote`, …) work when `features.markdownShortcuts` is enabled.
+
+See demo page `/a11y` for a live checklist.
+
 ### SSR (Next.js / RSC)
 
 `RichTextViewer` sanitizes HTML during render using `isomorphic-dompurify` — safe on server and client.

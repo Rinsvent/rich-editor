@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import {
   resolveViewerFeatures,
+  resolveViewerLabels,
   type ViewerFeatures,
+  type ViewerLabels,
 } from "../core/features";
 import { cn } from "../core/cn";
 import type { MentionOption } from "../core/mentions";
@@ -16,19 +18,36 @@ import { highlightViewerCodeBlocks } from "./highlightViewerCode";
 export type RichTextViewerProps = {
   content: string;
   features?: Partial<ViewerFeatures>;
+  labels?: Partial<ViewerLabels>;
   className?: string;
   theme?: EditorTheme;
   onMentionClick?: (mention: MentionOption) => void;
 };
 
+function mentionAriaLabel(template: string, label: string): string {
+  return template.replace("{label}", label);
+}
+
+function readMentionFromElement(element: Element): MentionOption | null {
+  const id = element.getAttribute(MENTION_ID_ATTR);
+  if (!id) return null;
+  const label =
+    element.getAttribute(MENTION_LABEL_ATTR) ??
+    element.textContent?.replace(/^@/, "") ??
+    id;
+  return { id, label };
+}
+
 export function RichTextViewer({
   content,
   features: featuresProp,
+  labels: labelsProp,
   className,
   theme = defaultEditorTheme,
   onMentionClick,
 }: RichTextViewerProps) {
   const features = resolveViewerFeatures(featuresProp);
+  const labels = resolveViewerLabels(labelsProp);
   const ref = useRef<HTMLDivElement>(null);
 
   const prepared = useMemo(
@@ -46,29 +65,55 @@ export function RichTextViewer({
     const root = ref.current;
     if (!root) return;
 
-    const handler = (event: MouseEvent) => {
+    const mentions = root.querySelectorAll(`[${MENTION_ID_ATTR}]`);
+    mentions.forEach((element) => {
+      const mention = readMentionFromElement(element);
+      if (!mention) return;
+      element.setAttribute("role", "button");
+      element.setAttribute("tabindex", "0");
+      element.setAttribute(
+        "aria-label",
+        mentionAriaLabel(labels.mention, mention.label),
+      );
+    });
+
+    const activateMention = (target: Element) => {
+      const mention = readMentionFromElement(target);
+      if (mention) onMentionClick(mention);
+    };
+
+    const onClick = (event: MouseEvent) => {
       const target = (event.target as HTMLElement).closest(
         `[${MENTION_ID_ATTR}]`,
       );
       if (!target || !root.contains(target)) return;
-      const id = target.getAttribute(MENTION_ID_ATTR);
-      if (!id) return;
-      const label =
-        target.getAttribute(MENTION_LABEL_ATTR) ??
-        target.textContent?.replace(/^@/, "") ??
-        id;
-      onMentionClick({ id, label });
+      activateMention(target);
     };
 
-    root.addEventListener("click", handler);
-    return () => root.removeEventListener("click", handler);
-  }, [prepared, onMentionClick]);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const target = (event.target as HTMLElement).closest(
+        `[${MENTION_ID_ATTR}]`,
+      );
+      if (!target || !root.contains(target)) return;
+      event.preventDefault();
+      activateMention(target);
+    };
+
+    root.addEventListener("click", onClick);
+    root.addEventListener("keydown", onKeyDown);
+    return () => {
+      root.removeEventListener("click", onClick);
+      root.removeEventListener("keydown", onKeyDown);
+    };
+  }, [labels.mention, onMentionClick, prepared]);
 
   if (prepared.kind === "plain") {
     return (
       <p
         {...themeDataAttribute(theme)}
         className={cn("re-viewer re-viewer-plain", className)}
+        aria-label={labels.content}
       >
         {prepared.text}
       </p>
@@ -80,6 +125,8 @@ export function RichTextViewer({
       ref={ref}
       {...themeDataAttribute(theme)}
       className={cn("re-viewer", className)}
+      role="article"
+      aria-label={labels.content}
       dangerouslySetInnerHTML={{ __html: prepared.html }}
     />
   );

@@ -6,9 +6,17 @@ import {
   useBasicTypeaheadTriggerMatch,
 } from "@lexical/react/LexicalTypeaheadMenuPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { useCallback, useEffect, useMemo, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import { type TextNode, COMMAND_PRIORITY_HIGH } from "lexical";
+import { useRichTextEditor } from "../../context/EditorContext";
 import type { MentionOption, MentionSearchFn } from "../../core/mentions";
 import { $createMentionNode } from "../../nodes/MentionNode";
 
@@ -25,12 +33,16 @@ class MentionMenuOption extends MenuOption {
 
 function MentionMenu({
   anchorElementRef,
+  menuId,
+  menuLabel,
   options,
   selectedIndex,
   selectOptionAndCleanUp,
   setHighlightedIndex,
 }: {
   anchorElementRef: RefObject<HTMLElement | null>;
+  menuId: string;
+  menuLabel: string;
   options: MentionMenuOption[];
   selectedIndex: number | null;
   selectOptionAndCleanUp: (option: MentionMenuOption) => void;
@@ -38,11 +50,21 @@ function MentionMenu({
 }) {
   if (options.length === 0) return null;
 
+  const activeDescendantId =
+    selectedIndex !== null ? `${menuId}-option-${selectedIndex}` : undefined;
+
   return createPortal(
-    <div className="re-mention-menu" role="listbox">
+    <div
+      id={menuId}
+      className="re-mention-menu"
+      role="listbox"
+      aria-label={menuLabel}
+      aria-activedescendant={activeDescendantId}
+    >
       {options.map((option, index) => (
         <button
           key={option.key}
+          id={`${menuId}-option-${index}`}
           type="button"
           role="option"
           aria-selected={selectedIndex === index}
@@ -68,6 +90,8 @@ export function MentionsPlugin({
   searchMentions: MentionSearchFn;
 }) {
   const [editor] = useLexicalComposerContext();
+  const { labels } = useRichTextEditor();
+  const menuId = useId();
   const [query, setQuery] = useState<string | null>(null);
   const [results, setResults] = useState<MentionOption[]>([]);
 
@@ -135,13 +159,15 @@ export function MentionsPlugin({
     ) => (
       <MentionMenu
         anchorElementRef={anchorElementRef}
+        menuId={menuId}
+        menuLabel={labels.mentionMenu}
         options={menuOptions}
         selectedIndex={selectedIndex}
         selectOptionAndCleanUp={selectOptionAndCleanUp}
         setHighlightedIndex={setHighlightedIndex}
       />
     ),
-    [],
+    [labels.mentionMenu, menuId],
   );
 
   return (

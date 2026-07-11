@@ -39,17 +39,24 @@ __export(index_exports, {
   defaultFeatures: () => defaultFeatures,
   defaultLabels: () => defaultLabels,
   defaultViewerFeatures: () => defaultViewerFeatures,
+  defaultViewerLabels: () => defaultViewerLabels,
   editorCssVariables: () => editorCssVariables,
   editorThemePresets: () => editorThemePresets,
   exportEditorHtml: () => exportEditorHtml,
+  formatKeyboardShortcuts: () => formatKeyboardShortcuts,
+  getActiveFormatShortcuts: () => getActiveFormatShortcuts,
+  getEnterBehaviorDescription: () => getEnterBehaviorDescription,
   isEditorThemePreset: () => isEditorThemePreset,
   isHtmlContent: () => isHtmlContent,
   looksLikeMarkdown: () => looksLikeMarkdown,
+  markdownShortcuts: () => markdownShortcuts,
   markdownToHtml: () => markdownToHtml,
+  mentionKeyboardShortcuts: () => mentionKeyboardShortcuts,
   normalizeHtml: () => normalizeHtml,
   plainTextFromHtml: () => plainTextFromHtml,
   prepareViewerContent: () => prepareViewerContent,
   sanitizeHtml: () => sanitizeHtml,
+  shortcutById: () => shortcutById,
   useRichTextEditor: () => useRichTextEditor
 });
 module.exports = __toCommonJS(index_exports);
@@ -117,10 +124,20 @@ var defaultLabels = {
   code: "Code",
   quote: "Quote",
   submit: "Submit",
-  menu: "Menu"
+  menu: "Menu",
+  editor: "Rich text editor",
+  toolbar: "Formatting",
+  mentionMenu: "Mention suggestions"
 };
 function resolveLabels(partial) {
   return { ...defaultLabels, ...partial };
+}
+var defaultViewerLabels = {
+  content: "Rich text content",
+  mention: "Mention {label}"
+};
+function resolveViewerLabels(partial) {
+  return { ...defaultViewerLabels, ...partial };
 }
 var defaultViewerFeatures = {
   codeHighlight: true,
@@ -669,33 +686,47 @@ var MentionMenuOption = class extends import_LexicalTypeaheadMenuPlugin.MenuOpti
 };
 function MentionMenu({
   anchorElementRef,
+  menuId,
+  menuLabel,
   options,
   selectedIndex,
   selectOptionAndCleanUp,
   setHighlightedIndex
 }) {
   if (options.length === 0) return null;
+  const activeDescendantId = selectedIndex !== null ? `${menuId}-option-${selectedIndex}` : void 0;
   return (0, import_react_dom.createPortal)(
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "re-mention-menu", role: "listbox", children: options.map((option, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-      "button",
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+      "div",
       {
-        type: "button",
-        role: "option",
-        "aria-selected": selectedIndex === index,
-        className: "re-mention-menu-item",
-        ref: (el) => option.setRefElement(el),
-        onMouseEnter: () => setHighlightedIndex(index),
-        onMouseDown: (e) => {
-          e.preventDefault();
-          selectOptionAndCleanUp(option);
-        },
-        children: [
-          "@",
-          option.label
-        ]
-      },
-      option.key
-    )) }),
+        id: menuId,
+        className: "re-mention-menu",
+        role: "listbox",
+        "aria-label": menuLabel,
+        "aria-activedescendant": activeDescendantId,
+        children: options.map((option, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+          "button",
+          {
+            id: `${menuId}-option-${index}`,
+            type: "button",
+            role: "option",
+            "aria-selected": selectedIndex === index,
+            className: "re-mention-menu-item",
+            ref: (el) => option.setRefElement(el),
+            onMouseEnter: () => setHighlightedIndex(index),
+            onMouseDown: (e) => {
+              e.preventDefault();
+              selectOptionAndCleanUp(option);
+            },
+            children: [
+              "@",
+              option.label
+            ]
+          },
+          option.key
+        ))
+      }
+    ),
     anchorElementRef.current ?? document.body
   );
 }
@@ -703,6 +734,8 @@ function MentionsPlugin({
   searchMentions
 }) {
   const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  const { labels } = useRichTextEditor();
+  const menuId = (0, import_react5.useId)();
   const [query, setQuery] = (0, import_react5.useState)(null);
   const [results, setResults] = (0, import_react5.useState)([]);
   const triggerFn = (0, import_LexicalTypeaheadMenuPlugin.useBasicTypeaheadTriggerMatch)("@", {
@@ -752,13 +785,15 @@ function MentionsPlugin({
       MentionMenu,
       {
         anchorElementRef,
+        menuId,
+        menuLabel: labels.mentionMenu,
         options: menuOptions,
         selectedIndex,
         selectOptionAndCleanUp,
         setHighlightedIndex
       }
     ),
-    []
+    [labels.mentionMenu, menuId]
   );
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
     import_LexicalTypeaheadMenuPlugin.LexicalTypeaheadMenuPlugin,
@@ -884,6 +919,111 @@ function EmptyStatePlugin({
 // src/components/toolbar/EditorToolbar.tsx
 var import_react8 = require("react");
 
+// src/core/shortcuts.ts
+var formatKeyboardShortcuts = [
+  {
+    id: "format.bold",
+    keys: "Ctrl+B",
+    ariaKeyshortcuts: "Control+b",
+    action: "Bold"
+  },
+  {
+    id: "format.italic",
+    keys: "Ctrl+I",
+    ariaKeyshortcuts: "Control+i",
+    action: "Italic"
+  },
+  {
+    id: "format.code",
+    keys: "Ctrl+E",
+    ariaKeyshortcuts: "Control+e",
+    action: "Inline code"
+  },
+  {
+    id: "format.strikethrough",
+    keys: "Ctrl+Shift+X",
+    ariaKeyshortcuts: "Control+Shift+x",
+    action: "Strikethrough"
+  }
+];
+var mentionKeyboardShortcuts = [
+  {
+    id: "mention.open",
+    keys: "@",
+    ariaKeyshortcuts: "@",
+    action: "Open mention menu"
+  },
+  {
+    id: "mention.navigate",
+    keys: "\u2191 / \u2193",
+    ariaKeyshortcuts: "ArrowUp ArrowDown",
+    action: "Navigate mention options"
+  },
+  {
+    id: "mention.select",
+    keys: "Enter",
+    ariaKeyshortcuts: "Enter",
+    action: "Select mention"
+  },
+  {
+    id: "mention.dismiss",
+    keys: "Esc",
+    ariaKeyshortcuts: "Escape",
+    action: "Close mention menu"
+  }
+];
+var markdownShortcuts = [
+  { pattern: "**text** or __text__", action: "Bold" },
+  { pattern: "*text* or _text_", action: "Italic" },
+  { pattern: "~~text~~", action: "Strikethrough" },
+  { pattern: "`code`", action: "Inline code" },
+  { pattern: "> quote", action: "Block quote" },
+  { pattern: "- item", action: "Unordered list" },
+  { pattern: "1. item", action: "Ordered list" },
+  { pattern: "```lang", action: "Code block" },
+  { pattern: "[text](url)", action: "Link" },
+  { pattern: "# Heading", action: "Heading (when enabled)" }
+];
+var enterBehaviorShortcuts = {
+  submit: {
+    enter: "Submit",
+    shiftEnter: "New line"
+  },
+  newline: {
+    enter: "New line",
+    shiftEnter: "New line"
+  },
+  "shift-newline": {
+    enter: "New line",
+    shiftEnter: "New line"
+  }
+};
+function getActiveFormatShortcuts(features) {
+  if (!features.keyboardShortcuts) return [];
+  return formatKeyboardShortcuts.filter((shortcut) => {
+    switch (shortcut.id) {
+      case "format.bold":
+        return features.bold;
+      case "format.italic":
+        return features.italic;
+      case "format.code":
+        return features.code;
+      case "format.strikethrough":
+        return features.strikethrough;
+      default:
+        return true;
+    }
+  });
+}
+function getEnterBehaviorDescription(behavior) {
+  return enterBehaviorShortcuts[behavior];
+}
+function shortcutById(id) {
+  return [...formatKeyboardShortcuts, ...mentionKeyboardShortcuts].find(
+    (item) => item.id === id
+  );
+}
+
 // src/components/toolbar/useFormatState.ts
 var import_react7 = require("react");
 var import_LexicalComposerContext6 = require("@lexical/react/LexicalComposerContext");
@@ -968,15 +1108,18 @@ function ToolbarButton({
   label,
   active,
   onClick,
+  shortcutId,
   children
 }) {
+  const shortcut = shortcutId ? shortcutById(shortcutId) : void 0;
   return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
     "button",
     {
       type: "button",
       "aria-label": label,
       "aria-pressed": active,
-      title: label,
+      "aria-keyshortcuts": shortcut?.ariaKeyshortcuts,
+      title: shortcut ? `${label} (${shortcut.keys})` : label,
       onClick,
       className: "re-toolbar-btn",
       children
@@ -986,95 +1129,116 @@ function ToolbarButton({
 function EditorToolbar({
   features,
   labels,
-  slots
+  slots,
+  editorInputId
 }) {
   const active = useFormatState();
   const format = useFormatActions();
   const [menuOpen, setMenuOpen] = (0, import_react8.useState)(false);
+  const menuId = (0, import_react8.useId)();
   const hasMenu = !!slots.toolbarMenu;
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-toolbar", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-toolbar-group", children: [
-      slots.toolbarStart,
-      features.bold && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        ToolbarButton,
-        {
-          label: labels.bold,
-          active: active.bold,
-          onClick: format.bold,
-          children: "B"
-        }
-      ),
-      features.italic && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        ToolbarButton,
-        {
-          label: labels.italic,
-          active: active.italic,
-          onClick: format.italic,
-          children: "I"
-        }
-      ),
-      features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        ToolbarButton,
-        {
-          label: labels.strikethrough,
-          active: active.strikethrough,
-          onClick: format.strikethrough,
-          children: "S"
-        }
-      ),
-      features.code && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        ToolbarButton,
-        {
-          label: labels.code,
-          active: active.code,
-          onClick: format.code,
-          children: "</>"
-        }
-      ),
-      features.quote && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-        ToolbarButton,
-        {
-          label: labels.quote,
-          active: active.quote,
-          onClick: format.quote,
-          children: '"'
-        }
-      )
-    ] }),
-    (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
-      slots.toolbarEnd,
-      hasMenu && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-          "button",
-          {
-            type: "button",
-            "aria-label": labels.menu,
-            title: labels.menu,
-            onClick: () => setMenuOpen((v) => !v),
-            className: "re-toolbar-menu-btn",
-            children: "\u22EE"
-          }
-        ),
-        menuOpen && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            "div",
+  (0, import_react8.useEffect)(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+    "div",
+    {
+      className: "re-toolbar",
+      role: "toolbar",
+      "aria-label": labels.toolbar,
+      "aria-controls": editorInputId,
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-toolbar-group", children: [
+          slots.toolbarStart,
+          features.bold && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            ToolbarButton,
             {
-              className: "re-toolbar-menu-backdrop",
-              onClick: () => setMenuOpen(false)
+              label: labels.bold,
+              active: active.bold,
+              onClick: format.bold,
+              shortcutId: "format.bold",
+              children: "B"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            "div",
+          features.italic && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            ToolbarButton,
             {
-              className: "re-toolbar-menu",
-              onClick: () => setMenuOpen(false),
-              children: slots.toolbarMenu
+              label: labels.italic,
+              active: active.italic,
+              onClick: format.italic,
+              shortcutId: "format.italic",
+              children: "I"
             }
-          )
+          ),
+          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            ToolbarButton,
+            {
+              label: labels.strikethrough,
+              active: active.strikethrough,
+              onClick: format.strikethrough,
+              shortcutId: "format.strikethrough",
+              children: "S"
+            }
+          ),
+          features.code && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            ToolbarButton,
+            {
+              label: labels.code,
+              active: active.code,
+              onClick: format.code,
+              shortcutId: "format.code",
+              children: "</>"
+            }
+          ),
+          features.quote && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(ToolbarButton, { label: labels.quote, active: active.quote, onClick: format.quote, children: '"' })
+        ] }),
+        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
+          slots.toolbarEnd,
+          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "button",
+              {
+                type: "button",
+                "aria-label": labels.menu,
+                "aria-haspopup": "menu",
+                "aria-expanded": menuOpen,
+                "aria-controls": menuId,
+                title: labels.menu,
+                onClick: () => setMenuOpen((v) => !v),
+                className: "re-toolbar-menu-btn",
+                children: "\u22EE"
+              }
+            ),
+            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "div",
+                {
+                  className: "re-toolbar-menu-backdrop",
+                  onClick: () => setMenuOpen(false),
+                  "aria-hidden": "true"
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "div",
+                {
+                  id: menuId,
+                  role: "menu",
+                  className: "re-toolbar-menu",
+                  onClick: () => setMenuOpen(false),
+                  children: slots.toolbarMenu
+                }
+              )
+            ] })
+          ] })
         ] })
-      ] })
-    ] })
-  ] });
+      ]
+    }
+  );
 }
 
 // src/components/slots/createSlot.tsx
@@ -1231,6 +1395,8 @@ function RichTextEditorInner({
   const labels = (0, import_react10.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
   const slots = (0, import_react10.useMemo)(() => collectSlots(children), [children]);
   const rootId = (0, import_react10.useId)();
+  const editorInputId = `${rootId}-input`;
+  const placeholderId = `${rootId}-placeholder`;
   const rootRef = (0, import_react10.useRef)(null);
   const getHtmlRef = (0, import_react10.useRef)(null);
   const setHtmlRef = (0, import_react10.useRef)(null);
@@ -1323,7 +1489,15 @@ function RichTextEditorInner({
             ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
-              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EditorToolbar, { features, labels, slots }),
+              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                EditorToolbar,
+                {
+                  features,
+                  labels,
+                  slots,
+                  editorInputId
+                }
+              ),
               /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                 BlurCapturePlugin,
                 {
@@ -1340,11 +1514,17 @@ function RichTextEditorInner({
                     contentEditable: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                       import_LexicalContentEditable.ContentEditable,
                       {
+                        id: editorInputId,
                         className: "re-editor-input",
-                        style: inputStyle
+                        style: inputStyle,
+                        role: "textbox",
+                        "aria-label": labels.editor,
+                        "aria-multiline": true,
+                        "aria-disabled": disabled,
+                        "aria-describedby": placeholder ? placeholderId : void 0
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "re-editor-placeholder", children: placeholder }) : null,
+                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
                     ErrorBoundary: import_LexicalErrorBoundary.LexicalErrorBoundary
                   }
                 ),
@@ -1435,14 +1615,25 @@ async function highlightViewerCodeBlocks(root) {
 
 // src/components/RichTextViewer.tsx
 var import_jsx_runtime5 = require("react/jsx-runtime");
+function mentionAriaLabel(template, label) {
+  return template.replace("{label}", label);
+}
+function readMentionFromElement(element) {
+  const id = element.getAttribute(MENTION_ID_ATTR);
+  if (!id) return null;
+  const label = element.getAttribute(MENTION_LABEL_ATTR) ?? element.textContent?.replace(/^@/, "") ?? id;
+  return { id, label };
+}
 function RichTextViewer({
   content,
   features: featuresProp,
+  labels: labelsProp,
   className,
   theme = defaultEditorTheme,
   onMentionClick
 }) {
   const features = resolveViewerFeatures(featuresProp);
+  const labels = resolveViewerLabels(labelsProp);
   const ref = (0, import_react11.useRef)(null);
   const prepared = (0, import_react11.useMemo)(
     () => prepareViewerContent(content, features),
@@ -1456,25 +1647,51 @@ function RichTextViewer({
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
-    const handler = (event) => {
+    const mentions = root.querySelectorAll(`[${MENTION_ID_ATTR}]`);
+    mentions.forEach((element) => {
+      const mention = readMentionFromElement(element);
+      if (!mention) return;
+      element.setAttribute("role", "button");
+      element.setAttribute("tabindex", "0");
+      element.setAttribute(
+        "aria-label",
+        mentionAriaLabel(labels.mention, mention.label)
+      );
+    });
+    const activateMention = (target) => {
+      const mention = readMentionFromElement(target);
+      if (mention) onMentionClick(mention);
+    };
+    const onClick = (event) => {
       const target = event.target.closest(
         `[${MENTION_ID_ATTR}]`
       );
       if (!target || !root.contains(target)) return;
-      const id = target.getAttribute(MENTION_ID_ATTR);
-      if (!id) return;
-      const label = target.getAttribute(MENTION_LABEL_ATTR) ?? target.textContent?.replace(/^@/, "") ?? id;
-      onMentionClick({ id, label });
+      activateMention(target);
     };
-    root.addEventListener("click", handler);
-    return () => root.removeEventListener("click", handler);
-  }, [prepared, onMentionClick]);
+    const onKeyDown = (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const target = event.target.closest(
+        `[${MENTION_ID_ATTR}]`
+      );
+      if (!target || !root.contains(target)) return;
+      event.preventDefault();
+      activateMention(target);
+    };
+    root.addEventListener("click", onClick);
+    root.addEventListener("keydown", onKeyDown);
+    return () => {
+      root.removeEventListener("click", onClick);
+      root.removeEventListener("keydown", onKeyDown);
+    };
+  }, [labels.mention, onMentionClick, prepared]);
   if (prepared.kind === "plain") {
     return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
       "p",
       {
         ...themeDataAttribute(theme),
         className: cn("re-viewer re-viewer-plain", className),
+        "aria-label": labels.content,
         children: prepared.text
       }
     );
@@ -1485,6 +1702,8 @@ function RichTextViewer({
       ref,
       ...themeDataAttribute(theme),
       className: cn("re-viewer", className),
+      role: "article",
+      "aria-label": labels.content,
       dangerouslySetInnerHTML: { __html: prepared.html }
     }
   );
@@ -1499,17 +1718,24 @@ function RichTextViewer({
   defaultFeatures,
   defaultLabels,
   defaultViewerFeatures,
+  defaultViewerLabels,
   editorCssVariables,
   editorThemePresets,
   exportEditorHtml,
+  formatKeyboardShortcuts,
+  getActiveFormatShortcuts,
+  getEnterBehaviorDescription,
   isEditorThemePreset,
   isHtmlContent,
   looksLikeMarkdown,
+  markdownShortcuts,
   markdownToHtml,
+  mentionKeyboardShortcuts,
   normalizeHtml,
   plainTextFromHtml,
   prepareViewerContent,
   sanitizeHtml,
+  shortcutById,
   useRichTextEditor
 });
 //# sourceMappingURL=index.cjs.map

@@ -17,6 +17,7 @@ export type {
   EditorLabels,
   EnterBehavior,
   ViewerFeatures,
+  ViewerLabels,
 } from "./core/features";
 
 export type { MentionOption, MentionSearchFn } from "./core/mentions";
@@ -38,6 +39,7 @@ export {
   defaultFeatures,
   defaultLabels,
   defaultViewerFeatures,
+  defaultViewerLabels,
 } from "./core/features";
 
 export {
@@ -56,3 +58,13 @@ export {
   looksLikeMarkdown,
   markdownToHtml,
 } from "./core/markdown";
+
+export {
+  formatKeyboardShortcuts,
+  mentionKeyboardShortcuts,
+  markdownShortcuts,
+  getActiveFormatShortcuts,
+  getEnterBehaviorDescription,
+  shortcutById,
+} from "./core/shortcuts";
+export type { KeyboardShortcut, MarkdownShortcut } from "./core/shortcuts";

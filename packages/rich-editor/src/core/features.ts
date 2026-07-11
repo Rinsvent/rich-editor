@@ -44,6 +44,12 @@ export type EditorLabels = {
   quote: string;
   submit: string;
   menu: string;
+  /** Accessible name for the editable area */
+  editor: string;
+  /** Accessible name for the formatting toolbar */
+  toolbar: string;
+  /** Accessible name for the @mention typeahead menu */
+  mentionMenu: string;
 };
 
 export const defaultLabels: EditorLabels = {
@@ -54,10 +60,31 @@ export const defaultLabels: EditorLabels = {
   quote: "Quote",
   submit: "Submit",
   menu: "Menu",
+  editor: "Rich text editor",
+  toolbar: "Formatting",
+  mentionMenu: "Mention suggestions",
 };
 
 export function resolveLabels(partial?: Partial<EditorLabels>): EditorLabels {
   return { ...defaultLabels, ...partial };
+}
+
+export type ViewerLabels = {
+  /** Accessible name for rendered rich text */
+  content: string;
+  /** Accessible name for clickable @mentions, `{label}` is replaced */
+  mention: string;
+};
+
+export const defaultViewerLabels: ViewerLabels = {
+  content: "Rich text content",
+  mention: "Mention {label}",
+};
+
+export function resolveViewerLabels(
+  partial?: Partial<ViewerLabels>,
+): ViewerLabels {
+  return { ...defaultViewerLabels, ...partial };
 }
 
 export type EnterBehavior = "submit" | "newline" | "shift-newline";

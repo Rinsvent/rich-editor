@@ -29,8 +29,21 @@ type EditorLabels = {
     quote: string;
     submit: string;
     menu: string;
+    /** Accessible name for the editable area */
+    editor: string;
+    /** Accessible name for the formatting toolbar */
+    toolbar: string;
+    /** Accessible name for the @mention typeahead menu */
+    mentionMenu: string;
 };
 declare const defaultLabels: EditorLabels;
+type ViewerLabels = {
+    /** Accessible name for rendered rich text */
+    content: string;
+    /** Accessible name for clickable @mentions, `{label}` is replaced */
+    mention: string;
+};
+declare const defaultViewerLabels: ViewerLabels;
 type EnterBehavior = "submit" | "newline" | "shift-newline";
 type ViewerFeatures = {
     codeHighlight: boolean;
@@ -111,11 +124,12 @@ declare const RichTextEditor: react.ForwardRefExoticComponent<RichTextEditorProp
 type RichTextViewerProps = {
     content: string;
     features?: Partial<ViewerFeatures>;
+    labels?: Partial<ViewerLabels>;
     className?: string;
     theme?: EditorTheme;
     onMentionClick?: (mention: MentionOption) => void;
 };
-declare function RichTextViewer({ content, features: featuresProp, className, theme, onMentionClick, }: RichTextViewerProps): react.JSX.Element;
+declare function RichTextViewer({ content, features: featuresProp, labels: labelsProp, className, theme, onMentionClick, }: RichTextViewerProps): react.JSX.Element;
 
 type FormatState = {
     bold: boolean;
@@ -167,4 +181,27 @@ declare function buildMarkdownTransformers(features: EditorFeatures): Transforme
 declare function looksLikeMarkdown(text: string): boolean;
 declare function markdownToHtml(markdown: string): string;
 
-export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultFeatures, defaultLabels, defaultViewerFeatures, editorCssVariables, editorThemePresets, exportEditorHtml, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownToHtml, normalizeHtml, plainTextFromHtml, prepareViewerContent, sanitizeHtml, useRichTextEditor };
+type KeyboardShortcut = {
+    /** Stable id, e.g. `format.bold` */
+    id: string;
+    /** Human-readable combo, e.g. `Ctrl+B` */
+    keys: string;
+    /** WAI-ARIA `aria-keyshortcuts` value */
+    ariaKeyshortcuts: string;
+    action: string;
+};
+type MarkdownShortcut = {
+    pattern: string;
+    action: string;
+};
+declare const formatKeyboardShortcuts: KeyboardShortcut[];
+declare const mentionKeyboardShortcuts: KeyboardShortcut[];
+declare const markdownShortcuts: MarkdownShortcut[];
+declare function getActiveFormatShortcuts(features: Pick<EditorFeatures, "bold" | "italic" | "code" | "strikethrough" | "keyboardShortcuts">): KeyboardShortcut[];
+declare function getEnterBehaviorDescription(behavior: EnterBehavior): {
+    enter: string;
+    shiftEnter: string;
+};
+declare function shortcutById(id: string): KeyboardShortcut | undefined;
+
+export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, type ViewerLabels, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultFeatures, defaultLabels, defaultViewerFeatures, defaultViewerLabels, editorCssVariables, editorThemePresets, exportEditorHtml, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, mentionKeyboardShortcuts, normalizeHtml, plainTextFromHtml, prepareViewerContent, sanitizeHtml, shortcutById, useRichTextEditor };
