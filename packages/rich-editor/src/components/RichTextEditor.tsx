@@ -51,7 +51,7 @@ import {
 import { themeDataAttribute } from "../core/themePresets";
 import { MentionNode } from "../nodes/MentionNode";
 import { SpoilerNode } from "../nodes/SpoilerNode";
-import { normalizeHtml } from "../core/html";
+import { normalizeHtml, trimEditorHtml } from "../core/html";
 import { buildMarkdownTransformers } from "../core/markdown";
 import { editorTheme } from "../core/theme";
 import { cn } from "../core/cn";
@@ -106,6 +106,8 @@ export type RichTextEditorProps = {
   clearOnSubmit?: boolean;
   /** Limit code block language options. All highlight.js languages when omitted. */
   codeLanguages?: string[];
+  /** Trim empty blocks and edge line breaks from exported HTML. */
+  useTrim?: boolean;
   className?: string;
   theme?: EditorTheme;
   minRows?: number;
@@ -118,27 +120,36 @@ function onError(error: Error) {
   console.error(error);
 }
 
-export function exportEditorHtml(editor: LexicalEditor): string {
+export function exportEditorHtml(
+  editor: LexicalEditor,
+  options?: { useTrim?: boolean },
+): string {
   let html = "";
   editor.getEditorState().read(() => {
     html = $generateHtmlFromNodes(editor, null);
   });
-  return normalizeHtml(html.trim());
+  html = normalizeHtml(html.trim());
+  if (options?.useTrim) {
+    html = trimEditorHtml(html);
+  }
+  return html;
 }
 
 function EditorRefPlugin({
   getHtmlRef,
+  useTrim,
 }: {
   getHtmlRef: React.MutableRefObject<(() => string) | null>;
+  useTrim?: boolean;
 }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    getHtmlRef.current = () => exportEditorHtml(editor);
+    getHtmlRef.current = () => exportEditorHtml(editor, { useTrim });
     return () => {
       getHtmlRef.current = null;
     };
-  }, [editor, getHtmlRef]);
+  }, [editor, getHtmlRef, useTrim]);
 
   return null;
 }
@@ -273,6 +284,7 @@ function RichTextEditorInner(
     selectionMenuItems = defaultSelectionMenuItems,
     clearOnSubmit = false,
     codeLanguages,
+    useTrim = false,
     className,
     theme = defaultEditorTheme,
     minRows = 1,
@@ -372,7 +384,7 @@ function RichTextEditorInner(
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <EditorRefPlugin getHtmlRef={getHtmlRef} />
+      <EditorRefPlugin getHtmlRef={getHtmlRef} useTrim={useTrim} />
       <SetHtmlPlugin setHtmlRef={setHtmlRef} />
       <ClearPlugin clearRef={clearRef} />
       <FocusPlugin focusRef={focusRef} />

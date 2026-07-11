@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isHtmlContent, normalizeHtml, sanitizeHtml } from "./html";
+import { isHtmlContent, normalizeHtml, sanitizeHtml, trimEditorHtml } from "./html";
 
 describe("sanitizeHtml", () => {
   it("keeps allowed formatting tags", () => {
@@ -45,5 +45,33 @@ describe("isHtmlContent", () => {
   it("detects html", () => {
     expect(isHtmlContent("<p>x</p>")).toBe(true);
     expect(isHtmlContent("plain")).toBe(false);
+  });
+});
+
+describe("trimEditorHtml", () => {
+  it("removes leading and trailing empty paragraphs", () => {
+    expect(trimEditorHtml('<p><br></p><p>hi</p><p><br></p>')).toBe("<p>hi</p>");
+  });
+
+  it("removes leading and trailing line breaks inside blocks", () => {
+    expect(trimEditorHtml("<p><br>hi<br></p>")).toBe("<p>hi</p>");
+  });
+
+  it("returns empty string for whitespace-only content", () => {
+    expect(trimEditorHtml("<p><br></p>")).toBe("");
+    expect(trimEditorHtml("<p><br><br></p>")).toBe("");
+  });
+
+  it("trims empty blocks inside leading and trailing blockquotes", () => {
+    expect(
+      trimEditorHtml(
+        "<blockquote><p><br></p><p>hi</p></blockquote><p>x</p><blockquote><p><br></p></blockquote>",
+      ),
+    ).toBe("<blockquote><p>hi</p></blockquote><p>x</p>");
+  });
+
+  it("keeps meaningful content unchanged", () => {
+    expect(trimEditorHtml("<p>hello</p>")).toBe("<p>hello</p>");
+    expect(trimEditorHtml("<p>hello<br>world</p>")).toBe("<p>hello<br>world</p>");
   });
 });

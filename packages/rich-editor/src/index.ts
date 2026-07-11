@@ -45,6 +45,7 @@ export {
 export {
   sanitizeHtml,
   normalizeHtml,
+  trimEditorHtml,
   isHtmlContent,
   plainTextFromHtml,
   applyLinkTargetToHtml,

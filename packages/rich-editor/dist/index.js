@@ -554,6 +554,101 @@ function normalizeHtml(html) {
   mergeAdjacentBlockquotes(container);
   return container.innerHTML.trim();
 }
+var BLOCK_CONTAINER_TAGS = /* @__PURE__ */ new Set(["blockquote", "ul", "ol"]);
+var TRIMMABLE_BLOCK_TAGS = /* @__PURE__ */ new Set([
+  "p",
+  "blockquote",
+  "pre",
+  "ul",
+  "ol",
+  "li",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6"
+]);
+function isTrimableBreak(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return !node.textContent?.replace(/\u00a0/g, " ").trim();
+  }
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    return node.tagName.toLowerCase() === "br";
+  }
+  return false;
+}
+function trimEdgeBreaks(el, edge) {
+  if (edge === "start") {
+    while (el.firstChild && isTrimableBreak(el.firstChild)) {
+      el.firstChild.remove();
+    }
+    return;
+  }
+  while (el.lastChild && isTrimableBreak(el.lastChild)) {
+    el.lastChild.remove();
+  }
+}
+function isExportNodeEmpty(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return !node.textContent?.replace(/\u00a0/g, " ").trim();
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return true;
+  const el = node;
+  const tag = el.tagName.toLowerCase();
+  if (tag === "br") return true;
+  const text = el.textContent?.replace(/\u00a0/g, " ").trim() ?? "";
+  if (text) return false;
+  const children = Array.from(el.childNodes);
+  if (children.length === 0) return true;
+  return children.every(isExportNodeEmpty);
+}
+function isEmptyBlockElement(el) {
+  const tag = el.tagName.toLowerCase();
+  if (!TRIMMABLE_BLOCK_TAGS.has(tag) && !BLOCK_CONTAINER_TAGS.has(tag)) {
+    return false;
+  }
+  return isExportNodeEmpty(el);
+}
+function trimContainerEdges(el) {
+  while (el.firstElementChild && isEmptyBlockElement(el.firstElementChild)) {
+    el.firstElementChild.remove();
+  }
+  while (el.lastElementChild && isEmptyBlockElement(el.lastElementChild)) {
+    el.lastElementChild.remove();
+  }
+  trimEdgeBreaks(el, "start");
+  trimEdgeBreaks(el, "end");
+  const first = el.firstElementChild;
+  const last = el.lastElementChild;
+  if (first && BLOCK_CONTAINER_TAGS.has(first.tagName.toLowerCase())) {
+    trimContainerEdges(first);
+  }
+  if (last && last !== first && BLOCK_CONTAINER_TAGS.has(last.tagName.toLowerCase())) {
+    trimContainerEdges(last);
+  }
+}
+function trimEditorHtml(html) {
+  const trimmed = html.trim();
+  if (!trimmed) return "";
+  if (typeof document === "undefined") {
+    return trimmed.replace(/^(?:<p[^>]*>(?:\s|<br\s*\/?>)*<\/p>\s*)+/gi, "").replace(/(?:\s*<p[^>]*>(?:\s|<br\s*\/?>)*<\/p>)+$/gi, "").replace(/^(<(?:p|blockquote|h[1-6])[^>]*>)<br\s*\/?>/i, "$1").replace(/<br\s*\/?>(<\/(?:p|blockquote|h[1-6])>)$/i, "$1").trim();
+  }
+  const container = document.createElement("div");
+  container.innerHTML = trimmed;
+  trimContainerEdges(container);
+  while (container.firstElementChild && isEmptyBlockElement(container.firstElementChild)) {
+    container.firstElementChild.remove();
+  }
+  while (container.lastElementChild && isEmptyBlockElement(container.lastElementChild)) {
+    container.lastElementChild.remove();
+  }
+  const first = container.firstElementChild;
+  const last = container.lastElementChild;
+  if (first) trimContainerEdges(first);
+  if (last && last !== first) trimContainerEdges(last);
+  return container.innerHTML.trim();
+}
 function mergeAdjacentBlockquotes(container) {
   const parents = /* @__PURE__ */ new Set();
   container.querySelectorAll("blockquote").forEach((quote) => {
@@ -3591,23 +3686,28 @@ import { Fragment as Fragment3, jsx as jsx9, jsxs as jsxs6 } from "react/jsx-run
 function onError(error) {
   console.error(error);
 }
-function exportEditorHtml(editor) {
+function exportEditorHtml(editor, options) {
   let html = "";
   editor.getEditorState().read(() => {
     html = $generateHtmlFromNodes(editor, null);
   });
-  return normalizeHtml(html.trim());
+  html = normalizeHtml(html.trim());
+  if (options?.useTrim) {
+    html = trimEditorHtml(html);
+  }
+  return html;
 }
 function EditorRefPlugin({
-  getHtmlRef
+  getHtmlRef,
+  useTrim
 }) {
   const [editor] = useLexicalComposerContext14();
   useEffect15(() => {
-    getHtmlRef.current = () => exportEditorHtml(editor);
+    getHtmlRef.current = () => exportEditorHtml(editor, { useTrim });
     return () => {
       getHtmlRef.current = null;
     };
-  }, [editor, getHtmlRef]);
+  }, [editor, getHtmlRef, useTrim]);
   return null;
 }
 function DefaultSubmitButton({
@@ -3708,6 +3808,7 @@ function RichTextEditorInner({
   selectionMenuItems = defaultSelectionMenuItems,
   clearOnSubmit = false,
   codeLanguages,
+  useTrim = false,
   className,
   theme = defaultEditorTheme,
   minRows = 1,
@@ -3794,7 +3895,7 @@ function RichTextEditorInner({
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
   return /* @__PURE__ */ jsxs6(LexicalComposer, { initialConfig, children: [
-    /* @__PURE__ */ jsx9(EditorRefPlugin, { getHtmlRef }),
+    /* @__PURE__ */ jsx9(EditorRefPlugin, { getHtmlRef, useTrim }),
     /* @__PURE__ */ jsx9(SetHtmlPlugin, { setHtmlRef }),
     /* @__PURE__ */ jsx9(ClearPlugin, { clearRef }),
     /* @__PURE__ */ jsx9(FocusPlugin, { focusRef }),
@@ -4089,7 +4190,7 @@ function collectCodeBlocks(root) {
 }
 function collectInlineCodeElements(root) {
   const elements = [];
-  root.querySelectorAll("code.re-text-code, .re-text-code").forEach((code) => {
+  root.querySelectorAll("p code, .re-paragraph code").forEach((code) => {
     if (!(code instanceof HTMLElement)) return;
     if (code.classList.contains("re-block-code")) return;
     if (code.closest("pre")) return;
@@ -4164,17 +4265,9 @@ function enhanceViewerCodeBlocks(root, labels) {
       event.stopPropagation();
       void copy();
     };
-    const onCodeClick = (event) => {
-      event.preventDefault();
-      void copy();
-    };
     button.addEventListener("click", onButtonClick);
-    codeElement.addEventListener("click", onCodeClick);
-    codeElement.classList.add("re-code-copyable");
     cleanups.push(() => {
       button?.removeEventListener("click", onButtonClick);
-      codeElement.removeEventListener("click", onCodeClick);
-      codeElement.classList.remove("re-code-copyable");
     });
   });
   collectInlineCodeElements(root).forEach((element) => {
@@ -4370,6 +4463,7 @@ export {
   sanitizeHtml,
   shortcutById,
   shouldPluginHandleEnterAction,
+  trimEditorHtml,
   useRichTextEditor
 };
 //# sourceMappingURL=index.js.map

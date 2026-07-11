@@ -140,6 +140,8 @@ type RichTextEditorProps = {
     clearOnSubmit?: boolean;
     /** Limit code block language options. All highlight.js languages when omitted. */
     codeLanguages?: string[];
+    /** Trim empty blocks and edge line breaks from exported HTML. */
+    useTrim?: boolean;
     className?: string;
     theme?: EditorTheme;
     minRows?: number;
@@ -147,7 +149,9 @@ type RichTextEditorProps = {
     mentionSearch?: MentionSearchFn;
     children?: ReactNode;
 };
-declare function exportEditorHtml(editor: LexicalEditor): string;
+declare function exportEditorHtml(editor: LexicalEditor, options?: {
+    useTrim?: boolean;
+}): string;
 declare const RichTextEditor: react.ForwardRefExoticComponent<RichTextEditorProps & react.RefAttributes<RichTextEditorHandle>> & {
     ToolbarStart: react.FC<{
         children?: ReactNode;
@@ -237,6 +241,8 @@ declare function applyLinkTargetToHtml(html: string, target: string): string;
 declare function plainTextFromHtml(html: string): string;
 /** Normalize Lexical HTML export to our API subset (b/i/s, no nested duplicates). */
 declare function normalizeHtml(html: string): string;
+/** Remove leading/trailing empty blocks and line breaks from exported editor HTML. */
+declare function trimEditorHtml(html: string): string;
 
 type PreparedViewerContent = {
     kind: "plain";
@@ -276,4 +282,4 @@ declare function getEnterBehaviorDescription(behavior?: EnterBehavior): {
 };
 declare function shortcutById(id: string): KeyboardShortcut | undefined;
 
-export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type EnterKeyAction, type EnterKeyBinding, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type SelectionMenuItem, type ViewerFeatures, type ViewerLabels, allSelectionMenuItems, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultEnterKeyBindings, defaultFeatures, defaultLabels, defaultSelectionMenuItems, defaultViewerFeatures, defaultViewerLabels, describeEnterKeyBindings, editorCssVariables, editorThemePresets, enterBehaviorToBindings, exportEditorHtml, formatEnterKeyBinding, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, matchEnterKeyAction, mentionKeyboardShortcuts, normalizeHtml, plainTextFromHtml, prepareViewerContent, resolveEnterKeyBindings, sanitizeHtml, shortcutById, shouldPluginHandleEnterAction, useRichTextEditor };
+export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type EnterKeyAction, type EnterKeyBinding, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type SelectionMenuItem, type ViewerFeatures, type ViewerLabels, allSelectionMenuItems, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultEnterKeyBindings, defaultFeatures, defaultLabels, defaultSelectionMenuItems, defaultViewerFeatures, defaultViewerLabels, describeEnterKeyBindings, editorCssVariables, editorThemePresets, enterBehaviorToBindings, exportEditorHtml, formatEnterKeyBinding, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, matchEnterKeyAction, mentionKeyboardShortcuts, normalizeHtml, plainTextFromHtml, prepareViewerContent, resolveEnterKeyBindings, sanitizeHtml, shortcutById, shouldPluginHandleEnterAction, trimEditorHtml, useRichTextEditor };
