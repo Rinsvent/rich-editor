@@ -1,4 +1,18 @@
 "use client";
+import {
+  FileLinkNode,
+  ImageNode,
+  collectFilesFromClipboard,
+  collectFilesFromDataTransfer,
+  createLocalId,
+  formatFileSize,
+  getAttachmentPreviewUrl,
+  getFileExtension,
+  getFileKind,
+  getReadyAttachmentPayloads,
+  insertImageAtSelection,
+  isImageMime
+} from "./chunk-277JAGQP.js";
 
 // src/components/RichTextEditor.tsx
 import { $generateHtmlFromNodes } from "@lexical/html";
@@ -6,7 +20,7 @@ import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { useLexicalComposerContext as useLexicalComposerContext14 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext16 } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
@@ -17,13 +31,13 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode as QuoteNode3 } from "@lexical/rich-text";
 import {
   forwardRef,
-  useCallback as useCallback5,
-  useEffect as useEffect15,
+  useCallback as useCallback6,
+  useEffect as useEffect16,
   useId as useId4,
   useImperativeHandle,
   useMemo as useMemo4,
-  useRef as useRef5,
-  useState as useState7
+  useRef as useRef7,
+  useState as useState8
 } from "react";
 
 // src/context/EditorContext.tsx
@@ -65,7 +79,8 @@ var defaultFeatures = {
   keyboardShortcuts: true,
   mentions: false,
   spoiler: false,
-  selectionMenu: false
+  selectionMenu: false,
+  attachments: false
 };
 function resolveFeatures(partial) {
   return { ...defaultFeatures, ...partial };
@@ -97,7 +112,13 @@ var defaultLabels = {
   toolbar: "Formatting",
   mentionMenu: "Mention suggestions",
   selectionMenu: "Selection formatting",
-  codeLanguage: "Code language"
+  codeLanguage: "Code language",
+  attachFile: "Attach file",
+  attachments: "Attachments",
+  removeAttachment: "Remove attachment",
+  insertAttachment: "Insert into message",
+  uploading: "Uploading",
+  uploadFailed: "Upload failed"
 };
 function resolveLabels(partial) {
   return { ...defaultLabels, ...partial };
@@ -461,7 +482,8 @@ var ALLOWED_TAGS = [
   "h3",
   "h4",
   "h5",
-  "h6"
+  "h6",
+  "img"
 ];
 function sanitizeHtml(html) {
   return DOMPurify.sanitize(html, {
@@ -473,7 +495,15 @@ function sanitizeHtml(html) {
       "rel",
       "data-mention-id",
       "data-mention-label",
-      "data-re-spoiler"
+      "data-re-spoiler",
+      "src",
+      "alt",
+      "width",
+      "height",
+      "data-file-id",
+      "data-file-name",
+      "data-file-mime",
+      "data-aspect-ratio"
     ]
   });
 }
@@ -867,7 +897,9 @@ var editorTheme = {
   },
   link: "re-link",
   mention: "re-mention",
-  spoiler: "re-spoiler"
+  spoiler: "re-spoiler",
+  image: "re-image",
+  fileLink: "re-file-link"
 };
 
 // src/core/cn.ts
@@ -876,9 +908,9 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-import { useEffect as useEffect13, useRef as useRef4 } from "react";
+import { useEffect as useEffect14, useRef as useRef5 } from "react";
 import { $generateNodesFromDOM as $generateNodesFromDOM2 } from "@lexical/html";
-import { useLexicalComposerContext as useLexicalComposerContext13 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext14 } from "@lexical/react/LexicalComposerContext";
 import { $createParagraphNode as $createParagraphNode5, $getRoot as $getRoot4 } from "lexical";
 
 // src/components/plugins/EnterPlugin.tsx
@@ -3208,11 +3240,124 @@ function SpoilerPlugin() {
   return null;
 }
 
+// src/components/plugins/AttachmentsPlugin.tsx
+import { useLexicalComposerContext as useLexicalComposerContext13 } from "@lexical/react/LexicalComposerContext";
+import {
+  $nodesOfType,
+  COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH5,
+  PASTE_COMMAND as PASTE_COMMAND2
+} from "lexical";
+import { useEffect as useEffect13, useRef as useRef4 } from "react";
+function syncUploadedImages(editor, attachments) {
+  editor.update(() => {
+    const imageNodes = $nodesOfType(ImageNode);
+    for (const attachment of attachments) {
+      if (attachment.status !== "ready" || !attachment.id || !attachment.url) {
+        continue;
+      }
+      for (const node of imageNodes) {
+        if (node.getFileId() !== attachment.localId) continue;
+        node.setSrc(attachment.url);
+        node.setFileId(attachment.id);
+      }
+    }
+  });
+}
+function AttachmentsPlugin({
+  disabled,
+  attachments,
+  addFiles,
+  containerRef,
+  insertInlineOnDrop = true
+}) {
+  const [editor] = useLexicalComposerContext13();
+  const dragDepthRef = useRef4(0);
+  useEffect13(() => {
+    if (disabled) return;
+    syncUploadedImages(editor, attachments);
+  }, [attachments, disabled, editor]);
+  useEffect13(() => {
+    if (disabled) return;
+    return editor.registerCommand(
+      PASTE_COMMAND2,
+      (event) => {
+        if (!(event instanceof ClipboardEvent)) return false;
+        const files = collectFilesFromClipboard(event.clipboardData);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        const added = addFiles(files);
+        const imageAttachment = added.find((item) => isImageMime(item.mimeType));
+        if (imageAttachment) {
+          void insertImageAtSelection(editor, imageAttachment);
+        }
+        return true;
+      },
+      COMMAND_PRIORITY_HIGH5
+    );
+  }, [addFiles, disabled, editor]);
+  useEffect13(() => {
+    const container = containerRef.current;
+    if (!container || disabled) return;
+    const setDragOver = (active) => {
+      container.classList.toggle("re-editor-drag-over", active);
+    };
+    const onDragEnter = (event) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      event.preventDefault();
+      dragDepthRef.current += 1;
+      setDragOver(true);
+    };
+    const onDragLeave = (event) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      if (dragDepthRef.current === 0) setDragOver(false);
+    };
+    const onDragOver = (event) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    };
+    const onDrop = (event) => {
+      const files = collectFilesFromDataTransfer(event.dataTransfer);
+      if (files.length === 0) return;
+      event.preventDefault();
+      dragDepthRef.current = 0;
+      setDragOver(false);
+      const added = addFiles(files);
+      if (!insertInlineOnDrop) return;
+      const imageAttachment = added.find(
+        (item) => getFileKind(item.mimeType) === "image"
+      );
+      if (imageAttachment) {
+        void insertImageAtSelection(editor, imageAttachment);
+      }
+    };
+    container.addEventListener("dragenter", onDragEnter);
+    container.addEventListener("dragleave", onDragLeave);
+    container.addEventListener("dragover", onDragOver);
+    container.addEventListener("drop", onDrop);
+    return () => {
+      container.removeEventListener("dragenter", onDragEnter);
+      container.removeEventListener("dragleave", onDragLeave);
+      container.removeEventListener("dragover", onDragOver);
+      container.removeEventListener("drop", onDrop);
+      setDragOver(false);
+    };
+  }, [addFiles, containerRef, disabled, editor, insertInlineOnDrop]);
+  return null;
+}
+async function handleInsertAttachment(editor, attachments, localId) {
+  const attachment = attachments.find((item) => item.localId === localId);
+  if (!attachment) return;
+  const { insertAttachmentAtSelection } = await import("./attachmentInsert-CY3USYU4.js");
+  await insertAttachmentAtSelection(editor, attachment);
+}
+
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = useLexicalComposerContext13();
-  const lastApplied = useRef4(void 0);
-  useEffect13(() => {
+  const [editor] = useLexicalComposerContext14();
+  const lastApplied = useRef5(void 0);
+  useEffect14(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
       const root = $getRoot4();
@@ -3238,8 +3383,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = useLexicalComposerContext13();
-  useEffect13(() => {
+  const [editor] = useLexicalComposerContext14();
+  useEffect14(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -3256,8 +3401,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = useLexicalComposerContext13();
-  useEffect13(() => {
+  const [editor] = useLexicalComposerContext14();
+  useEffect14(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -3268,8 +3413,8 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext13();
-  useEffect13(() => {
+  const [editor] = useLexicalComposerContext14();
+  useEffect14(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
         const root = $getRoot4();
@@ -3295,8 +3440,8 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = useLexicalComposerContext13();
-  useEffect13(() => {
+  const [editor] = useLexicalComposerContext14();
+  useEffect14(() => {
     clearRef.current = () => {
       editor.update(() => {
         const root = $getRoot4();
@@ -3316,8 +3461,8 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = useLexicalComposerContext13();
-  useEffect13(() => {
+  const [editor] = useLexicalComposerContext14();
+  useEffect14(() => {
     const update = () => {
       editor.getEditorState().read(() => {
         onEmptyChange($getRoot4().getTextContent().trim() === "");
@@ -3329,8 +3474,282 @@ function EmptyStatePlugin({
   return null;
 }
 
+// src/components/attachments/AttachmentsBridge.tsx
+import { useLexicalComposerContext as useLexicalComposerContext15 } from "@lexical/react/LexicalComposerContext";
+
+// src/components/attachments/AttachmentStrip.tsx
+import { useCallback as useCallback5, useRef as useRef6, useState as useState6 } from "react";
+import { Fragment as Fragment2, jsx as jsx8, jsxs as jsxs5 } from "react/jsx-runtime";
+function useAttachmentUploads({
+  onUploadFile,
+  disabled
+}) {
+  const [attachments, setAttachments] = useState6([]);
+  const abortControllers = useRef6(/* @__PURE__ */ new Map());
+  const uploadSingle = useCallback5(
+    async (file, localId) => {
+      const controller = new AbortController();
+      abortControllers.current.set(localId, controller);
+      try {
+        const uploaded = await onUploadFile(file, {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            setAttachments(
+              (current) => current.map(
+                (item) => item.localId === localId ? { ...item, progress } : item
+              )
+            );
+          }
+        });
+        setAttachments(
+          (current) => current.map(
+            (item) => item.localId === localId ? {
+              ...item,
+              id: uploaded.id,
+              name: uploaded.name,
+              mimeType: uploaded.mimeType,
+              size: uploaded.size,
+              url: uploaded.url,
+              thumbnailUrl: uploaded.thumbnailUrl,
+              status: "ready",
+              progress: 100,
+              error: void 0
+            } : item
+          )
+        );
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setAttachments(
+          (current) => current.map(
+            (item) => item.localId === localId ? {
+              ...item,
+              status: "error",
+              error: error instanceof Error ? error.message : "Upload failed"
+            } : item
+          )
+        );
+      } finally {
+        abortControllers.current.delete(localId);
+      }
+    },
+    [onUploadFile]
+  );
+  const addFiles = useCallback5(
+    (files) => {
+      if (disabled || files.length === 0) return [];
+      const nextItems = files.map((file) => {
+        const localId = createLocalId();
+        const previewUrl = URL.createObjectURL(file);
+        return {
+          localId,
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          size: file.size,
+          previewUrl,
+          status: "uploading",
+          progress: 0
+        };
+      });
+      setAttachments((current) => [...current, ...nextItems]);
+      nextItems.forEach((item, index) => {
+        void uploadSingle(files[index], item.localId);
+      });
+      return nextItems;
+    },
+    [disabled, uploadSingle]
+  );
+  const removeAttachment = useCallback5((localId) => {
+    const controller = abortControllers.current.get(localId);
+    controller?.abort();
+    abortControllers.current.delete(localId);
+    setAttachments((current) => {
+      const target = current.find((item) => item.localId === localId);
+      if (target?.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return current.filter((item) => item.localId !== localId);
+    });
+  }, []);
+  const clearAttachments = useCallback5(() => {
+    abortControllers.current.forEach((controller) => controller.abort());
+    abortControllers.current.clear();
+    setAttachments((current) => {
+      for (const item of current) {
+        if (item.previewUrl?.startsWith("blob:")) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      }
+      return [];
+    });
+  }, []);
+  const hasReadyAttachments = attachments.some(
+    (item) => item.status === "ready" && !!item.id
+  );
+  const hasUploadingAttachments = attachments.some(
+    (item) => item.status === "uploading"
+  );
+  return {
+    attachments,
+    addFiles,
+    removeAttachment,
+    clearAttachments,
+    hasReadyAttachments,
+    hasUploadingAttachments
+  };
+}
+function AttachmentPreview({
+  attachment
+}) {
+  const kind = getFileKind(attachment.mimeType);
+  const previewUrl = getAttachmentPreviewUrl(attachment);
+  if (kind === "image" && previewUrl) {
+    return /* @__PURE__ */ jsx8(
+      "img",
+      {
+        className: "re-attachment-thumb",
+        src: previewUrl,
+        alt: "",
+        draggable: false
+      }
+    );
+  }
+  if (kind === "video" && previewUrl) {
+    return /* @__PURE__ */ jsx8(
+      "video",
+      {
+        className: "re-attachment-thumb re-attachment-thumb-video",
+        src: previewUrl,
+        muted: true,
+        playsInline: true,
+        preload: "metadata"
+      }
+    );
+  }
+  return /* @__PURE__ */ jsx8("span", { className: "re-attachment-file-icon", "aria-hidden": "true", children: getFileExtension(attachment.name) || "FILE" });
+}
+function AttachmentStrip({
+  attachments,
+  labels,
+  disabled,
+  onRemove,
+  onInsert
+}) {
+  if (attachments.length === 0) return null;
+  return /* @__PURE__ */ jsx8("div", { className: "re-attachments", "aria-label": labels.attachments, children: attachments.map((attachment) => {
+    const canInsert = attachment.status === "ready";
+    return /* @__PURE__ */ jsxs5(
+      "div",
+      {
+        className: `re-attachment-item re-attachment-item-${attachment.status}`,
+        children: [
+          /* @__PURE__ */ jsxs5(
+            "button",
+            {
+              type: "button",
+              className: "re-attachment-main",
+              disabled: disabled || !canInsert,
+              title: canInsert ? labels.insertAttachment : attachment.error,
+              onClick: () => onInsert(attachment.localId),
+              children: [
+                /* @__PURE__ */ jsx8(AttachmentPreview, { attachment }),
+                /* @__PURE__ */ jsxs5("span", { className: "re-attachment-meta", children: [
+                  /* @__PURE__ */ jsx8("span", { className: "re-attachment-name", children: attachment.name }),
+                  /* @__PURE__ */ jsx8("span", { className: "re-attachment-sub", children: attachment.status === "uploading" ? `${labels.uploading} ${attachment.progress ?? 0}%` : attachment.status === "error" ? attachment.error ?? labels.uploadFailed : formatFileSize(attachment.size) })
+                ] })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsx8(
+            "button",
+            {
+              type: "button",
+              className: "re-attachment-remove",
+              "aria-label": labels.removeAttachment,
+              title: labels.removeAttachment,
+              disabled,
+              onClick: () => onRemove(attachment.localId),
+              children: "\xD7"
+            }
+          )
+        ]
+      },
+      attachment.localId
+    );
+  }) });
+}
+function AttachmentUploadButton({
+  labels,
+  disabled,
+  multiple = true,
+  accept,
+  onFilesSelected
+}) {
+  const inputRef = useRef6(null);
+  return /* @__PURE__ */ jsxs5(Fragment2, { children: [
+    /* @__PURE__ */ jsx8(
+      "button",
+      {
+        type: "button",
+        className: "re-toolbar-btn",
+        "aria-label": labels.attachFile,
+        title: labels.attachFile,
+        disabled,
+        onClick: () => inputRef.current?.click(),
+        children: /* @__PURE__ */ jsx8("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", "aria-hidden": "true", children: /* @__PURE__ */ jsx8(
+          "path",
+          {
+            d: "M21.44 11.05l-8.49 8.49a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 1 1-2.12-2.12l8.49-8.48",
+            stroke: "currentColor",
+            strokeWidth: "1.8",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ) })
+      }
+    ),
+    /* @__PURE__ */ jsx8(
+      "input",
+      {
+        ref: inputRef,
+        type: "file",
+        className: "sr-only",
+        multiple,
+        accept,
+        onChange: (event) => {
+          const files = Array.from(event.target.files ?? []);
+          if (files.length > 0) onFilesSelected(files);
+          event.target.value = "";
+        }
+      }
+    )
+  ] });
+}
+
+// src/components/attachments/AttachmentsBridge.tsx
+import { jsx as jsx9 } from "react/jsx-runtime";
+function AttachmentsBridge({
+  attachments,
+  labels,
+  disabled,
+  onRemove
+}) {
+  const [editor] = useLexicalComposerContext15();
+  return /* @__PURE__ */ jsx9(
+    AttachmentStrip,
+    {
+      attachments,
+      labels,
+      disabled,
+      onRemove,
+      onInsert: (localId) => {
+        void handleInsertAttachment(editor, attachments, localId);
+      }
+    }
+  );
+}
+
 // src/components/toolbar/EditorToolbar.tsx
-import { useState as useState6, useId as useId3, useEffect as useEffect14 } from "react";
+import { useState as useState7, useId as useId3, useEffect as useEffect15 } from "react";
 
 // src/core/shortcuts.ts
 var formatKeyboardShortcuts = [
@@ -3450,7 +3869,7 @@ function shortcutById(id) {
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-import { Fragment as Fragment2, jsx as jsx8, jsxs as jsxs5 } from "react/jsx-runtime";
+import { Fragment as Fragment3, jsx as jsx10, jsxs as jsxs6 } from "react/jsx-runtime";
 function ToolbarButton({
   label,
   active,
@@ -3459,7 +3878,7 @@ function ToolbarButton({
   children
 }) {
   const shortcut = shortcutId ? shortcutById(shortcutId) : void 0;
-  return /* @__PURE__ */ jsx8(
+  return /* @__PURE__ */ jsx10(
     "button",
     {
       type: "button",
@@ -3478,14 +3897,17 @@ function EditorToolbar({
   labels,
   slots,
   editorInputId,
-  showMentionButton
+  showMentionButton,
+  showAttachButton,
+  onAttachFiles,
+  acceptFiles
 }) {
   const active = useFormatState();
   const format = useFormatActions();
-  const [menuOpen, setMenuOpen] = useState6(false);
+  const [menuOpen, setMenuOpen] = useState7(false);
   const menuId = useId3();
   const hasMenu = !!slots.toolbarMenu;
-  useEffect14(() => {
+  useEffect15(() => {
     if (!menuOpen) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -3493,7 +3915,7 @@ function EditorToolbar({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
-  return /* @__PURE__ */ jsxs5(
+  return /* @__PURE__ */ jsxs6(
     "div",
     {
       className: "re-toolbar",
@@ -3501,119 +3923,127 @@ function EditorToolbar({
       "aria-label": labels.toolbar,
       "aria-controls": editorInputId,
       children: [
-        /* @__PURE__ */ jsxs5("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
+        /* @__PURE__ */ jsxs6("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
           slots.toolbarStart,
-          features.bold && /* @__PURE__ */ jsx8(
+          features.bold && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.bold,
               active: active.bold,
               onClick: format.bold,
               shortcutId: "format.bold",
-              children: /* @__PURE__ */ jsx8(IconBold, {})
+              children: /* @__PURE__ */ jsx10(IconBold, {})
             }
           ),
-          features.italic && /* @__PURE__ */ jsx8(
+          features.italic && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.italic,
               active: active.italic,
               onClick: format.italic,
               shortcutId: "format.italic",
-              children: /* @__PURE__ */ jsx8(IconItalic, {})
+              children: /* @__PURE__ */ jsx10(IconItalic, {})
             }
           ),
-          features.strikethrough && /* @__PURE__ */ jsx8(
+          features.strikethrough && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.strikethrough,
               active: active.strikethrough,
               onClick: format.strikethrough,
               shortcutId: "format.strikethrough",
-              children: /* @__PURE__ */ jsx8(IconStrikethrough, {})
+              children: /* @__PURE__ */ jsx10(IconStrikethrough, {})
             }
           ),
-          features.code && /* @__PURE__ */ jsx8(
+          features.code && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.code,
               active: active.code,
               onClick: format.code,
               shortcutId: "format.code",
-              children: /* @__PURE__ */ jsx8(IconCode, {})
+              children: /* @__PURE__ */ jsx10(IconCode, {})
             }
           ),
-          features.spoiler && /* @__PURE__ */ jsx8(
+          features.spoiler && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.spoiler,
               active: active.spoiler,
               onClick: format.spoiler,
-              children: /* @__PURE__ */ jsx8(IconSpoiler, {})
+              children: /* @__PURE__ */ jsx10(IconSpoiler, {})
             }
           ),
-          features.quote && /* @__PURE__ */ jsx8(
+          features.quote && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.quote,
               active: active.quote,
               onClick: format.quote,
-              children: /* @__PURE__ */ jsx8(IconQuote, {})
+              children: /* @__PURE__ */ jsx10(IconQuote, {})
             }
           ),
-          features.codeBlock && /* @__PURE__ */ jsx8(
+          features.codeBlock && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.codeBlock,
               active: active.codeBlock,
               onClick: format.codeBlock,
-              children: /* @__PURE__ */ jsx8(IconCodeBlock, {})
+              children: /* @__PURE__ */ jsx10(IconCodeBlock, {})
             }
           ),
-          features.lists && /* @__PURE__ */ jsxs5(Fragment2, { children: [
-            /* @__PURE__ */ jsx8(
+          features.lists && /* @__PURE__ */ jsxs6(Fragment3, { children: [
+            /* @__PURE__ */ jsx10(
               ToolbarButton,
               {
                 label: labels.bulletList,
                 active: active.bulletList,
                 onClick: format.bulletList,
-                children: /* @__PURE__ */ jsx8(IconBulletList, {})
+                children: /* @__PURE__ */ jsx10(IconBulletList, {})
               }
             ),
-            /* @__PURE__ */ jsx8(
+            /* @__PURE__ */ jsx10(
               ToolbarButton,
               {
                 label: labels.numberedList,
                 active: active.numberedList,
                 onClick: format.numberedList,
-                children: /* @__PURE__ */ jsx8(IconNumberedList, {})
+                children: /* @__PURE__ */ jsx10(IconNumberedList, {})
               }
             )
           ] }),
-          features.links && /* @__PURE__ */ jsx8(
+          features.links && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.link,
               active: active.link,
               onClick: format.link,
-              children: /* @__PURE__ */ jsx8(IconLink, {})
+              children: /* @__PURE__ */ jsx10(IconLink, {})
             }
           ),
-          features.headings && /* @__PURE__ */ jsx8(
+          features.headings && /* @__PURE__ */ jsx10(
             ToolbarButton,
             {
               label: labels.heading,
               active: active.heading,
               onClick: format.heading,
-              children: /* @__PURE__ */ jsx8(IconHeading, {})
+              children: /* @__PURE__ */ jsx10(IconHeading, {})
             }
           ),
-          showMentionButton && /* @__PURE__ */ jsx8(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ jsx8(IconMention, {}) })
+          showMentionButton && /* @__PURE__ */ jsx10(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ jsx10(IconMention, {}) }),
+          showAttachButton && onAttachFiles && /* @__PURE__ */ jsx10(
+            AttachmentUploadButton,
+            {
+              labels,
+              accept: acceptFiles,
+              onFilesSelected: onAttachFiles
+            }
+          )
         ] }),
-        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ jsxs5("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
+        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ jsxs6("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
           slots.toolbarEnd,
-          hasMenu && /* @__PURE__ */ jsxs5(Fragment2, { children: [
-            /* @__PURE__ */ jsx8(
+          hasMenu && /* @__PURE__ */ jsxs6(Fragment3, { children: [
+            /* @__PURE__ */ jsx10(
               "button",
               {
                 type: "button",
@@ -3627,8 +4057,8 @@ function EditorToolbar({
                 children: "\u22EE"
               }
             ),
-            menuOpen && /* @__PURE__ */ jsxs5(Fragment2, { children: [
-              /* @__PURE__ */ jsx8(
+            menuOpen && /* @__PURE__ */ jsxs6(Fragment3, { children: [
+              /* @__PURE__ */ jsx10(
                 "div",
                 {
                   className: "re-toolbar-menu-backdrop",
@@ -3636,7 +4066,7 @@ function EditorToolbar({
                   "aria-hidden": "true"
                 }
               ),
-              /* @__PURE__ */ jsx8(
+              /* @__PURE__ */ jsx10(
                 "div",
                 {
                   id: menuId,
@@ -3678,11 +4108,11 @@ function collectSlots(children) {
   return slots;
 }
 function hasToolbar(features, slots) {
-  return features.bold || features.italic || features.strikethrough || features.code || features.quote || features.codeBlock || features.lists || features.links || features.headings || features.spoiler || features.mentions || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
+  return features.bold || features.italic || features.strikethrough || features.code || features.quote || features.codeBlock || features.lists || features.links || features.headings || features.spoiler || features.mentions || features.attachments || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
 }
 
 // src/components/RichTextEditor.tsx
-import { Fragment as Fragment3, jsx as jsx9, jsxs as jsxs6 } from "react/jsx-runtime";
+import { Fragment as Fragment4, jsx as jsx11, jsxs as jsxs7 } from "react/jsx-runtime";
 function onError(error) {
   console.error(error);
 }
@@ -3701,8 +4131,8 @@ function EditorRefPlugin({
   getHtmlRef,
   useTrim
 }) {
-  const [editor] = useLexicalComposerContext14();
-  useEffect15(() => {
+  const [editor] = useLexicalComposerContext16();
+  useEffect16(() => {
     getHtmlRef.current = () => exportEditorHtml(editor, { useTrim });
     return () => {
       getHtmlRef.current = null;
@@ -3713,11 +4143,11 @@ function EditorRefPlugin({
 function DefaultSubmitButton({
   disabled,
   onSubmit,
-  label
+  label,
+  show
 }) {
-  const { isEmpty } = useRichTextEditor();
-  if (isEmpty) return null;
-  return /* @__PURE__ */ jsx9(
+  if (!show) return null;
+  return /* @__PURE__ */ jsx11(
     "button",
     {
       type: "button",
@@ -3726,7 +4156,7 @@ function DefaultSubmitButton({
       className: "re-submit-btn",
       "aria-label": label,
       title: label,
-      children: /* @__PURE__ */ jsx9("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ jsx9("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
+      children: /* @__PURE__ */ jsx11("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ jsx11("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
     }
   );
 }
@@ -3736,18 +4166,20 @@ function SubmitArea({
   sending,
   onSubmit,
   label,
-  showDefault
+  showDefault,
+  showSubmit
 }) {
   if (slots.submitButton !== void 0) {
-    return /* @__PURE__ */ jsx9(Fragment3, { children: slots.submitButton });
+    return /* @__PURE__ */ jsx11(Fragment4, { children: slots.submitButton });
   }
   if (!showDefault) return null;
-  return /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx11(
     DefaultSubmitButton,
     {
       disabled: disabled || sending,
       onSubmit,
-      label
+      label,
+      show: showSubmit
     }
   );
 }
@@ -3761,6 +4193,8 @@ function ContextBridge({
   setHtmlRef,
   clearRef,
   onSubmit,
+  attachments,
+  hasReadyAttachments,
   children
 }) {
   const formatState = useFormatState();
@@ -3773,6 +4207,8 @@ function ContextBridge({
       focus: () => focusRef.current?.(),
       submit: onSubmit,
       isEmpty,
+      attachments,
+      hasReadyAttachments,
       formatState,
       format,
       disabled,
@@ -3787,13 +4223,15 @@ function ContextBridge({
       format,
       formatState,
       getHtmlRef,
+      hasReadyAttachments,
       isEmpty,
       labels,
+      attachments,
       setHtmlRef,
       onSubmit
     ]
   );
-  return /* @__PURE__ */ jsx9(RichTextEditorProvider, { value: ctx, children });
+  return /* @__PURE__ */ jsx11(RichTextEditorProvider, { value: ctx, children });
 }
 function RichTextEditorInner({
   value,
@@ -3814,6 +4252,8 @@ function RichTextEditorInner({
   minRows = 1,
   maxRows = 8,
   mentionSearch,
+  onUploadFile,
+  acceptFiles,
   children
 }, ref) {
   const features = useMemo4(() => resolveFeatures(featuresProp), [featuresProp]);
@@ -3822,14 +4262,21 @@ function RichTextEditorInner({
   const rootId = useId4();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
-  const rootRef = useRef5(null);
-  const bodyRef = useRef5(null);
-  const getHtmlRef = useRef5(null);
-  const setHtmlRef = useRef5(null);
-  const clearRef = useRef5(null);
-  const focusRef = useRef5(null);
-  const [isEmpty, setIsEmpty] = useState7(true);
-  const [sending, setSending] = useState7(false);
+  const rootRef = useRef7(null);
+  const bodyRef = useRef7(null);
+  const getHtmlRef = useRef7(null);
+  const setHtmlRef = useRef7(null);
+  const clearRef = useRef7(null);
+  const focusRef = useRef7(null);
+  const [isEmpty, setIsEmpty] = useState8(true);
+  const [sending, setSending] = useState8(false);
+  const attachmentsEnabled = features.attachments && !!onUploadFile;
+  const uploads = useAttachmentUploads({
+    onUploadFile: onUploadFile ?? (async () => {
+      throw new Error("onUploadFile is required when attachments feature is enabled");
+    }),
+    disabled: disabled || !attachmentsEnabled
+  });
   const inputStyle = useMemo4(
     () => ({
       minHeight: `${minRows * EDITOR_LINE_HEIGHT_PX}px`,
@@ -3857,50 +4304,66 @@ function RichTextEditorInner({
         LinkNode,
         AutoLinkNode,
         ...features.mentions ? [MentionNode] : [],
-        ...features.spoiler ? [SpoilerNode] : []
+        ...features.spoiler ? [SpoilerNode] : [],
+        ...attachmentsEnabled ? [ImageNode, FileLinkNode] : []
       ]
     }),
-    [disabled, features.mentions, features.quote, features.spoiler]
+    [attachmentsEnabled, disabled, features.mentions, features.quote, features.spoiler]
   );
   const transformers = useMemo4(
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
-  const getHtml = useCallback5(() => getHtmlRef.current?.() ?? "", []);
-  const submit = useCallback5(async () => {
-    if (disabled || sending || isEmpty || !onSubmit) return;
+  const getHtml = useCallback6(() => getHtmlRef.current?.() ?? "", []);
+  const submit = useCallback6(async () => {
+    if (disabled || sending || !onSubmit) return;
     const html = getHtml();
-    if (!html) return;
+    const attachmentPayloads = getReadyAttachmentPayloads(uploads.attachments);
+    if (!html && attachmentPayloads.length === 0) return;
+    if (uploads.hasUploadingAttachments) return;
     setSending(true);
     try {
-      await onSubmit(html);
+      await onSubmit({ html, attachments: attachmentPayloads });
       if (clearOnSubmit) {
         clearRef.current?.();
+        uploads.clearAttachments();
       }
     } finally {
       setSending(false);
     }
-  }, [clearOnSubmit, disabled, getHtml, isEmpty, onSubmit, sending]);
+  }, [
+    clearOnSubmit,
+    disabled,
+    getHtml,
+    onSubmit,
+    sending,
+    uploads
+  ]);
+  const canSubmit = !isEmpty || uploads.hasReadyAttachments;
   useImperativeHandle(
     ref,
     () => ({
       getHtml,
       setHtml: (html) => setHtmlRef.current?.(html),
-      clear: () => clearRef.current?.(),
+      clear: () => {
+        clearRef.current?.();
+        uploads.clearAttachments();
+      },
       focus: () => focusRef.current?.(),
-      isEmpty: () => isEmpty
+      isEmpty: () => isEmpty,
+      getAttachments: () => uploads.attachments
     }),
-    [getHtml, isEmpty]
+    [getHtml, isEmpty, uploads]
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
-  return /* @__PURE__ */ jsxs6(LexicalComposer, { initialConfig, children: [
-    /* @__PURE__ */ jsx9(EditorRefPlugin, { getHtmlRef, useTrim }),
-    /* @__PURE__ */ jsx9(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ jsx9(ClearPlugin, { clearRef }),
-    /* @__PURE__ */ jsx9(FocusPlugin, { focusRef }),
-    /* @__PURE__ */ jsx9(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
-    /* @__PURE__ */ jsx9(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsxs7(LexicalComposer, { initialConfig, children: [
+    /* @__PURE__ */ jsx11(EditorRefPlugin, { getHtmlRef, useTrim }),
+    /* @__PURE__ */ jsx11(SetHtmlPlugin, { setHtmlRef }),
+    /* @__PURE__ */ jsx11(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ jsx11(FocusPlugin, { focusRef }),
+    /* @__PURE__ */ jsx11(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
+    /* @__PURE__ */ jsx11(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ jsx11(
       ContextBridge,
       {
         disabled,
@@ -3911,8 +4374,10 @@ function RichTextEditorInner({
         focusRef,
         setHtmlRef,
         clearRef,
+        attachments: uploads.attachments,
+        hasReadyAttachments: uploads.hasReadyAttachments,
         onSubmit: () => void submit(),
-        children: /* @__PURE__ */ jsxs6(
+        children: /* @__PURE__ */ jsxs7(
           "div",
           {
             ref: rootRef,
@@ -3920,17 +4385,20 @@ function RichTextEditorInner({
             ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
-              showToolbar && /* @__PURE__ */ jsx9(
+              showToolbar && /* @__PURE__ */ jsx11(
                 EditorToolbar,
                 {
                   features,
                   labels,
                   slots,
                   editorInputId,
-                  showMentionButton: features.mentions && !!mentionSearch
+                  showMentionButton: features.mentions && !!mentionSearch,
+                  showAttachButton: attachmentsEnabled,
+                  onAttachFiles: uploads.addFiles,
+                  acceptFiles
                 }
               ),
-              /* @__PURE__ */ jsx9(
+              /* @__PURE__ */ jsx11(
                 BlurCapturePlugin,
                 {
                   rootRef,
@@ -3938,15 +4406,15 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ jsxs6("div", { ref: bodyRef, className: "re-editor-body", children: [
-                /* @__PURE__ */ jsx9(BlockBehaviorPlugin, {}),
-                /* @__PURE__ */ jsx9(LineBreakPlugin, {}),
-                features.spoiler && /* @__PURE__ */ jsx9(SpoilerPlugin, {}),
-                /* @__PURE__ */ jsx9(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ jsx9(
+              /* @__PURE__ */ jsxs7("div", { ref: bodyRef, className: "re-editor-body", children: [
+                /* @__PURE__ */ jsx11(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ jsx11(LineBreakPlugin, {}),
+                features.spoiler && /* @__PURE__ */ jsx11(SpoilerPlugin, {}),
+                /* @__PURE__ */ jsx11(InitialHtmlPlugin, { html: value }),
+                /* @__PURE__ */ jsx11(
                   RichTextPlugin,
                   {
-                    contentEditable: /* @__PURE__ */ jsx9(
+                    contentEditable: /* @__PURE__ */ jsx11(
                       ContentEditable,
                       {
                         id: editorInputId,
@@ -3959,16 +4427,16 @@ function RichTextEditorInner({
                         "aria-describedby": placeholder ? placeholderId : void 0
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ jsx9("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                    placeholder: placeholder ? /* @__PURE__ */ jsx11("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
                     ErrorBoundary: LexicalErrorBoundary
                   }
                 ),
-                /* @__PURE__ */ jsx9(HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ jsx9(ListPlugin, {}),
-                features.links && /* @__PURE__ */ jsx9(LinkPlugin, {}),
-                features.codeBlock && /* @__PURE__ */ jsxs6(Fragment3, { children: [
-                  /* @__PURE__ */ jsx9(CodeHighlightPlugin, { enabled: !disabled }),
-                  /* @__PURE__ */ jsx9(
+                /* @__PURE__ */ jsx11(HistoryPlugin, {}),
+                features.lists && /* @__PURE__ */ jsx11(ListPlugin, {}),
+                features.links && /* @__PURE__ */ jsx11(LinkPlugin, {}),
+                features.codeBlock && /* @__PURE__ */ jsxs7(Fragment4, { children: [
+                  /* @__PURE__ */ jsx11(CodeHighlightPlugin, { enabled: !disabled }),
+                  /* @__PURE__ */ jsx11(
                     CodeLanguagePlugin,
                     {
                       labels,
@@ -3977,18 +4445,27 @@ function RichTextEditorInner({
                     }
                   )
                 ] }),
-                transformers.length > 0 && /* @__PURE__ */ jsx9(MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ jsx9(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ jsx9(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ jsx9(MentionsPlugin, { searchMentions: mentionSearch }),
-                /* @__PURE__ */ jsx9(
+                transformers.length > 0 && /* @__PURE__ */ jsx11(MarkdownShortcutPlugin, { transformers }),
+                /* @__PURE__ */ jsx11(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ jsx11(KeyboardShortcutsPlugin, { features, disabled }),
+                features.mentions && mentionSearch && /* @__PURE__ */ jsx11(MentionsPlugin, { searchMentions: mentionSearch }),
+                attachmentsEnabled && /* @__PURE__ */ jsx11(
+                  AttachmentsPlugin,
+                  {
+                    disabled,
+                    attachments: uploads.attachments,
+                    addFiles: uploads.addFiles,
+                    containerRef: bodyRef
+                  }
+                ),
+                /* @__PURE__ */ jsx11(
                   EnterPlugin,
                   {
                     bindings: enterBindings,
                     onSubmit: onSubmit ? () => void submit() : void 0
                   }
                 ),
-                features.selectionMenu && /* @__PURE__ */ jsx9(
+                features.selectionMenu && /* @__PURE__ */ jsx11(
                   SelectionMenuPlugin,
                   {
                     features,
@@ -3997,7 +4474,16 @@ function RichTextEditorInner({
                     containerRef: bodyRef
                   }
                 ),
-                /* @__PURE__ */ jsx9(
+                attachmentsEnabled && /* @__PURE__ */ jsx11(
+                  AttachmentsBridge,
+                  {
+                    attachments: uploads.attachments,
+                    labels,
+                    disabled,
+                    onRemove: uploads.removeAttachment
+                  }
+                ),
+                /* @__PURE__ */ jsx11(
                   SubmitArea,
                   {
                     slots,
@@ -4005,11 +4491,12 @@ function RichTextEditorInner({
                     sending,
                     onSubmit: () => void submit(),
                     label: labels.submit,
-                    showDefault: showDefaultSubmit
+                    showDefault: showDefaultSubmit,
+                    showSubmit: canSubmit
                   }
                 )
               ] }),
-              slots.footer && /* @__PURE__ */ jsx9("div", { className: "re-footer", children: slots.footer })
+              slots.footer && /* @__PURE__ */ jsx11("div", { className: "re-footer", children: slots.footer })
             ]
           }
         )
@@ -4032,7 +4519,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-import { useEffect as useEffect16, useLayoutEffect, useMemo as useMemo5, useRef as useRef6 } from "react";
+import { useEffect as useEffect17, useLayoutEffect, useMemo as useMemo5, useRef as useRef8 } from "react";
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -4309,7 +4796,7 @@ function enhanceViewerCodeBlocks(root, labels) {
 }
 
 // src/components/RichTextViewer.tsx
-import { jsx as jsx10 } from "react/jsx-runtime";
+import { jsx as jsx12 } from "react/jsx-runtime";
 function mentionAriaLabel(template, label) {
   return template.replace("{label}", label);
 }
@@ -4329,7 +4816,7 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
-  const ref = useRef6(null);
+  const ref = useRef8(null);
   const prepared = useMemo5(
     () => prepareViewerContent(content, features),
     [content, features]
@@ -4350,7 +4837,7 @@ function RichTextViewer({
     });
     return () => cleanup?.();
   }, [features.codeHighlight, labels, prepared]);
-  useEffect16(() => {
+  useEffect17(() => {
     if (prepared.kind !== "html") return;
     const root = ref.current;
     if (!root) return;
@@ -4362,7 +4849,7 @@ function RichTextViewer({
     root.addEventListener("click", onSpoilerClick);
     return () => root.removeEventListener("click", onSpoilerClick);
   }, [prepared]);
-  useEffect16(() => {
+  useEffect17(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
@@ -4405,7 +4892,7 @@ function RichTextViewer({
     };
   }, [labels.mention, onMentionClick, prepared]);
   if (prepared.kind === "plain") {
-    return /* @__PURE__ */ jsx10(
+    return /* @__PURE__ */ jsx12(
       "p",
       {
         ...themeDataAttribute(theme),
@@ -4415,7 +4902,7 @@ function RichTextViewer({
       }
     );
   }
-  return /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx12(
     "div",
     {
       ref,

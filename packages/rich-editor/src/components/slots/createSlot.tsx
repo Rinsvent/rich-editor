@@ -67,6 +67,7 @@ export function hasToolbar(
     features.headings ||
     features.spoiler ||
     features.mentions ||
+    features.attachments ||
     !!slots.toolbarStart ||
     !!slots.toolbarEnd ||
     !!slots.toolbarMenu

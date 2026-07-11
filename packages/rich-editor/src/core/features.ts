@@ -14,6 +14,7 @@ export type EditorFeatures = {
   mentions: boolean;
   spoiler: boolean;
   selectionMenu: boolean;
+  attachments: boolean;
 };
 
 export const defaultFeatures: EditorFeatures = {
@@ -32,6 +33,7 @@ export const defaultFeatures: EditorFeatures = {
   mentions: false,
   spoiler: false,
   selectionMenu: false,
+  attachments: false,
 };
 
 export function resolveFeatures(
@@ -68,6 +70,12 @@ export type EditorLabels = {
   mentionMenu: string;
   selectionMenu: string;
   codeLanguage: string;
+  attachFile: string;
+  attachments: string;
+  removeAttachment: string;
+  insertAttachment: string;
+  uploading: string;
+  uploadFailed: string;
 };
 
 export const defaultLabels: EditorLabels = {
@@ -98,6 +106,12 @@ export const defaultLabels: EditorLabels = {
   mentionMenu: "Mention suggestions",
   selectionMenu: "Selection formatting",
   codeLanguage: "Code language",
+  attachFile: "Attach file",
+  attachments: "Attachments",
+  removeAttachment: "Remove attachment",
+  insertAttachment: "Insert into message",
+  uploading: "Uploading",
+  uploadFailed: "Upload failed",
 };
 
 export function resolveLabels(partial?: Partial<EditorLabels>): EditorLabels {

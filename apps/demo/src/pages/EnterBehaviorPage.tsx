@@ -135,9 +135,9 @@ export function EnterBehaviorPage() {
           enterBehavior={
             mode === "default" || mode === "custom" ? undefined : mode
           }
-          onSubmit={(html) =>
+          onSubmit={(payload) =>
             setLog((items) => [
-              `[${new Date().toLocaleTimeString()}] submit: ${html.slice(0, 80)}…`,
+              `[${new Date().toLocaleTimeString()}] submit: ${payload.html.slice(0, 80)}…`,
               ...items.slice(0, 4),
             ])
           }

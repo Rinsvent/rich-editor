@@ -5,6 +5,7 @@ import {
   useContext,
   type ReactNode,
 } from "react";
+import type { EditorAttachment } from "../core/attachments";
 import type { EditorLabels, EditorFeatures } from "../core/features";
 import type { FormatActions } from "../components/toolbar/useFormatState";
 
@@ -29,6 +30,8 @@ export type RichTextEditorContextValue = {
   focus: () => void;
   submit: () => void;
   isEmpty: boolean;
+  attachments: EditorAttachment[];
+  hasReadyAttachments: boolean;
   formatState: FormatState;
   format: FormatActions;
   disabled: boolean;

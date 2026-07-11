@@ -8,12 +8,12 @@ import {
 const initialTask = "<h2>Задача</h2><p>Описание с <b>форматированием</b></p>";
 
 function SaveButton() {
-  const { submit, isEmpty } = useRichTextEditor();
+  const { submit, isEmpty, hasReadyAttachments } = useRichTextEditor();
   return (
     <button
       type="button"
       className="re-toolbar-btn"
-      disabled={isEmpty}
+      disabled={isEmpty && !hasReadyAttachments}
       onClick={() => submit()}
     >
       Сохранить
@@ -44,8 +44,8 @@ export function TaskPage() {
           value={saved}
           features={{ headings: true }}
           enterBehavior="newline"
-          onSubmit={(html) => {
-            setSaved(html);
+          onSubmit={(payload) => {
+            setSaved(payload.html);
             setEditing(false);
           }}
           minRows={4}

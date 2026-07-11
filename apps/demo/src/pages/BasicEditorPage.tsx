@@ -27,7 +27,7 @@ export function BasicEditorPage() {
             submit: "Отправить",
           }}
           placeholder="**жирный**, *курсив*, `код`"
-          onSubmit={setLast}
+          onSubmit={(payload) => setLast(payload.html)}
           clearOnSubmit
           minRows={2}
           maxRows={6}

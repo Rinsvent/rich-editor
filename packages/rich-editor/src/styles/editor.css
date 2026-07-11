@@ -1018,3 +1018,186 @@
   outline: 2px solid var(--re-accent);
   outline-offset: 2px;
 }
+
+.re-editor-body.re-editor-drag-over {
+  outline: 2px dashed color-mix(in srgb, var(--re-accent) 55%, transparent);
+  outline-offset: -2px;
+}
+
+.re-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0;
+}
+
+.re-attachment-item {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  max-width: 220px;
+  border: 1px solid var(--re-border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--re-bg) 92%, var(--re-hover));
+  overflow: hidden;
+}
+
+.re-attachment-item-uploading {
+  opacity: 0.85;
+}
+
+.re-attachment-item-error {
+  border-color: color-mix(in srgb, #f87171 55%, var(--re-border));
+}
+
+.re-attachment-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--re-text);
+  padding: 0.35rem 1.75rem 0.35rem 0.35rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.re-attachment-main:disabled {
+  cursor: default;
+}
+
+.re-attachment-main:not(:disabled):hover {
+  background: var(--re-hover);
+}
+
+.re-attachment-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 0.35rem;
+  flex-shrink: 0;
+  background: var(--re-code-bg);
+}
+
+.re-attachment-thumb-video {
+  object-fit: cover;
+}
+
+.re-attachment-file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 0.35rem;
+  background: var(--re-code-bg);
+  color: var(--re-accent);
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.re-attachment-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.re-attachment-name {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.re-attachment-sub {
+  font-size: 0.68rem;
+  color: var(--re-muted);
+}
+
+.re-attachment-remove {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--re-bg) 80%, transparent);
+  color: var(--re-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.re-attachment-remove:hover {
+  color: #f87171;
+  background: var(--re-hover);
+}
+
+.re-editor-input .re-image-host,
+.re-editor-input .re-image-wrap {
+  display: block;
+  position: relative;
+  max-width: 100%;
+  margin: 0.35rem 0;
+}
+
+.re-editor-input .re-image-wrap-selected {
+  outline: 2px solid var(--re-accent);
+  outline-offset: 2px;
+  border-radius: 0.35rem;
+}
+
+.re-editor-input .re-image,
+.re-viewer .re-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.35rem;
+}
+
+.re-image-resize-handle {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.25rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.15rem;
+  border: 1px solid color-mix(in srgb, var(--re-accent) 70%, var(--re-border));
+  background: color-mix(in srgb, var(--re-bg) 75%, var(--re-accent));
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.re-image-wrap:hover .re-image-resize-handle,
+.re-image-wrap-selected .re-image-resize-handle,
+.re-image-wrap-resizing .re-image-resize-handle {
+  opacity: 1;
+}
+
+.re-editor-input .re-file-link,
+.re-viewer .re-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--re-accent) 12%, var(--re-code-bg));
+  color: var(--re-accent);
+  padding: 0.1rem 0.45rem;
+  text-decoration: none;
+  font-size: 0.85em;
+}
+
+.re-editor-input .re-file-link::before,
+.re-viewer .re-file-link::before {
+  content: "📎";
+  font-size: 0.9em;
+}
+
+.re-viewer .re-file-link:hover {
+  background: color-mix(in srgb, var(--re-accent) 20%, var(--re-code-bg));
+}

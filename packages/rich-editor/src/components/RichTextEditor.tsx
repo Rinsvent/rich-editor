@@ -28,7 +28,6 @@ import {
 } from "react";
 import {
   RichTextEditorProvider,
-  useRichTextEditor,
   type RichTextEditorContextValue,
 } from "../context/EditorContext";
 import {
@@ -51,6 +50,14 @@ import {
 import { themeDataAttribute } from "../core/themePresets";
 import { MentionNode } from "../nodes/MentionNode";
 import { SpoilerNode } from "../nodes/SpoilerNode";
+import { ImageNode } from "../nodes/ImageNode";
+import { FileLinkNode } from "../nodes/FileLinkNode";
+import {
+  getReadyAttachmentPayloads,
+  type RichTextSubmitPayload,
+  type UploadFileFn,
+  type EditorAttachment,
+} from "../core/attachments";
 import { normalizeHtml, trimEditorHtml } from "../core/html";
 import { buildMarkdownTransformers } from "../core/markdown";
 import { editorTheme } from "../core/theme";
@@ -73,7 +80,10 @@ import {
   SelectionMenuPlugin,
   SetHtmlPlugin,
   SpoilerPlugin,
+  AttachmentsPlugin,
 } from "./plugins";
+import { AttachmentsBridge } from "./attachments/AttachmentsBridge";
+import { useAttachmentUploads } from "./attachments/AttachmentStrip";
 import { EditorToolbar } from "./toolbar/EditorToolbar";
 import { useFormatActions, useFormatState } from "./toolbar/useFormatState";
 import {
@@ -89,11 +99,14 @@ export type RichTextEditorHandle = {
   clear: () => void;
   focus: () => void;
   isEmpty: () => boolean;
+  getAttachments: () => EditorAttachment[];
 };
+
+export type { RichTextSubmitPayload, UploadFileFn, EditorAttachment };
 
 export type RichTextEditorProps = {
   value?: string;
-  onSubmit?: (html: string) => void | Promise<void>;
+  onSubmit?: (payload: RichTextSubmitPayload) => void | Promise<void>;
   onBlur?: (html: string) => void;
   placeholder?: string;
   disabled?: boolean;
@@ -113,6 +126,10 @@ export type RichTextEditorProps = {
   minRows?: number;
   maxRows?: number;
   mentionSearch?: MentionSearchFn;
+  /** Upload handler for attachments (S3-compatible API on your backend). */
+  onUploadFile?: UploadFileFn;
+  /** Optional accept filter for file picker, e.g. "image/*,.pdf". */
+  acceptFiles?: string;
   children?: ReactNode;
 };
 
@@ -158,13 +175,14 @@ function DefaultSubmitButton({
   disabled,
   onSubmit,
   label,
+  show,
 }: {
   disabled?: boolean;
   onSubmit: () => void;
   label: string;
+  show: boolean;
 }) {
-  const { isEmpty } = useRichTextEditor();
-  if (isEmpty) return null;
+  if (!show) return null;
 
   return (
     <button
@@ -189,6 +207,7 @@ function SubmitArea({
   onSubmit,
   label,
   showDefault,
+  showSubmit,
 }: {
   slots: SlotMap;
   disabled?: boolean;
@@ -196,6 +215,7 @@ function SubmitArea({
   onSubmit: () => void;
   label: string;
   showDefault: boolean;
+  showSubmit: boolean;
 }) {
   if (slots.submitButton !== undefined) {
     return <>{slots.submitButton}</>;
@@ -206,6 +226,7 @@ function SubmitArea({
       disabled={disabled || sending}
       onSubmit={onSubmit}
       label={label}
+      show={showSubmit}
     />
   );
 }
@@ -220,6 +241,8 @@ function ContextBridge({
   setHtmlRef,
   clearRef,
   onSubmit,
+  attachments,
+  hasReadyAttachments,
   children,
 }: {
   disabled: boolean;
@@ -231,6 +254,8 @@ function ContextBridge({
   setHtmlRef: React.MutableRefObject<((html: string) => void) | null>;
   clearRef: React.MutableRefObject<(() => void) | null>;
   onSubmit: () => void;
+  attachments: EditorAttachment[];
+  hasReadyAttachments: boolean;
   children: ReactNode;
 }) {
   const formatState = useFormatState();
@@ -244,6 +269,8 @@ function ContextBridge({
       focus: () => focusRef.current?.(),
       submit: onSubmit,
       isEmpty,
+      attachments,
+      hasReadyAttachments,
       formatState,
       format,
       disabled,
@@ -258,8 +285,10 @@ function ContextBridge({
       format,
       formatState,
       getHtmlRef,
+      hasReadyAttachments,
       isEmpty,
       labels,
+      attachments,
       setHtmlRef,
       onSubmit,
     ],
@@ -290,6 +319,8 @@ function RichTextEditorInner(
     minRows = 1,
     maxRows = 8,
     mentionSearch,
+    onUploadFile,
+    acceptFiles,
     children,
   }: RichTextEditorProps,
   ref: React.Ref<RichTextEditorHandle>,
@@ -308,6 +339,15 @@ function RichTextEditorInner(
   const focusRef = useRef<(() => void) | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [sending, setSending] = useState(false);
+  const attachmentsEnabled = features.attachments && !!onUploadFile;
+  const uploads = useAttachmentUploads({
+    onUploadFile:
+      onUploadFile ??
+      (async () => {
+        throw new Error("onUploadFile is required when attachments feature is enabled");
+      }),
+    disabled: disabled || !attachmentsEnabled,
+  });
 
   const inputStyle = useMemo(
     () => ({
@@ -339,9 +379,10 @@ function RichTextEditorInner(
         AutoLinkNode,
         ...(features.mentions ? [MentionNode] : []),
         ...(features.spoiler ? [SpoilerNode] : []),
+        ...(attachmentsEnabled ? [ImageNode, FileLinkNode] : []),
       ],
     }),
-    [disabled, features.mentions, features.quote, features.spoiler],
+    [attachmentsEnabled, disabled, features.mentions, features.quote, features.spoiler],
   );
 
   const transformers = useMemo(
@@ -353,30 +394,46 @@ function RichTextEditorInner(
   const getHtml = useCallback(() => getHtmlRef.current?.() ?? "", []);
 
   const submit = useCallback(async () => {
-    if (disabled || sending || isEmpty || !onSubmit) return;
+    if (disabled || sending || !onSubmit) return;
     const html = getHtml();
-    if (!html) return;
+    const attachmentPayloads = getReadyAttachmentPayloads(uploads.attachments);
+    if (!html && attachmentPayloads.length === 0) return;
+    if (uploads.hasUploadingAttachments) return;
     setSending(true);
     try {
-      await onSubmit(html);
+      await onSubmit({ html, attachments: attachmentPayloads });
       if (clearOnSubmit) {
         clearRef.current?.();
+        uploads.clearAttachments();
       }
     } finally {
       setSending(false);
     }
-  }, [clearOnSubmit, disabled, getHtml, isEmpty, onSubmit, sending]);
+  }, [
+    clearOnSubmit,
+    disabled,
+    getHtml,
+    onSubmit,
+    sending,
+    uploads,
+  ]);
+
+  const canSubmit = !isEmpty || uploads.hasReadyAttachments;
 
   useImperativeHandle(
     ref,
     () => ({
       getHtml,
       setHtml: (html) => setHtmlRef.current?.(html),
-      clear: () => clearRef.current?.(),
+      clear: () => {
+        clearRef.current?.();
+        uploads.clearAttachments();
+      },
       focus: () => focusRef.current?.(),
       isEmpty: () => isEmpty,
+      getAttachments: () => uploads.attachments,
     }),
-    [getHtml, isEmpty],
+    [getHtml, isEmpty, uploads],
   );
 
   const showToolbar = hasToolbar(features, slots);
@@ -399,6 +456,8 @@ function RichTextEditorInner(
         focusRef={focusRef}
         setHtmlRef={setHtmlRef}
         clearRef={clearRef}
+        attachments={uploads.attachments}
+        hasReadyAttachments={uploads.hasReadyAttachments}
         onSubmit={() => void submit()}
       >
         <div
@@ -414,6 +473,9 @@ function RichTextEditorInner(
               slots={slots}
               editorInputId={editorInputId}
               showMentionButton={features.mentions && !!mentionSearch}
+              showAttachButton={attachmentsEnabled}
+              onAttachFiles={uploads.addFiles}
+              acceptFiles={acceptFiles}
             />
           )}
           <BlurCapturePlugin
@@ -469,6 +531,14 @@ function RichTextEditorInner(
             {features.mentions && mentionSearch && (
               <MentionsPlugin searchMentions={mentionSearch} />
             )}
+            {attachmentsEnabled && (
+              <AttachmentsPlugin
+                disabled={disabled}
+                attachments={uploads.attachments}
+                addFiles={uploads.addFiles}
+                containerRef={bodyRef}
+              />
+            )}
             <EnterPlugin
               bindings={enterBindings}
               onSubmit={onSubmit ? () => void submit() : undefined}
@@ -481,6 +551,14 @@ function RichTextEditorInner(
                 containerRef={bodyRef}
               />
             )}
+            {attachmentsEnabled && (
+              <AttachmentsBridge
+                attachments={uploads.attachments}
+                labels={labels}
+                disabled={disabled}
+                onRemove={uploads.removeAttachment}
+              />
+            )}
             <SubmitArea
               slots={slots}
               disabled={disabled}
@@ -488,6 +566,7 @@ function RichTextEditorInner(
               onSubmit={() => void submit()}
               label={labels.submit}
               showDefault={showDefaultSubmit}
+              showSubmit={canSubmit}
             />
           </div>
           {slots.footer && <div className="re-footer">{slots.footer}</div>}

@@ -29,7 +29,7 @@ export function MentionsPage() {
           features={{ mentions: true }}
           mentionSearch={mentionSearch}
           placeholder="Hey @alice …"
-          onSubmit={setHtml}
+          onSubmit={(payload) => setHtml(payload.html)}
           clearOnSubmit
           minRows={2}
           maxRows={8}

@@ -27,7 +27,7 @@ export function A11yPage() {
       <RichTextEditor
         placeholder="Type a message…"
         enterBehavior="submit"
-        onSubmit={(html) => console.log(html)}
+        onSubmit={(payload) => console.log(payload)}
         features={{ strikethrough: true, mentions: true }}
         mentionSearch={(q) =>
           ["Alice", "Bob", "Charlie"]

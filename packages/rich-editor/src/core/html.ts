@@ -24,6 +24,7 @@ const ALLOWED_TAGS = [
   "h4",
   "h5",
   "h6",
+  "img",
 ];
 
 export function sanitizeHtml(html: string): string {
@@ -37,6 +38,14 @@ export function sanitizeHtml(html: string): string {
       "data-mention-id",
       "data-mention-label",
       "data-re-spoiler",
+      "src",
+      "alt",
+      "width",
+      "height",
+      "data-file-id",
+      "data-file-name",
+      "data-file-mime",
+      "data-aspect-ratio",
     ],
   });
 }

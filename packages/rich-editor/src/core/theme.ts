@@ -64,4 +64,6 @@ export const editorTheme = {
   link: "re-link",
   mention: "re-mention",
   spoiler: "re-spoiler",
+  image: "re-image",
+  fileLink: "re-file-link",
 };

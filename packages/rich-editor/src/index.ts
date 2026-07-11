@@ -85,4 +85,10 @@ export {
   defaultSelectionMenuItems,
   allSelectionMenuItems,
 } from "./core/selectionMenu";
-export type { SelectionMenuItem } from "./core/selectionMenu";
+export type {
+  RichTextSubmitPayload,
+  UploadFileFn,
+  UploadedFile,
+  EditorAttachment,
+  EditorAttachmentPayload,
+} from "./core/attachments";

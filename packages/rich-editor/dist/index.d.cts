@@ -19,6 +19,7 @@ type EditorFeatures = {
     mentions: boolean;
     spoiler: boolean;
     selectionMenu: boolean;
+    attachments: boolean;
 };
 declare const defaultFeatures: EditorFeatures;
 type EditorLabels = {
@@ -49,6 +50,12 @@ type EditorLabels = {
     mentionMenu: string;
     selectionMenu: string;
     codeLanguage: string;
+    attachFile: string;
+    attachments: string;
+    removeAttachment: string;
+    insertAttachment: string;
+    uploading: string;
+    uploadFailed: string;
 };
 declare const defaultLabels: EditorLabels;
 type ViewerLabels = {
@@ -118,16 +125,56 @@ declare function isEditorThemePreset(value: string): value is EditorThemePreset;
 declare const editorCssVariables: readonly ["--re-bg", "--re-border", "--re-text", "--re-muted", "--re-accent", "--re-accent-hover", "--re-hover", "--re-code-bg", "--re-pre-bg", "--re-font-size", "--re-line-height"];
 type EditorCssVariable = (typeof editorCssVariables)[number];
 
+type UploadedFile = {
+    id: string;
+    url: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    thumbnailUrl?: string;
+};
+type UploadFileFn = (file: File, options?: {
+    signal?: AbortSignal;
+    onProgress?: (progress: number) => void;
+}) => Promise<UploadedFile>;
+type EditorAttachment = {
+    localId: string;
+    id?: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    url?: string;
+    thumbnailUrl?: string;
+    previewUrl?: string;
+    status: "uploading" | "ready" | "error";
+    progress?: number;
+    error?: string;
+};
+type RichTextSubmitPayload = {
+    html: string;
+    attachments: EditorAttachmentPayload[];
+};
+type EditorAttachmentPayload = {
+    id: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    url: string;
+    thumbnailUrl?: string;
+};
+
 type RichTextEditorHandle = {
     getHtml: () => string;
     setHtml: (html: string) => void;
     clear: () => void;
     focus: () => void;
     isEmpty: () => boolean;
+    getAttachments: () => EditorAttachment[];
 };
+
 type RichTextEditorProps = {
     value?: string;
-    onSubmit?: (html: string) => void | Promise<void>;
+    onSubmit?: (payload: RichTextSubmitPayload) => void | Promise<void>;
     onBlur?: (html: string) => void;
     placeholder?: string;
     disabled?: boolean;
@@ -147,6 +194,10 @@ type RichTextEditorProps = {
     minRows?: number;
     maxRows?: number;
     mentionSearch?: MentionSearchFn;
+    /** Upload handler for attachments (S3-compatible API on your backend). */
+    onUploadFile?: UploadFileFn;
+    /** Optional accept filter for file picker, e.g. "image/*,.pdf". */
+    acceptFiles?: string;
     children?: ReactNode;
 };
 declare function exportEditorHtml(editor: LexicalEditor, options?: {
@@ -226,6 +277,8 @@ type RichTextEditorContextValue = {
     focus: () => void;
     submit: () => void;
     isEmpty: boolean;
+    attachments: EditorAttachment[];
+    hasReadyAttachments: boolean;
     formatState: FormatState;
     format: FormatActions;
     disabled: boolean;
@@ -282,4 +335,4 @@ declare function getEnterBehaviorDescription(behavior?: EnterBehavior): {
 };
 declare function shortcutById(id: string): KeyboardShortcut | undefined;
 
-export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type EnterKeyAction, type EnterKeyBinding, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type SelectionMenuItem, type ViewerFeatures, type ViewerLabels, allSelectionMenuItems, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultEnterKeyBindings, defaultFeatures, defaultLabels, defaultSelectionMenuItems, defaultViewerFeatures, defaultViewerLabels, describeEnterKeyBindings, editorCssVariables, editorThemePresets, enterBehaviorToBindings, exportEditorHtml, formatEnterKeyBinding, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, matchEnterKeyAction, mentionKeyboardShortcuts, normalizeHtml, plainTextFromHtml, prepareViewerContent, resolveEnterKeyBindings, sanitizeHtml, shortcutById, shouldPluginHandleEnterAction, trimEditorHtml, useRichTextEditor };
+export { type EditorAttachment, type EditorAttachmentPayload, type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type EnterKeyAction, type EnterKeyBinding, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, type RichTextSubmitPayload, RichTextViewer, type RichTextViewerProps, type UploadFileFn, type UploadedFile, type ViewerFeatures, type ViewerLabels, allSelectionMenuItems, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultEnterKeyBindings, defaultFeatures, defaultLabels, defaultSelectionMenuItems, defaultViewerFeatures, defaultViewerLabels, describeEnterKeyBindings, editorCssVariables, editorThemePresets, enterBehaviorToBindings, exportEditorHtml, formatEnterKeyBinding, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, matchEnterKeyAction, mentionKeyboardShortcuts, normalizeHtml, plainTextFromHtml, prepareViewerContent, resolveEnterKeyBindings, sanitizeHtml, shortcutById, shouldPluginHandleEnterAction, trimEditorHtml, useRichTextEditor };

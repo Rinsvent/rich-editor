@@ -6,6 +6,9 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -27,6 +30,584 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/core/attachments.ts
+function createLocalId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+function isImageMime(mimeType) {
+  return mimeType.startsWith("image/");
+}
+function isVideoMime(mimeType) {
+  return mimeType.startsWith("video/");
+}
+function getFileKind(mimeType) {
+  if (isImageMime(mimeType)) return "image";
+  if (isVideoMime(mimeType)) return "video";
+  return "file";
+}
+function getFileExtension(name) {
+  const index = name.lastIndexOf(".");
+  if (index <= 0) return "";
+  return name.slice(index + 1).toUpperCase();
+}
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+function toAttachmentPayload(attachment) {
+  if (attachment.status !== "ready" || !attachment.id || !attachment.url) {
+    return null;
+  }
+  return {
+    id: attachment.id,
+    name: attachment.name,
+    mimeType: attachment.mimeType,
+    size: attachment.size,
+    url: attachment.url,
+    thumbnailUrl: attachment.thumbnailUrl
+  };
+}
+function getReadyAttachmentPayloads(attachments) {
+  return attachments.map(toAttachmentPayload).filter((item) => item !== null);
+}
+function getAttachmentPreviewUrl(attachment) {
+  return attachment.thumbnailUrl ?? attachment.previewUrl ?? attachment.url ?? "";
+}
+function collectFilesFromDataTransfer(dataTransfer) {
+  if (!dataTransfer) return [];
+  const files = [];
+  if (dataTransfer.files?.length) {
+    for (const file of Array.from(dataTransfer.files)) {
+      files.push(file);
+    }
+  }
+  return files;
+}
+function collectFilesFromClipboard(clipboard) {
+  if (!clipboard) return [];
+  const files = [];
+  if (clipboard.files?.length) {
+    for (const file of Array.from(clipboard.files)) {
+      files.push(file);
+    }
+  }
+  return files;
+}
+var FILE_ID_ATTR, FILE_NAME_ATTR, FILE_MIME_ATTR, IMAGE_ASPECT_ATTR;
+var init_attachments = __esm({
+  "src/core/attachments.ts"() {
+    "use strict";
+    FILE_ID_ATTR = "data-file-id";
+    FILE_NAME_ATTR = "data-file-name";
+    FILE_MIME_ATTR = "data-file-mime";
+    IMAGE_ASPECT_ATTR = "data-aspect-ratio";
+  }
+});
+
+// src/nodes/FileLinkNode.ts
+function $createFileLinkNode({
+  fileId,
+  fileName,
+  fileUrl,
+  mimeType
+}) {
+  return (0, import_lexical3.$applyNodeReplacement)(
+    new FileLinkNode(fileId, fileName, fileUrl, mimeType)
+  );
+}
+var import_lexical3, FileLinkNode;
+var init_FileLinkNode = __esm({
+  "src/nodes/FileLinkNode.ts"() {
+    "use strict";
+    import_lexical3 = require("lexical");
+    init_attachments();
+    FileLinkNode = class _FileLinkNode extends import_lexical3.ElementNode {
+      static getType() {
+        return "file-link";
+      }
+      static clone(node) {
+        return new _FileLinkNode(
+          node.__fileId,
+          node.__fileName,
+          node.__fileUrl,
+          node.__mimeType,
+          node.__key
+        );
+      }
+      static importJSON(serializedNode) {
+        return $createFileLinkNode({
+          fileId: serializedNode.fileId,
+          fileName: serializedNode.fileName,
+          fileUrl: serializedNode.fileUrl,
+          mimeType: serializedNode.mimeType
+        });
+      }
+      static importDOM() {
+        return {
+          a: (domNode) => {
+            const fileId = domNode.getAttribute(FILE_ID_ATTR);
+            if (!fileId) return null;
+            const fileName = domNode.getAttribute(FILE_NAME_ATTR) ?? domNode.textContent?.trim() ?? "File";
+            const fileUrl = domNode.getAttribute("href") ?? "";
+            const mimeType = domNode.getAttribute(FILE_MIME_ATTR) ?? "application/octet-stream";
+            return {
+              conversion: () => ({
+                node: $createFileLinkNode({
+                  fileId,
+                  fileName,
+                  fileUrl,
+                  mimeType
+                })
+              }),
+              priority: 2
+            };
+          }
+        };
+      }
+      constructor(fileId, fileName, fileUrl, mimeType, key) {
+        super(key);
+        this.__fileId = fileId;
+        this.__fileName = fileName;
+        this.__fileUrl = fileUrl;
+        this.__mimeType = mimeType;
+      }
+      exportJSON() {
+        return {
+          ...super.exportJSON(),
+          fileId: this.__fileId,
+          fileName: this.__fileName,
+          fileUrl: this.__fileUrl,
+          mimeType: this.__mimeType,
+          type: "file-link"
+        };
+      }
+      createDOM(config) {
+        const element = document.createElement("a");
+        element.className = config.theme.fileLink ?? "re-file-link";
+        element.href = this.__fileUrl;
+        element.setAttribute(FILE_ID_ATTR, this.__fileId);
+        element.setAttribute(FILE_NAME_ATTR, this.__fileName);
+        element.setAttribute(FILE_MIME_ATTR, this.__mimeType);
+        element.setAttribute("target", "_blank");
+        element.setAttribute("rel", "noopener noreferrer");
+        element.contentEditable = "false";
+        element.textContent = this.__fileName;
+        return element;
+      }
+      updateDOM() {
+        return false;
+      }
+      exportDOM() {
+        const element = document.createElement("a");
+        element.className = "re-file-link";
+        element.href = this.__fileUrl;
+        element.setAttribute(FILE_ID_ATTR, this.__fileId);
+        element.setAttribute(FILE_NAME_ATTR, this.__fileName);
+        element.setAttribute(FILE_MIME_ATTR, this.__mimeType);
+        element.setAttribute("target", "_blank");
+        element.setAttribute("rel", "noopener noreferrer");
+        element.textContent = this.__fileName;
+        return { element };
+      }
+      isInline() {
+        return true;
+      }
+      canBeEmpty() {
+        return false;
+      }
+      canInsertTextBefore() {
+        return false;
+      }
+      canInsertTextAfter() {
+        return false;
+      }
+      getFileId() {
+        return this.getLatest().__fileId;
+      }
+      getFileName() {
+        return this.getLatest().__fileName;
+      }
+      getFileUrl() {
+        return this.getLatest().__fileUrl;
+      }
+      getMimeType() {
+        return this.getLatest().__mimeType;
+      }
+    };
+  }
+});
+
+// src/core/attachmentInsert.ts
+var attachmentInsert_exports = {};
+__export(attachmentInsert_exports, {
+  MAX_IMAGE_WIDTH: () => MAX_IMAGE_WIDTH,
+  MIN_IMAGE_WIDTH: () => MIN_IMAGE_WIDTH,
+  getAttachmentSource: () => getAttachmentSource,
+  getDefaultImageDimensions: () => getDefaultImageDimensions,
+  insertAttachmentAtSelection: () => insertAttachmentAtSelection,
+  insertFileLinkAtSelection: () => insertFileLinkAtSelection,
+  insertImageAtSelection: () => insertImageAtSelection,
+  readImageDimensions: () => readImageDimensions
+});
+function readImageDimensions(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      resolve({
+        width: image.naturalWidth || 320,
+        height: image.naturalHeight || 240
+      });
+    };
+    image.onerror = () => reject(new Error("Failed to load image"));
+    image.src = src;
+  });
+}
+async function getDefaultImageDimensions(src) {
+  try {
+    const { width, height } = await readImageDimensions(src);
+    const aspectRatio = width / Math.max(height, 1);
+    const targetWidth = Math.min(
+      MAX_IMAGE_WIDTH,
+      Math.max(MIN_IMAGE_WIDTH, width)
+    );
+    return { width: targetWidth, aspectRatio };
+  } catch {
+    return { width: 320, aspectRatio: 4 / 3 };
+  }
+}
+function getAttachmentSource(attachment) {
+  return attachment.url ?? attachment.previewUrl ?? attachment.thumbnailUrl ?? null;
+}
+async function insertImageAtSelection(editor, attachment) {
+  const src = getAttachmentSource(attachment);
+  if (!src) return;
+  const fileId = attachment.id ?? attachment.localId;
+  const { width, aspectRatio } = await getDefaultImageDimensions(src);
+  editor.update(() => {
+    const imageNode = $createImageNode({
+      src,
+      alt: attachment.name,
+      fileId,
+      width,
+      aspectRatio
+    });
+    const selection = (0, import_lexical4.$getSelection)();
+    if ((0, import_lexical4.$isRangeSelection)(selection)) {
+      (0, import_lexical4.$insertNodes)([imageNode]);
+      return;
+    }
+    const paragraph = (0, import_lexical4.$createParagraphNode)();
+    paragraph.append(imageNode);
+    (0, import_lexical4.$insertNodes)([paragraph]);
+  });
+}
+function insertFileLinkAtSelection(editor, attachment) {
+  if (!attachment.id || !attachment.url) return;
+  editor.update(() => {
+    const fileLink = $createFileLinkNode({
+      fileId: attachment.id,
+      fileName: attachment.name,
+      fileUrl: attachment.url,
+      mimeType: attachment.mimeType
+    });
+    const selection = (0, import_lexical4.$getSelection)();
+    if (!(0, import_lexical4.$isRangeSelection)(selection)) {
+      (0, import_lexical4.$insertNodes)([fileLink]);
+      return;
+    }
+    selection.insertNodes([fileLink]);
+  });
+}
+async function insertAttachmentAtSelection(editor, attachment) {
+  if (attachment.status !== "ready") return;
+  if (getFileKind(attachment.mimeType) === "image" || isImageMime(attachment.mimeType)) {
+    await insertImageAtSelection(editor, attachment);
+    return;
+  }
+  insertFileLinkAtSelection(editor, attachment);
+}
+var import_lexical4, MIN_IMAGE_WIDTH, MAX_IMAGE_WIDTH;
+var init_attachmentInsert = __esm({
+  "src/core/attachmentInsert.ts"() {
+    "use strict";
+    import_lexical4 = require("lexical");
+    init_attachments();
+    init_FileLinkNode();
+    init_ImageNode();
+    MIN_IMAGE_WIDTH = 80;
+    MAX_IMAGE_WIDTH = 720;
+  }
+});
+
+// src/components/attachments/ImageComponent.tsx
+function ImageComponent({
+  src,
+  alt,
+  width,
+  aspectRatio,
+  nodeKey
+}) {
+  const [editor] = (0, import_LexicalComposerContext.useLexicalComposerContext)();
+  const [isSelected, setSelected, clearSelection] = (0, import_useLexicalNodeSelection.useLexicalNodeSelection)(nodeKey);
+  const imageRef = (0, import_react2.useRef)(null);
+  const [isResizing, setIsResizing] = (0, import_react2.useState)(false);
+  const height = Math.max(1, Math.round(width / aspectRatio));
+  (0, import_react2.useEffect)(() => {
+    return (0, import_utils.mergeRegister)(
+      editor.registerCommand(
+        import_lexical5.CLICK_COMMAND,
+        (event) => {
+          const target = event.target;
+          if (!imageRef.current?.contains(target)) return false;
+          if (event.shiftKey) {
+            setSelected(!isSelected);
+          } else {
+            clearSelection();
+            setSelected(true);
+          }
+          return true;
+        },
+        import_lexical5.COMMAND_PRIORITY_LOW
+      )
+    );
+  }, [clearSelection, editor, isSelected, setSelected]);
+  const onResizeStart = (0, import_react2.useCallback)(
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsResizing(true);
+      const startX = event.clientX;
+      const startWidth = width;
+      const onMove = (moveEvent) => {
+        const delta = moveEvent.clientX - startX;
+        const nextWidth = Math.min(
+          MAX_IMAGE_WIDTH,
+          Math.max(MIN_IMAGE_WIDTH, startWidth + delta)
+        );
+        editor.update(() => {
+          const node = (0, import_lexical5.$getNodeByKey)(nodeKey);
+          if ($isImageNode(node)) {
+            node.setWidth(nextWidth);
+          }
+        });
+      };
+      const onUp = () => {
+        setIsResizing(false);
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [editor, nodeKey, width]
+  );
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+    "span",
+    {
+      className: `re-image-wrap${isSelected ? " re-image-wrap-selected" : ""}${isResizing ? " re-image-wrap-resizing" : ""}`,
+      contentEditable: false,
+      "data-lexical-decorator": "true",
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "img",
+          {
+            ref: imageRef,
+            className: "re-image",
+            src,
+            alt,
+            width,
+            height,
+            draggable: false
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "span",
+          {
+            className: "re-image-resize-handle",
+            onMouseDown: onResizeStart,
+            "aria-hidden": "true"
+          }
+        )
+      ]
+    }
+  );
+}
+var import_LexicalComposerContext, import_useLexicalNodeSelection, import_utils, import_lexical5, import_react2, import_jsx_runtime2;
+var init_ImageComponent = __esm({
+  "src/components/attachments/ImageComponent.tsx"() {
+    "use strict";
+    "use client";
+    import_LexicalComposerContext = require("@lexical/react/LexicalComposerContext");
+    import_useLexicalNodeSelection = require("@lexical/react/useLexicalNodeSelection");
+    import_utils = require("@lexical/utils");
+    import_lexical5 = require("lexical");
+    import_react2 = require("react");
+    init_ImageNode();
+    init_attachmentInsert();
+    import_jsx_runtime2 = require("react/jsx-runtime");
+  }
+});
+
+// src/nodes/ImageNode.tsx
+function $createImageNode({
+  src,
+  alt,
+  fileId,
+  width,
+  aspectRatio
+}) {
+  return (0, import_lexical6.$applyNodeReplacement)(
+    new ImageNode(src, alt, fileId, width, aspectRatio)
+  );
+}
+function $isImageNode(node) {
+  return node instanceof ImageNode;
+}
+var import_lexical6, import_jsx_runtime3, ImageNode;
+var init_ImageNode = __esm({
+  "src/nodes/ImageNode.tsx"() {
+    "use strict";
+    "use client";
+    import_lexical6 = require("lexical");
+    init_ImageComponent();
+    init_attachments();
+    import_jsx_runtime3 = require("react/jsx-runtime");
+    ImageNode = class _ImageNode extends import_lexical6.DecoratorNode {
+      static getType() {
+        return "image";
+      }
+      static clone(node) {
+        return new _ImageNode(
+          node.__src,
+          node.__alt,
+          node.__fileId,
+          node.__width,
+          node.__aspectRatio,
+          node.__key
+        );
+      }
+      static importJSON(serializedNode) {
+        return $createImageNode({
+          src: serializedNode.src,
+          alt: serializedNode.alt,
+          fileId: serializedNode.fileId,
+          width: serializedNode.width,
+          aspectRatio: serializedNode.aspectRatio
+        });
+      }
+      static importDOM() {
+        return {
+          img: (domNode) => {
+            if (!(domNode instanceof HTMLImageElement)) return null;
+            const fileId = domNode.getAttribute(FILE_ID_ATTR);
+            if (!fileId) return null;
+            const src = domNode.getAttribute("src") ?? "";
+            const alt = domNode.getAttribute("alt") ?? "";
+            const width = Number(domNode.getAttribute("width")) || 320;
+            const aspectRatio = Number(domNode.getAttribute(IMAGE_ASPECT_ATTR)) || (domNode.width && domNode.height ? domNode.width / domNode.height : 4 / 3);
+            return {
+              conversion: () => ({
+                node: $createImageNode({
+                  src,
+                  alt,
+                  fileId,
+                  width,
+                  aspectRatio
+                })
+              }),
+              priority: 2
+            };
+          }
+        };
+      }
+      constructor(src, alt, fileId, width, aspectRatio, key) {
+        super(key);
+        this.__src = src;
+        this.__alt = alt;
+        this.__fileId = fileId;
+        this.__width = width;
+        this.__aspectRatio = aspectRatio;
+      }
+      exportJSON() {
+        return {
+          type: "image",
+          version: 1,
+          src: this.__src,
+          alt: this.__alt,
+          fileId: this.__fileId,
+          width: this.__width,
+          aspectRatio: this.__aspectRatio
+        };
+      }
+      exportDOM() {
+        const element = document.createElement("img");
+        element.className = "re-image";
+        element.src = this.__src;
+        element.alt = this.__alt;
+        element.setAttribute(FILE_ID_ATTR, this.__fileId);
+        element.width = this.__width;
+        element.height = Math.max(1, Math.round(this.__width / this.__aspectRatio));
+        element.setAttribute(IMAGE_ASPECT_ATTR, String(this.__aspectRatio));
+        return { element };
+      }
+      createDOM() {
+        const span = document.createElement("span");
+        span.className = "re-image-host";
+        return span;
+      }
+      updateDOM() {
+        return false;
+      }
+      decorate() {
+        return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          ImageComponent,
+          {
+            src: this.__src,
+            alt: this.__alt,
+            width: this.__width,
+            aspectRatio: this.__aspectRatio,
+            nodeKey: this.getKey()
+          }
+        );
+      }
+      isInline() {
+        return false;
+      }
+      getSrc() {
+        return this.getLatest().__src;
+      }
+      getAlt() {
+        return this.getLatest().__alt;
+      }
+      getFileId() {
+        return this.getLatest().__fileId;
+      }
+      getWidth() {
+        return this.getLatest().__width;
+      }
+      getAspectRatio() {
+        return this.getLatest().__aspectRatio;
+      }
+      setWidth(width) {
+        const writable = this.getWritable();
+        writable.__width = width;
+      }
+      setSrc(src) {
+        const writable = this.getWritable();
+        writable.__src = src;
+      }
+      setFileId(fileId) {
+        const writable = this.getWritable();
+        writable.__fileId = fileId;
+      }
+    };
+  }
+});
 
 // src/index.ts
 var index_exports = {};
@@ -77,7 +658,7 @@ var import_code6 = require("@lexical/code");
 var import_link4 = require("@lexical/link");
 var import_list3 = require("@lexical/list");
 var import_LexicalComposer = require("@lexical/react/LexicalComposer");
-var import_LexicalComposerContext14 = require("@lexical/react/LexicalComposerContext");
+var import_LexicalComposerContext17 = require("@lexical/react/LexicalComposerContext");
 var import_LexicalContentEditable = require("@lexical/react/LexicalContentEditable");
 var import_LexicalErrorBoundary = require("@lexical/react/LexicalErrorBoundary");
 var import_LexicalHistoryPlugin = require("@lexical/react/LexicalHistoryPlugin");
@@ -86,7 +667,7 @@ var import_LexicalListPlugin = require("@lexical/react/LexicalListPlugin");
 var import_LexicalMarkdownShortcutPlugin = require("@lexical/react/LexicalMarkdownShortcutPlugin");
 var import_LexicalRichTextPlugin = require("@lexical/react/LexicalRichTextPlugin");
 var import_rich_text6 = require("@lexical/rich-text");
-var import_react18 = require("react");
+var import_react21 = require("react");
 
 // src/context/EditorContext.tsx
 var import_react = require("react");
@@ -124,7 +705,8 @@ var defaultFeatures = {
   keyboardShortcuts: true,
   mentions: false,
   spoiler: false,
-  selectionMenu: false
+  selectionMenu: false,
+  attachments: false
 };
 function resolveFeatures(partial) {
   return { ...defaultFeatures, ...partial };
@@ -156,7 +738,13 @@ var defaultLabels = {
   toolbar: "Formatting",
   mentionMenu: "Mention suggestions",
   selectionMenu: "Selection formatting",
-  codeLanguage: "Code language"
+  codeLanguage: "Code language",
+  attachFile: "Attach file",
+  attachments: "Attachments",
+  removeAttachment: "Remove attachment",
+  insertAttachment: "Insert into message",
+  uploading: "Uploading",
+  uploadFailed: "Upload failed"
 };
 function resolveLabels(partial) {
   return { ...defaultLabels, ...partial };
@@ -489,6 +1077,11 @@ function $isSpoilerNode(node) {
   return node instanceof SpoilerNode;
 }
 
+// src/components/RichTextEditor.tsx
+init_ImageNode();
+init_FileLinkNode();
+init_attachments();
+
 // src/core/html.ts
 var import_isomorphic_dompurify = __toESM(require("isomorphic-dompurify"), 1);
 var ALLOWED_TAGS = [
@@ -514,7 +1107,8 @@ var ALLOWED_TAGS = [
   "h3",
   "h4",
   "h5",
-  "h6"
+  "h6",
+  "img"
 ];
 function sanitizeHtml(html) {
   return import_isomorphic_dompurify.default.sanitize(html, {
@@ -526,7 +1120,15 @@ function sanitizeHtml(html) {
       "rel",
       "data-mention-id",
       "data-mention-label",
-      "data-re-spoiler"
+      "data-re-spoiler",
+      "src",
+      "alt",
+      "width",
+      "height",
+      "data-file-id",
+      "data-file-name",
+      "data-file-mime",
+      "data-aspect-ratio"
     ]
   });
 }
@@ -745,7 +1347,7 @@ function flattenTag(container, tagName) {
 // src/core/markdown.ts
 var import_markdown = require("@lexical/markdown");
 var import_rich_text = require("@lexical/rich-text");
-var import_lexical3 = require("lexical");
+var import_lexical7 = require("lexical");
 var import_marked = require("marked");
 import_marked.marked.setOptions({ gfm: true, breaks: true });
 import_marked.marked.use({
@@ -774,7 +1376,7 @@ var SPOILER = {
   regExp: /\|\|([^|]+?)\|\|$/,
   replace: (textNode, match) => {
     const spoiler = $createSpoilerNode();
-    spoiler.append((0, import_lexical3.$createTextNode)(match[1]));
+    spoiler.append((0, import_lexical7.$createTextNode)(match[1]));
     textNode.replace(spoiler);
   },
   trigger: "|",
@@ -793,7 +1395,7 @@ var QUOTE = {
     if (isImport) {
       const previousNode = parentNode.getPreviousSibling();
       if ((0, import_rich_text.$isQuoteNode)(previousNode)) {
-        const paragraph2 = (0, import_lexical3.$createParagraphNode)();
+        const paragraph2 = (0, import_lexical7.$createParagraphNode)();
         paragraph2.append(...children);
         previousNode.append(paragraph2);
         parentNode.remove();
@@ -801,7 +1403,7 @@ var QUOTE = {
       }
     }
     const quote = (0, import_rich_text.$createQuoteNode)();
-    const paragraph = (0, import_lexical3.$createParagraphNode)();
+    const paragraph = (0, import_lexical7.$createParagraphNode)();
     paragraph.append(...children);
     quote.append(paragraph);
     parentNode.replace(quote);
@@ -904,7 +1506,9 @@ var editorTheme = {
   },
   link: "re-link",
   mention: "re-mention",
-  spoiler: "re-spoiler"
+  spoiler: "re-spoiler",
+  image: "re-image",
+  fileLink: "re-file-link"
 };
 
 // src/core/cn.ts
@@ -913,24 +1517,24 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-var import_react15 = require("react");
+var import_react17 = require("react");
 var import_html4 = require("@lexical/html");
-var import_LexicalComposerContext13 = require("@lexical/react/LexicalComposerContext");
-var import_lexical18 = require("lexical");
+var import_LexicalComposerContext15 = require("@lexical/react/LexicalComposerContext");
+var import_lexical23 = require("lexical");
 
 // src/components/plugins/EnterPlugin.tsx
-var import_react2 = require("react");
-var import_LexicalComposerContext = require("@lexical/react/LexicalComposerContext");
-var import_lexical4 = require("lexical");
+var import_react3 = require("react");
+var import_LexicalComposerContext2 = require("@lexical/react/LexicalComposerContext");
+var import_lexical8 = require("lexical");
 function EnterPlugin({
   bindings,
   onSubmit
 }) {
-  const [editor] = (0, import_LexicalComposerContext.useLexicalComposerContext)();
-  (0, import_react2.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext2.useLexicalComposerContext)();
+  (0, import_react3.useEffect)(() => {
     if (!bindings.length) return;
     return editor.registerCommand(
-      import_lexical4.KEY_ENTER_COMMAND,
+      import_lexical8.KEY_ENTER_COMMAND,
       (event) => {
         if (!(event instanceof KeyboardEvent)) return false;
         const action = matchEnterKeyAction(event, bindings);
@@ -941,8 +1545,8 @@ function EnterPlugin({
         if (action === "newline") {
           event.preventDefault();
           editor.update(() => {
-            const selection = (0, import_lexical4.$getSelection)();
-            if ((0, import_lexical4.$isRangeSelection)(selection)) {
+            const selection = (0, import_lexical8.$getSelection)();
+            if ((0, import_lexical8.$isRangeSelection)(selection)) {
               selection.insertParagraph();
             }
           });
@@ -955,7 +1559,7 @@ function EnterPlugin({
         }
         return false;
       },
-      import_lexical4.COMMAND_PRIORITY_LOW
+      import_lexical8.COMMAND_PRIORITY_LOW
     );
   }, [bindings, editor, onSubmit]);
   return null;
@@ -963,9 +1567,9 @@ function EnterPlugin({
 
 // src/components/plugins/MarkdownPastePlugin.tsx
 var import_html2 = require("@lexical/html");
-var import_LexicalComposerContext2 = require("@lexical/react/LexicalComposerContext");
-var import_lexical5 = require("lexical");
-var import_react3 = require("react");
+var import_LexicalComposerContext3 = require("@lexical/react/LexicalComposerContext");
+var import_lexical9 = require("lexical");
+var import_react4 = require("react");
 function htmlToNodes(editor, html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return (0, import_html2.$generateNodesFromDOM)(editor, doc.body);
@@ -973,11 +1577,11 @@ function htmlToNodes(editor, html) {
 function MarkdownPastePlugin({
   features
 }) {
-  const [editor] = (0, import_LexicalComposerContext2.useLexicalComposerContext)();
-  (0, import_react3.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
+  (0, import_react4.useEffect)(() => {
     if (!features.markdownPaste) return;
     return editor.registerCommand(
-      import_lexical5.PASTE_COMMAND,
+      import_lexical9.PASTE_COMMAND,
       (event) => {
         if (!(event instanceof ClipboardEvent)) return false;
         const clipboard = event.clipboardData;
@@ -988,14 +1592,14 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = markdownToHtml(text);
           editor.update(() => {
-            const selection = (0, import_lexical5.$getSelection)();
-            if (!(0, import_lexical5.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical9.$getSelection)();
+            if (!(0, import_lexical9.$isRangeSelection)(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
             const nodes = htmlToNodes(editor, html);
             if (nodes.length > 0) {
-              (0, import_lexical5.$insertNodes)(nodes);
+              (0, import_lexical9.$insertNodes)(nodes);
             }
           });
           return true;
@@ -1004,30 +1608,30 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = sanitizeHtml(htmlRaw);
           editor.update(() => {
-            const selection = (0, import_lexical5.$getSelection)();
-            if (!(0, import_lexical5.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical9.$getSelection)();
+            if (!(0, import_lexical9.$isRangeSelection)(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
             const nodes = htmlToNodes(editor, html);
             if (nodes.length > 0) {
-              (0, import_lexical5.$insertNodes)(nodes);
+              (0, import_lexical9.$insertNodes)(nodes);
             }
           });
           return true;
         }
         return false;
       },
-      import_lexical5.COMMAND_PRIORITY_HIGH
+      import_lexical9.COMMAND_PRIORITY_HIGH
     );
   }, [editor, features.markdownPaste]);
   return null;
 }
 
 // src/components/plugins/KeyboardShortcutsPlugin.tsx
-var import_react4 = require("react");
-var import_LexicalComposerContext3 = require("@lexical/react/LexicalComposerContext");
-var import_lexical6 = require("lexical");
+var import_react5 = require("react");
+var import_LexicalComposerContext4 = require("@lexical/react/LexicalComposerContext");
+var import_lexical10 = require("lexical");
 function isModKey(event) {
   return event.metaKey || event.ctrlKey;
 }
@@ -1035,11 +1639,11 @@ function KeyboardShortcutsPlugin({
   features,
   disabled
 }) {
-  const [editor] = (0, import_LexicalComposerContext3.useLexicalComposerContext)();
-  (0, import_react4.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  (0, import_react5.useEffect)(() => {
     if (!features.keyboardShortcuts || disabled) return;
     return editor.registerCommand(
-      import_lexical6.KEY_DOWN_COMMAND,
+      import_lexical10.KEY_DOWN_COMMAND,
       (event) => {
         if (!(event instanceof KeyboardEvent) || !isModKey(event)) {
           return false;
@@ -1047,27 +1651,27 @@ function KeyboardShortcutsPlugin({
         const key = event.key.toLowerCase();
         if (key === "b" && features.bold) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "bold");
+          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "bold");
           return true;
         }
         if (key === "i" && features.italic) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "italic");
+          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "italic");
           return true;
         }
         if (key === "e" && features.code && !event.shiftKey) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "code");
+          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "code");
           return true;
         }
         if (event.shiftKey && key === "x" && features.strikethrough) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical6.FORMAT_TEXT_COMMAND, "strikethrough");
+          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "strikethrough");
           return true;
         }
         return false;
       },
-      import_lexical6.COMMAND_PRIORITY_LOW
+      import_lexical10.COMMAND_PRIORITY_LOW
     );
   }, [disabled, editor, features]);
   return null;
@@ -1075,11 +1679,11 @@ function KeyboardShortcutsPlugin({
 
 // src/components/plugins/MentionsPlugin.tsx
 var import_LexicalTypeaheadMenuPlugin = require("@lexical/react/LexicalTypeaheadMenuPlugin");
-var import_LexicalComposerContext4 = require("@lexical/react/LexicalComposerContext");
-var import_react5 = require("react");
+var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
+var import_react6 = require("react");
 var import_react_dom = require("react-dom");
-var import_lexical7 = require("lexical");
-var import_jsx_runtime2 = require("react/jsx-runtime");
+var import_lexical11 = require("lexical");
+var import_jsx_runtime4 = require("react/jsx-runtime");
 var MentionMenuOption = class extends import_LexicalTypeaheadMenuPlugin.MenuOption {
   constructor(option) {
     super(option.id);
@@ -1099,7 +1703,7 @@ function MentionMenu({
   if (options.length === 0) return null;
   const activeDescendantId = selectedIndex !== null ? `${menuId}-option-${selectedIndex}` : void 0;
   return (0, import_react_dom.createPortal)(
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
       "div",
       {
         id: menuId,
@@ -1107,7 +1711,7 @@ function MentionMenu({
         role: "listbox",
         "aria-label": menuLabel,
         "aria-activedescendant": activeDescendantId,
-        children: options.map((option, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+        children: options.map((option, index) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
           "button",
           {
             id: `${menuId}-option-${index}`,
@@ -1136,16 +1740,16 @@ function MentionMenu({
 function MentionsPlugin({
   searchMentions
 }) {
-  const [editor] = (0, import_LexicalComposerContext4.useLexicalComposerContext)();
+  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
   const { labels } = useRichTextEditor();
-  const menuId = (0, import_react5.useId)();
-  const [query, setQuery] = (0, import_react5.useState)(null);
-  const [results, setResults] = (0, import_react5.useState)([]);
+  const menuId = (0, import_react6.useId)();
+  const [query, setQuery] = (0, import_react6.useState)(null);
+  const [results, setResults] = (0, import_react6.useState)([]);
   const triggerFn = (0, import_LexicalTypeaheadMenuPlugin.useBasicTypeaheadTriggerMatch)("@", {
     minLength: 0,
     maxLength: 40
   });
-  (0, import_react5.useEffect)(() => {
+  (0, import_react6.useEffect)(() => {
     if (query === null) {
       setResults([]);
       return;
@@ -1158,11 +1762,11 @@ function MentionsPlugin({
       cancelled = true;
     };
   }, [query, searchMentions]);
-  const options = (0, import_react5.useMemo)(
+  const options = (0, import_react6.useMemo)(
     () => results.map((item) => new MentionMenuOption(item)),
     [results]
   );
-  const onSelectOption = (0, import_react5.useCallback)(
+  const onSelectOption = (0, import_react6.useCallback)(
     (selectedOption, nodeToReplace, closeMenu) => {
       editor.update(() => {
         const mentionNode = $createMentionNode(
@@ -1178,13 +1782,13 @@ function MentionsPlugin({
     },
     [editor]
   );
-  const menuRenderFn = (0, import_react5.useCallback)(
+  const menuRenderFn = (0, import_react6.useCallback)(
     (anchorElementRef, {
       selectedIndex,
       selectOptionAndCleanUp,
       setHighlightedIndex,
       options: menuOptions
-    }) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    }) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
       MentionMenu,
       {
         anchorElementRef,
@@ -1198,7 +1802,7 @@ function MentionsPlugin({
     ),
     [labels.mentionMenu, menuId]
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
     import_LexicalTypeaheadMenuPlugin.LexicalTypeaheadMenuPlugin,
     {
       onQueryChange: setQuery,
@@ -1206,35 +1810,35 @@ function MentionsPlugin({
       triggerFn,
       options,
       menuRenderFn,
-      commandPriority: import_lexical7.COMMAND_PRIORITY_HIGH
+      commandPriority: import_lexical11.COMMAND_PRIORITY_HIGH
     }
   );
 }
 
 // src/components/plugins/BlockBehaviorPlugin.tsx
-var import_react6 = require("react");
-var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
+var import_react7 = require("react");
+var import_LexicalComposerContext6 = require("@lexical/react/LexicalComposerContext");
 var import_code2 = require("@lexical/code");
 var import_rich_text4 = require("@lexical/rich-text");
-var import_lexical10 = require("lexical");
+var import_lexical14 = require("lexical");
 
 // src/core/blockBehavior.ts
 var import_code = require("@lexical/code");
 var import_list = require("@lexical/list");
 var import_rich_text3 = require("@lexical/rich-text");
-var import_utils2 = require("@lexical/utils");
-var import_lexical9 = require("lexical");
+var import_utils3 = require("@lexical/utils");
+var import_lexical13 = require("lexical");
 
 // src/core/quoteBlocks.ts
 var import_rich_text2 = require("@lexical/rich-text");
-var import_utils = require("@lexical/utils");
-var import_lexical8 = require("lexical");
+var import_utils2 = require("@lexical/utils");
+var import_lexical12 = require("lexical");
 function $getTopLevelBlock(node) {
   let current = node;
-  while (current !== null && !(0, import_lexical8.$isRootOrShadowRoot)(current.getParent())) {
+  while (current !== null && !(0, import_lexical12.$isRootOrShadowRoot)(current.getParent())) {
     current = current.getParent();
   }
-  return (0, import_lexical8.$isElementNode)(current) ? current : null;
+  return (0, import_lexical12.$isElementNode)(current) ? current : null;
 }
 function $getSelectedTopLevelBlocks(selection) {
   const blocks = /* @__PURE__ */ new Map();
@@ -1250,33 +1854,33 @@ function $getSelectedTopLevelBlocks(selection) {
 }
 function $ensureQuoteParagraphStructure(quote) {
   const children = [...quote.getChildren()];
-  if (children.length > 0 && children.every(import_lexical8.$isParagraphNode)) return;
+  if (children.length > 0 && children.every(import_lexical12.$isParagraphNode)) return;
   const normalized = [];
   let pending = null;
   for (const child of children) {
-    if ((0, import_lexical8.$isParagraphNode)(child)) {
+    if ((0, import_lexical12.$isParagraphNode)(child)) {
       normalized.push(child);
       pending = null;
       continue;
     }
     if (!pending) {
-      pending = (0, import_lexical8.$createParagraphNode)();
+      pending = (0, import_lexical12.$createParagraphNode)();
       normalized.push(pending);
     }
     pending.append(child);
   }
   if (normalized.length === 0) {
-    normalized.push((0, import_lexical8.$createParagraphNode)());
+    normalized.push((0, import_lexical12.$createParagraphNode)());
   }
   quote.clear();
   quote.append(...normalized);
 }
 function $getQuoteParagraph(node) {
-  const quote = (0, import_utils.$findMatchingParent)(node, import_rich_text2.$isQuoteNode);
+  const quote = (0, import_utils2.$findMatchingParent)(node, import_rich_text2.$isQuoteNode);
   if (!quote) return null;
   let current = node;
   while (current !== null && current !== quote) {
-    if ((0, import_lexical8.$isParagraphNode)(current) && current.getParent() === quote) {
+    if ((0, import_lexical12.$isParagraphNode)(current) && current.getParent() === quote) {
       return current;
     }
     current = current.getParent();
@@ -1284,19 +1888,19 @@ function $getQuoteParagraph(node) {
   $ensureQuoteParagraphStructure(quote);
   current = node;
   while (current !== null && current !== quote) {
-    if ((0, import_lexical8.$isParagraphNode)(current) && current.getParent() === quote) {
+    if ((0, import_lexical12.$isParagraphNode)(current) && current.getParent() === quote) {
       return current;
     }
     current = current.getParent();
   }
   const first = quote.getFirstChild();
-  return (0, import_lexical8.$isParagraphNode)(first) ? first : null;
+  return (0, import_lexical12.$isParagraphNode)(first) ? first : null;
 }
 function $unwrapQuote(quote) {
   $ensureQuoteParagraphStructure(quote);
-  const paragraphs = quote.getChildren().filter(import_lexical8.$isParagraphNode);
+  const paragraphs = quote.getChildren().filter(import_lexical12.$isParagraphNode);
   if (paragraphs.length === 0) {
-    quote.replace((0, import_lexical8.$createParagraphNode)());
+    quote.replace((0, import_lexical12.$createParagraphNode)());
     return;
   }
   const [first, ...rest] = paragraphs;
@@ -1310,20 +1914,20 @@ function $unwrapQuote(quote) {
 }
 function $wrapParagraphInQuote(paragraph) {
   const quote = (0, import_rich_text2.$createQuoteNode)();
-  const inner = (0, import_lexical8.$createParagraphNode)();
+  const inner = (0, import_lexical12.$createParagraphNode)();
   inner.append(...paragraph.getChildren());
   quote.append(inner);
   paragraph.replace(quote);
   return quote;
 }
 function $applyQuoteToSelection(selection) {
-  const inQuote = (0, import_utils.$findMatchingParent)(selection.anchor.getNode(), import_rich_text2.$isQuoteNode);
+  const inQuote = (0, import_utils2.$findMatchingParent)(selection.anchor.getNode(), import_rich_text2.$isQuoteNode);
   if (inQuote) {
     $unwrapQuote(inQuote);
     return;
   }
   const blocks = $getSelectedTopLevelBlocks(selection);
-  const paragraphs = blocks.filter(import_lexical8.$isParagraphNode);
+  const paragraphs = blocks.filter(import_lexical12.$isParagraphNode);
   if (paragraphs.length === 0) return;
   if (paragraphs.length === 1) {
     $wrapParagraphInQuote(paragraphs[0]);
@@ -1331,7 +1935,7 @@ function $applyQuoteToSelection(selection) {
   }
   const quote = (0, import_rich_text2.$createQuoteNode)();
   for (const block of paragraphs) {
-    const inner = (0, import_lexical8.$createParagraphNode)();
+    const inner = (0, import_lexical12.$createParagraphNode)();
     inner.append(...block.getChildren());
     quote.append(inner);
   }
@@ -1342,7 +1946,7 @@ function $applyQuoteToSelection(selection) {
   quote.selectEnd();
 }
 function $normalizeAllQuotes() {
-  for (const child of (0, import_lexical8.$getRoot)().getChildren()) {
+  for (const child of (0, import_lexical12.$getRoot)().getChildren()) {
     if ((0, import_rich_text2.$isQuoteNode)(child)) {
       $ensureQuoteParagraphStructure(child);
     }
@@ -1351,13 +1955,13 @@ function $normalizeAllQuotes() {
 
 // src/core/blockBehavior.ts
 function $getBlockQuote(node) {
-  return (0, import_utils2.$findMatchingParent)(node, import_rich_text3.$isQuoteNode);
+  return (0, import_utils3.$findMatchingParent)(node, import_rich_text3.$isQuoteNode);
 }
 function $getBlockCode(node) {
-  return (0, import_utils2.$findMatchingParent)(node, import_code.$isCodeNode);
+  return (0, import_utils3.$findMatchingParent)(node, import_code.$isCodeNode);
 }
 function $isParagraphEmpty(node) {
-  return (0, import_lexical9.$isParagraphNode)(node) && node.getTextContent().trim() === "";
+  return (0, import_lexical13.$isParagraphNode)(node) && node.getTextContent().trim() === "";
 }
 function $countTrailingEmptyParagraphs(quote) {
   const children = quote.getChildren();
@@ -1372,7 +1976,7 @@ function $isAtStartOfBlock(selection) {
   const anchor = selection.anchor;
   if (anchor.offset !== 0) return false;
   const node = anchor.getNode();
-  const paragraph = (0, import_utils2.$findMatchingParent)(node, import_lexical9.$isParagraphNode);
+  const paragraph = (0, import_utils3.$findMatchingParent)(node, import_lexical13.$isParagraphNode);
   if (paragraph) {
     let current = node;
     while (current !== null && current !== paragraph) {
@@ -1383,10 +1987,10 @@ function $isAtStartOfBlock(selection) {
     }
     return true;
   }
-  if ((0, import_lexical9.$isParagraphNode)(node)) return true;
-  if ((0, import_lexical9.$isTextNode)(node)) {
+  if ((0, import_lexical13.$isParagraphNode)(node)) return true;
+  if ((0, import_lexical13.$isTextNode)(node)) {
     const parent = node.getParent();
-    if ((0, import_lexical9.$isElementNode)(parent)) {
+    if ((0, import_lexical13.$isElementNode)(parent)) {
       return parent.getFirstChild() === node;
     }
   }
@@ -1395,13 +1999,13 @@ function $isAtStartOfBlock(selection) {
 function $isAtEndOfBlock(selection) {
   const focus = selection.focus;
   const node = focus.getNode();
-  if ((0, import_lexical9.$isTextNode)(node)) {
+  if ((0, import_lexical13.$isTextNode)(node)) {
     return focus.offset === node.getTextContentSize();
   }
-  if ((0, import_lexical9.$isParagraphNode)(node)) {
+  if ((0, import_lexical13.$isParagraphNode)(node)) {
     const lastDescendant = node.getLastDescendant();
     if (!lastDescendant) return true;
-    if ((0, import_lexical9.$isTextNode)(lastDescendant)) {
+    if ((0, import_lexical13.$isTextNode)(lastDescendant)) {
       return focus.offset === lastDescendant.getTextContentSize();
     }
   }
@@ -1410,11 +2014,11 @@ function $isAtEndOfBlock(selection) {
 function $unwrapParagraphFromQuote(paragraph) {
   const quote = paragraph.getParent();
   if (!(0, import_rich_text3.$isQuoteNode)(quote)) return;
-  const paragraphs = quote.getChildren().filter(import_lexical9.$isParagraphNode);
+  const paragraphs = quote.getChildren().filter(import_lexical13.$isParagraphNode);
   const index = paragraphs.findIndex((p) => p.getKey() === paragraph.getKey());
   if (index === -1) return;
   const total = paragraphs.length;
-  const newParagraph = (0, import_lexical9.$createParagraphNode)();
+  const newParagraph = (0, import_lexical13.$createParagraphNode)();
   newParagraph.append(...paragraph.getChildren());
   paragraph.remove();
   if (total === 1) {
@@ -1443,7 +2047,7 @@ function $unwrapParagraphFromQuote(paragraph) {
   newParagraph.selectStart();
 }
 function $pruneEmptyQuotes() {
-  for (const child of [...(0, import_lexical9.$getRoot)().getChildren()]) {
+  for (const child of [...(0, import_lexical13.$getRoot)().getChildren()]) {
     if (!(0, import_rich_text3.$isQuoteNode)(child)) continue;
     if (child.getTextContent().trim() === "") {
       child.remove();
@@ -1451,7 +2055,7 @@ function $pruneEmptyQuotes() {
   }
 }
 function $insertParagraphBeforeBlock(block) {
-  const paragraph = (0, import_lexical9.$createParagraphNode)();
+  const paragraph = (0, import_lexical13.$createParagraphNode)();
   block.insertBefore(paragraph);
   paragraph.selectEnd();
 }
@@ -1459,7 +2063,7 @@ function $exitQuoteWithEmptyLines(quote) {
   while (quote.getLastChild() && $isParagraphEmpty(quote.getLastChild())) {
     quote.getLastChild().remove();
   }
-  const exitParagraph = (0, import_lexical9.$createParagraphNode)();
+  const exitParagraph = (0, import_lexical13.$createParagraphNode)();
   quote.insertAfter(exitParagraph);
   exitParagraph.selectStart();
   if (quote.getChildrenSize() === 0) {
@@ -1468,8 +2072,8 @@ function $exitQuoteWithEmptyLines(quote) {
 }
 function $handleQuoteEnter(quote, paragraph, selection) {
   $ensureQuoteParagraphStructure(quote);
-  if (!(0, import_lexical9.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) {
-    const resolved = quote.getChildren().find(import_lexical9.$isParagraphNode);
+  if (!(0, import_lexical13.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) {
+    const resolved = quote.getChildren().find(import_lexical13.$isParagraphNode);
     if (!resolved) {
       selection.insertParagraph();
       return;
@@ -1490,24 +2094,24 @@ function $handleQuoteEnter(quote, paragraph, selection) {
   selection.insertParagraph();
 }
 function $handleQuoteBackspace(quote, paragraph, selection) {
-  const liveQuote = (0, import_lexical9.$getNodeByKey)(quote.getKey());
+  const liveQuote = (0, import_lexical13.$getNodeByKey)(quote.getKey());
   if (!liveQuote || !(0, import_rich_text3.$isQuoteNode)(liveQuote)) return;
   quote = liveQuote;
   const liveParagraph = $getQuoteParagraph(selection.anchor.getNode());
   if (!liveParagraph || liveParagraph.getParent() !== quote) return;
   paragraph = liveParagraph;
-  if (!(0, import_lexical9.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) return;
+  if (!(0, import_lexical13.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) return;
   if (!$isAtStartOfBlock(selection)) return;
   if ($isParagraphEmpty(paragraph)) {
     if (quote.getChildrenSize() <= 1) {
-      const replacement = (0, import_lexical9.$createParagraphNode)();
+      const replacement = (0, import_lexical13.$createParagraphNode)();
       quote.replace(replacement);
       replacement.selectStart();
       return;
     }
     const prev = paragraph.getPreviousSibling();
     paragraph.remove();
-    if (prev && (0, import_lexical9.$isParagraphNode)(prev)) {
+    if (prev && (0, import_lexical13.$isParagraphNode)(prev)) {
       prev.selectEnd();
     } else {
       quote.getFirstChild()?.selectStart();
@@ -1518,7 +2122,7 @@ function $handleQuoteBackspace(quote, paragraph, selection) {
   $pruneEmptyQuotes();
 }
 function $mergeAdjacentQuoteBlocks() {
-  const root = (0, import_lexical9.$getRoot)();
+  const root = (0, import_lexical13.$getRoot)();
   const children = [...root.getChildren()];
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
@@ -1536,7 +2140,7 @@ function $mergeAdjacentQuoteBlocks() {
   }
 }
 function $mergeAdjacentCodeBlocks() {
-  const root = (0, import_lexical9.$getRoot)();
+  const root = (0, import_lexical13.$getRoot)();
   const children = [...root.getChildren()];
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
@@ -1546,7 +2150,7 @@ function $mergeAdjacentCodeBlocks() {
       const nextText = next.getTextContent();
       const join = merged.endsWith("\n") || nextText.startsWith("\n") ? "" : "\n";
       current.clear();
-      current.append((0, import_lexical9.$createTextNode)(merged + join + nextText));
+      current.append((0, import_lexical13.$createTextNode)(merged + join + nextText));
       next.remove();
       children.splice(i + 1, 1);
       i -= 1;
@@ -1572,33 +2176,33 @@ function $exitCodeBlock(codeNode) {
   const text = codeNode.getTextContent().replace(/\n{1,2}$/, "");
   codeNode.clear();
   if (text) {
-    codeNode.append((0, import_lexical9.$createTextNode)(text));
+    codeNode.append((0, import_lexical13.$createTextNode)(text));
   }
-  const exitParagraph = (0, import_lexical9.$createParagraphNode)();
+  const exitParagraph = (0, import_lexical13.$createParagraphNode)();
   codeNode.insertAfter(exitParagraph);
   exitParagraph.selectStart();
 }
 function $shouldSkipBlockBehavior() {
-  const selection = (0, import_lexical9.$getSelection)();
-  if (!(0, import_lexical9.$isRangeSelection)(selection)) return true;
+  const selection = (0, import_lexical13.$getSelection)();
+  if (!(0, import_lexical13.$isRangeSelection)(selection)) return true;
   const node = selection.anchor.getNode();
-  if ((0, import_utils2.$findMatchingParent)(node, import_list.$isListItemNode)) return true;
+  if ((0, import_utils3.$findMatchingParent)(node, import_list.$isListItemNode)) return true;
   return false;
 }
 
 // src/components/plugins/BlockBehaviorPlugin.tsx
 function $needsQuoteNormalization() {
-  for (const child of (0, import_lexical10.$getRoot)().getChildren()) {
+  for (const child of (0, import_lexical14.$getRoot)().getChildren()) {
     if (!(0, import_rich_text4.$isQuoteNode)(child)) continue;
     const children = child.getChildren();
-    if (children.length === 0 || children.some((node) => !(0, import_lexical10.$isParagraphNode)(node))) {
+    if (children.length === 0 || children.some((node) => !(0, import_lexical14.$isParagraphNode)(node))) {
       return true;
     }
   }
   return false;
 }
 function $needsBlockMerge() {
-  const children = (0, import_lexical10.$getRoot)().getChildren();
+  const children = (0, import_lexical14.$getRoot)().getChildren();
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
     const next = children[i + 1];
@@ -1608,8 +2212,8 @@ function $needsBlockMerge() {
   return false;
 }
 function BlockBehaviorPlugin() {
-  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
-  (0, import_react6.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext6.useLexicalComposerContext)();
+  (0, import_react7.useEffect)(() => {
     const removeMerge = editor.registerUpdateListener(({ editorState }) => {
       const needsWork = editorState.read(
         () => $needsBlockMerge() || $needsQuoteNormalization()
@@ -1625,12 +2229,12 @@ function BlockBehaviorPlugin() {
       );
     });
     const removeEnter = editor.registerCommand(
-      import_lexical10.KEY_ENTER_COMMAND,
+      import_lexical14.KEY_ENTER_COMMAND,
       (event) => {
         if ($shouldSkipBlockBehavior()) return false;
         const quoteContext = editor.getEditorState().read(() => {
-          const selection = (0, import_lexical10.$getSelection)();
-          if (!(0, import_lexical10.$isRangeSelection)(selection)) return null;
+          const selection = (0, import_lexical14.$getSelection)();
+          if (!(0, import_lexical14.$isRangeSelection)(selection)) return null;
           const quote = $getBlockQuote(selection.anchor.getNode());
           if (!quote || !(0, import_rich_text4.$isQuoteNode)(quote)) return null;
           const paragraph = $getQuoteParagraph(selection.anchor.getNode());
@@ -1640,8 +2244,8 @@ function BlockBehaviorPlugin() {
         if (quoteContext) {
           event?.preventDefault();
           editor.update(() => {
-            const selection = (0, import_lexical10.$getSelection)();
-            if (!(0, import_lexical10.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical14.$getSelection)();
+            if (!(0, import_lexical14.$isRangeSelection)(selection)) return;
             $handleQuoteEnter(
               quoteContext.quote,
               quoteContext.paragraph,
@@ -1651,8 +2255,8 @@ function BlockBehaviorPlugin() {
           return true;
         }
         const shouldExitCode = editor.getEditorState().read(() => {
-          const selection = (0, import_lexical10.$getSelection)();
-          if (!(0, import_lexical10.$isRangeSelection)(selection)) return false;
+          const selection = (0, import_lexical14.$getSelection)();
+          if (!(0, import_lexical14.$isRangeSelection)(selection)) return false;
           const code = $getBlockCode(selection.anchor.getNode());
           if (!code || !(0, import_code2.$isCodeNode)(code) || !$isAtEndOfCodeBlock(selection)) {
             return false;
@@ -1665,8 +2269,8 @@ function BlockBehaviorPlugin() {
         if (shouldExitCode) {
           event?.preventDefault();
           editor.update(() => {
-            const selection = (0, import_lexical10.$getSelection)();
-            if (!(0, import_lexical10.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical14.$getSelection)();
+            if (!(0, import_lexical14.$isRangeSelection)(selection)) return;
             const code = $getBlockCode(selection.anchor.getNode());
             if (code && (0, import_code2.$isCodeNode)(code)) {
               $exitCodeBlock(code);
@@ -1676,15 +2280,15 @@ function BlockBehaviorPlugin() {
         }
         return false;
       },
-      import_lexical10.COMMAND_PRIORITY_CRITICAL
+      import_lexical14.COMMAND_PRIORITY_CRITICAL
     );
     const removeBackspace = editor.registerCommand(
-      import_lexical10.DELETE_CHARACTER_COMMAND,
+      import_lexical14.DELETE_CHARACTER_COMMAND,
       (isBackward) => {
         if (!isBackward) return false;
         if ($shouldSkipBlockBehavior()) return false;
-        const selection = (0, import_lexical10.$getSelection)();
-        if (!(0, import_lexical10.$isRangeSelection)(selection) || !selection.isCollapsed()) return false;
+        const selection = (0, import_lexical14.$getSelection)();
+        if (!(0, import_lexical14.$isRangeSelection)(selection) || !selection.isCollapsed()) return false;
         if (!$isAtStartOfBlock(selection)) return false;
         const quote = $getBlockQuote(selection.anchor.getNode());
         if (!quote || !(0, import_rich_text4.$isQuoteNode)(quote)) return false;
@@ -1693,7 +2297,7 @@ function BlockBehaviorPlugin() {
         $handleQuoteBackspace(quote, paragraph, selection);
         return true;
       },
-      import_lexical10.COMMAND_PRIORITY_CRITICAL
+      import_lexical14.COMMAND_PRIORITY_CRITICAL
     );
     return () => {
       removeMerge();
@@ -1705,12 +2309,12 @@ function BlockBehaviorPlugin() {
 }
 
 // src/components/plugins/CodeHighlightPlugin.tsx
-var import_react7 = require("react");
+var import_react8 = require("react");
 var import_code3 = require("@lexical/code");
-var import_LexicalComposerContext6 = require("@lexical/react/LexicalComposerContext");
+var import_LexicalComposerContext7 = require("@lexical/react/LexicalComposerContext");
 function CodeHighlightPlugin({ enabled }) {
-  const [editor] = (0, import_LexicalComposerContext6.useLexicalComposerContext)();
-  (0, import_react7.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext7.useLexicalComposerContext)();
+  (0, import_react8.useEffect)(() => {
     if (!enabled) return;
     return (0, import_code3.registerCodeHighlighting)(editor);
   }, [editor, enabled]);
@@ -1718,12 +2322,12 @@ function CodeHighlightPlugin({ enabled }) {
 }
 
 // src/components/plugins/CodeLanguagePlugin.tsx
-var import_react8 = require("react");
+var import_react9 = require("react");
 var import_react_dom2 = require("react-dom");
-var import_LexicalComposerContext7 = require("@lexical/react/LexicalComposerContext");
+var import_LexicalComposerContext8 = require("@lexical/react/LexicalComposerContext");
 var import_code4 = require("@lexical/code");
-var import_utils3 = require("@lexical/utils");
-var import_lexical11 = require("lexical");
+var import_utils4 = require("@lexical/utils");
+var import_lexical15 = require("lexical");
 
 // src/core/hljsLanguages.ts
 var HLJS_LANGUAGE_LABELS = {
@@ -1931,7 +2535,7 @@ function resolveCodeLanguages(ids) {
 }
 
 // src/components/plugins/CodeLanguagePlugin.tsx
-var import_jsx_runtime3 = require("react/jsx-runtime");
+var import_jsx_runtime5 = require("react/jsx-runtime");
 var PRISM_TO_HLJS_LANGUAGE = {
   js: "javascript",
   ts: "typescript",
@@ -1948,30 +2552,30 @@ function CodeLanguagePlugin({
   containerRef,
   codeLanguages
 }) {
-  const [editor] = (0, import_LexicalComposerContext7.useLexicalComposerContext)();
-  const [toolbar, setToolbar] = (0, import_react8.useState)(null);
-  const [menuOpen, setMenuOpen] = (0, import_react8.useState)(false);
-  const toolbarRef = (0, import_react8.useRef)(null);
-  const languageOptions = (0, import_react8.useMemo)(() => {
+  const [editor] = (0, import_LexicalComposerContext8.useLexicalComposerContext)();
+  const [toolbar, setToolbar] = (0, import_react9.useState)(null);
+  const [menuOpen, setMenuOpen] = (0, import_react9.useState)(false);
+  const toolbarRef = (0, import_react9.useRef)(null);
+  const languageOptions = (0, import_react9.useMemo)(() => {
     const ids = resolveCodeLanguages(codeLanguages);
     return ids.map((id) => ({
       id,
       label: getHljsLanguageLabel(id)
     })).sort((a, b) => a.label.localeCompare(b.label));
   }, [codeLanguages]);
-  const allowedLanguages = (0, import_react8.useMemo)(
+  const allowedLanguages = (0, import_react9.useMemo)(
     () => new Set(languageOptions.map((option) => option.id)),
     [languageOptions]
   );
-  const update = (0, import_react8.useCallback)(() => {
+  const update = (0, import_react9.useCallback)(() => {
     editor.getEditorState().read(() => {
-      const selection = (0, import_lexical11.$getSelection)();
-      if (!(0, import_lexical11.$isRangeSelection)(selection)) {
+      const selection = (0, import_lexical15.$getSelection)();
+      if (!(0, import_lexical15.$isRangeSelection)(selection)) {
         setToolbar(null);
         setMenuOpen(false);
         return;
       }
-      const code = (0, import_utils3.$findMatchingParent)(selection.anchor.getNode(), import_code4.$isCodeNode);
+      const code = (0, import_utils4.$findMatchingParent)(selection.anchor.getNode(), import_code4.$isCodeNode);
       if (!code || !code.isAttached()) {
         setToolbar(null);
         setMenuOpen(false);
@@ -2001,15 +2605,15 @@ function CodeLanguagePlugin({
       });
     });
   }, [containerRef, editor]);
-  (0, import_react8.useEffect)(() => {
+  (0, import_react9.useEffect)(() => {
     update();
     const removeSelection = editor.registerCommand(
-      import_lexical11.SELECTION_CHANGE_COMMAND,
+      import_lexical15.SELECTION_CHANGE_COMMAND,
       () => {
         update();
         return false;
       },
-      import_lexical11.COMMAND_PRIORITY_LOW
+      import_lexical15.COMMAND_PRIORITY_LOW
     );
     const removeUpdate = editor.registerUpdateListener(() => {
       update();
@@ -2023,7 +2627,7 @@ function CodeLanguagePlugin({
       window.removeEventListener("resize", update);
     };
   }, [editor, update]);
-  (0, import_react8.useEffect)(() => {
+  (0, import_react9.useEffect)(() => {
     if (!menuOpen) return;
     const onPointerDown = (event) => {
       const target = event.target;
@@ -2037,7 +2641,7 @@ function CodeLanguagePlugin({
     if (!toolbar) return;
     const codeKey = toolbar.codeKey;
     editor.update(() => {
-      const code = (0, import_lexical11.$getNodeByKey)(codeKey);
+      const code = (0, import_lexical15.$getNodeByKey)(codeKey);
       if (!(0, import_code4.$isCodeNode)(code)) return;
       code.setLanguage((0, import_code4.normalizeCodeLanguage)(language));
     });
@@ -2050,7 +2654,7 @@ function CodeLanguagePlugin({
   const currentLabel = languageOptions.find((option) => option.id === toolbar.language)?.label ?? getHljsLanguageLabel(toolbar.language);
   const resolvedLanguage = allowedLanguages.has(toolbar.language) ? toolbar.language : languageOptions[0]?.id ?? toolbar.language;
   return (0, import_react_dom2.createPortal)(
-    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
       "div",
       {
         ref: toolbarRef,
@@ -2059,8 +2663,8 @@ function CodeLanguagePlugin({
           top: `${toolbar.top}px`,
           right: `${toolbar.right}px`
         },
-        children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-code-language-picker", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "re-code-language-picker", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
             "button",
             {
               type: "button",
@@ -2071,8 +2675,8 @@ function CodeLanguagePlugin({
               onMouseDown: (event) => event.stopPropagation(),
               onClick: () => setMenuOpen((open) => !open),
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "re-code-language-trigger-label", children: currentLabel }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "re-code-language-trigger-label", children: currentLabel }),
+                /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                   "svg",
                   {
                     className: "re-code-language-chevron",
@@ -2080,7 +2684,7 @@ function CodeLanguagePlugin({
                     height: "10",
                     viewBox: "0 0 10 10",
                     "aria-hidden": "true",
-                    children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                       "path",
                       {
                         d: "M2 3.5 5 6.5 8 3.5",
@@ -2096,13 +2700,13 @@ function CodeLanguagePlugin({
               ]
             }
           ),
-          menuOpen && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          menuOpen && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             "ul",
             {
               className: "re-code-language-menu re-scrollbar",
               role: "listbox",
               "aria-label": labels.codeLanguage,
-              children: languageOptions.map((option) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("li", { role: "none", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              children: languageOptions.map((option) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("li", { role: "none", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                 "button",
                 {
                   type: "button",
@@ -2124,13 +2728,13 @@ function CodeLanguagePlugin({
 }
 
 // src/components/plugins/SelectionMenuPlugin.tsx
-var import_react11 = require("react");
+var import_react12 = require("react");
 var import_react_dom3 = require("react-dom");
-var import_LexicalComposerContext9 = require("@lexical/react/LexicalComposerContext");
-var import_lexical13 = require("lexical");
+var import_LexicalComposerContext10 = require("@lexical/react/LexicalComposerContext");
+var import_lexical17 = require("lexical");
 
 // src/components/toolbar/ToolbarIcons.tsx
-var import_jsx_runtime4 = require("react/jsx-runtime");
+var import_jsx_runtime6 = require("react/jsx-runtime");
 var defaults = {
   width: 18,
   height: 18,
@@ -2143,129 +2747,129 @@ var defaults = {
   "aria-hidden": true
 };
 function IconBold(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M6 4h8a4 4 0 0 1 0 8H6z" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M6 12h9a4 4 0 0 1 0 8H6z" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M6 4h8a4 4 0 0 1 0 8H6z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M6 12h9a4 4 0 0 1 0 8H6z" })
   ] });
 }
 function IconItalic(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "19", y1: "4", x2: "10", y2: "4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "14", y1: "20", x2: "5", y2: "20" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "15", y1: "4", x2: "9", y2: "20" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "19", y1: "4", x2: "10", y2: "4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "14", y1: "20", x2: "5", y2: "20" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "15", y1: "4", x2: "9", y2: "20" })
   ] });
 }
 function IconStrikethrough(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M16 4H9a3 3 0 0 0-2.83 4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M14 12a4 4 0 0 1 0 8H6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "4", y1: "12", x2: "20", y2: "12" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M16 4H9a3 3 0 0 0-2.83 4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M14 12a4 4 0 0 1 0 8H6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "4", y1: "12", x2: "20", y2: "12" })
   ] });
 }
 function IconCode(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "16 18 22 12 16 6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "8 6 2 12 8 18" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("polyline", { points: "16 18 22 12 16 6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("polyline", { points: "8 6 2 12 8 18" })
   ] });
 }
 function IconQuote(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M3 10h4v7H3z" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M13 10h4v7h-4z" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M3 10h4v7H3z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M13 10h4v7h-4z" })
   ] });
 }
 function IconCodeBlock(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("rect", { x: "4", y: "4", width: "16", height: "16", rx: "2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M8 10l2 2-2 2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M13 14h3" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { x: "4", y: "4", width: "16", height: "16", rx: "2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M8 10l2 2-2 2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M13 14h3" })
   ] });
 }
 function IconBulletList(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "9", y1: "6", x2: "20", y2: "6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "9", y1: "12", x2: "20", y2: "12" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "9", y1: "18", x2: "20", y2: "18" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "5", cy: "6", r: "1.5", fill: "currentColor", stroke: "none" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "5", cy: "12", r: "1.5", fill: "currentColor", stroke: "none" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "5", cy: "18", r: "1.5", fill: "currentColor", stroke: "none" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "9", y1: "6", x2: "20", y2: "6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "9", y1: "12", x2: "20", y2: "12" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "9", y1: "18", x2: "20", y2: "18" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "5", cy: "6", r: "1.5", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "5", cy: "12", r: "1.5", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "5", cy: "18", r: "1.5", fill: "currentColor", stroke: "none" })
   ] });
 }
 function IconNumberedList(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "10", y1: "6", x2: "20", y2: "6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "10", y1: "12", x2: "20", y2: "12" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "10", y1: "18", x2: "20", y2: "18" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M4 6h1v4H4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M4 16h2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M6 14H4" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "10", y1: "6", x2: "20", y2: "6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "10", y1: "12", x2: "20", y2: "12" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "10", y1: "18", x2: "20", y2: "18" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M4 6h1v4H4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M4 16h2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M6 14H4" })
   ] });
 }
 function IconLink(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M10 13a5 5 0 0 0 7.54.54l2.92-2.92a5 5 0 0 0-7.07-7.07l-1.5 1.5" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M14 11a5 5 0 0 0-7.54-.54L3.54 13.4a5 5 0 0 0 7.07 7.07l1.5-1.5" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M10 13a5 5 0 0 0 7.54.54l2.92-2.92a5 5 0 0 0-7.07-7.07l-1.5 1.5" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M14 11a5 5 0 0 0-7.54-.54L3.54 13.4a5 5 0 0 0 7.07 7.07l1.5-1.5" })
   ] });
 }
 function IconHeading(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M4 12V4h4v16H4v-8" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M12 4h8" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M16 4v16" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M4 12V4h4v16H4v-8" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12 4h8" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M16 4v16" })
   ] });
 }
 function IconMention(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "12", cy: "12", r: "4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "12", cy: "12", r: "4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" })
   ] });
 }
 function IconSpoiler(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "3", y1: "3", x2: "21", y2: "21" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "3", y1: "3", x2: "21", y2: "21" })
   ] });
 }
 function IconEdit(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M12 20h9" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12 20h9" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" })
   ] });
 }
 function IconTrash(props) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M3 6h18" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M8 6V4h8v2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M3 6h18" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M8 6V4h8v2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
   ] });
 }
 
 // src/components/toolbar/useFormatState.ts
-var import_react10 = require("react");
-var import_LexicalComposerContext8 = require("@lexical/react/LexicalComposerContext");
+var import_react11 = require("react");
+var import_LexicalComposerContext9 = require("@lexical/react/LexicalComposerContext");
 var import_code5 = require("@lexical/code");
 var import_link = require("@lexical/link");
 var import_list2 = require("@lexical/list");
 var import_rich_text5 = require("@lexical/rich-text");
 var import_selection = require("@lexical/selection");
-var import_utils4 = require("@lexical/utils");
-var import_lexical12 = require("lexical");
+var import_utils5 = require("@lexical/utils");
+var import_lexical16 = require("lexical");
 
 // src/context/LinkUiContext.tsx
-var import_react9 = require("react");
-var import_jsx_runtime5 = require("react/jsx-runtime");
-var LinkUiContext = (0, import_react9.createContext)(null);
+var import_react10 = require("react");
+var import_jsx_runtime7 = require("react/jsx-runtime");
+var LinkUiContext = (0, import_react10.createContext)(null);
 function LinkUiProvider({
   openLinkDialog,
   children
 }) {
-  const value = (0, import_react9.useMemo)(() => ({ openLinkDialog }), [openLinkDialog]);
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(LinkUiContext.Provider, { value, children });
+  const value = (0, import_react10.useMemo)(() => ({ openLinkDialog }), [openLinkDialog]);
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(LinkUiContext.Provider, { value, children });
 }
 function useLinkUiOptional() {
-  return (0, import_react9.useContext)(LinkUiContext);
+  return (0, import_react10.useContext)(LinkUiContext);
 }
 
 // src/components/toolbar/useFormatState.ts
@@ -2283,41 +2887,41 @@ var emptyFormat = {
   spoiler: false
 };
 function useFormatState() {
-  const [editor] = (0, import_LexicalComposerContext8.useLexicalComposerContext)();
-  const [state, setState] = (0, import_react10.useState)(emptyFormat);
-  (0, import_react10.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  const [state, setState] = (0, import_react11.useState)(emptyFormat);
+  (0, import_react11.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = (0, import_lexical12.$getSelection)();
-        if (!(0, import_lexical12.$isRangeSelection)(selection)) {
+        const selection = (0, import_lexical16.$getSelection)();
+        if (!(0, import_lexical16.$isRangeSelection)(selection)) {
           setState(emptyFormat);
           return;
         }
         const anchorNode = selection.anchor.getNode();
-        const listNode = (0, import_utils4.$findMatchingParent)(anchorNode, import_list2.$isListNode);
+        const listNode = (0, import_utils5.$findMatchingParent)(anchorNode, import_list2.$isListNode);
         setState({
           bold: selection.hasFormat("bold"),
           italic: selection.hasFormat("italic"),
           strikethrough: selection.hasFormat("strikethrough"),
           code: selection.hasFormat("code"),
-          quote: !!(0, import_utils4.$findMatchingParent)(anchorNode, import_rich_text5.$isQuoteNode),
-          codeBlock: !!(0, import_utils4.$findMatchingParent)(anchorNode, import_code5.$isCodeNode),
+          quote: !!(0, import_utils5.$findMatchingParent)(anchorNode, import_rich_text5.$isQuoteNode),
+          codeBlock: !!(0, import_utils5.$findMatchingParent)(anchorNode, import_code5.$isCodeNode),
           bulletList: listNode?.getListType() === "bullet",
           numberedList: listNode?.getListType() === "number",
-          link: !!(0, import_utils4.$findMatchingParent)(anchorNode, import_link.$isLinkNode),
-          heading: !!(0, import_utils4.$findMatchingParent)(anchorNode, import_rich_text5.$isHeadingNode),
-          spoiler: !!(0, import_utils4.$findMatchingParent)(anchorNode, $isSpoilerNode)
+          link: !!(0, import_utils5.$findMatchingParent)(anchorNode, import_link.$isLinkNode),
+          heading: !!(0, import_utils5.$findMatchingParent)(anchorNode, import_rich_text5.$isHeadingNode),
+          spoiler: !!(0, import_utils5.$findMatchingParent)(anchorNode, $isSpoilerNode)
         });
       });
     };
     const removeUpdate = editor.registerUpdateListener(() => update());
     const removeSelection = editor.registerCommand(
-      import_lexical12.SELECTION_CHANGE_COMMAND,
+      import_lexical16.SELECTION_CHANGE_COMMAND,
       () => {
         update();
         return false;
       },
-      import_lexical12.COMMAND_PRIORITY_LOW
+      import_lexical16.COMMAND_PRIORITY_LOW
     );
     return () => {
       removeUpdate();
@@ -2327,30 +2931,30 @@ function useFormatState() {
   return state;
 }
 function useFormatActions() {
-  const [editor] = (0, import_LexicalComposerContext8.useLexicalComposerContext)();
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
   const linkUi = useLinkUiOptional();
   return {
-    bold: () => editor.dispatchCommand(import_lexical12.FORMAT_TEXT_COMMAND, "bold"),
-    italic: () => editor.dispatchCommand(import_lexical12.FORMAT_TEXT_COMMAND, "italic"),
-    strikethrough: () => editor.dispatchCommand(import_lexical12.FORMAT_TEXT_COMMAND, "strikethrough"),
-    code: () => editor.dispatchCommand(import_lexical12.FORMAT_TEXT_COMMAND, "code"),
+    bold: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "bold"),
+    italic: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "italic"),
+    strikethrough: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "strikethrough"),
+    code: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "code"),
     quote: () => {
       editor.update(() => {
-        const selection = (0, import_lexical12.$getSelection)();
-        if (!(0, import_lexical12.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical16.$getSelection)();
+        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
         $applyQuoteToSelection(selection);
       });
     },
     codeBlock: () => {
       editor.update(() => {
-        const selection = (0, import_lexical12.$getSelection)();
-        if (!(0, import_lexical12.$isRangeSelection)(selection)) return;
-        const inCode = !!(0, import_utils4.$findMatchingParent)(
+        const selection = (0, import_lexical16.$getSelection)();
+        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const inCode = !!(0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           import_code5.$isCodeNode
         );
         if (inCode) {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical12.$createParagraphNode)());
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical16.$createParagraphNode)());
         } else {
           (0, import_selection.$setBlocksType)(selection, () => (0, import_code5.$createCodeNode)());
         }
@@ -2358,9 +2962,9 @@ function useFormatActions() {
     },
     bulletList: () => {
       editor.update(() => {
-        const selection = (0, import_lexical12.$getSelection)();
-        if (!(0, import_lexical12.$isRangeSelection)(selection)) return;
-        const listNode = (0, import_utils4.$findMatchingParent)(
+        const selection = (0, import_lexical16.$getSelection)();
+        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const listNode = (0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           import_list2.$isListNode
         );
@@ -2373,9 +2977,9 @@ function useFormatActions() {
     },
     numberedList: () => {
       editor.update(() => {
-        const selection = (0, import_lexical12.$getSelection)();
-        if (!(0, import_lexical12.$isRangeSelection)(selection)) return;
-        const listNode = (0, import_utils4.$findMatchingParent)(
+        const selection = (0, import_lexical16.$getSelection)();
+        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const listNode = (0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           import_list2.$isListNode
         );
@@ -2391,14 +2995,14 @@ function useFormatActions() {
     },
     heading: () => {
       editor.update(() => {
-        const selection = (0, import_lexical12.$getSelection)();
-        if (!(0, import_lexical12.$isRangeSelection)(selection)) return;
-        const heading = (0, import_utils4.$findMatchingParent)(
+        const selection = (0, import_lexical16.$getSelection)();
+        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const heading = (0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           import_rich_text5.$isHeadingNode
         );
         if (heading) {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical12.$createParagraphNode)());
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical16.$createParagraphNode)());
         } else {
           (0, import_selection.$setBlocksType)(selection, () => (0, import_rich_text5.$createHeadingNode)("h2"));
         }
@@ -2406,8 +3010,8 @@ function useFormatActions() {
     },
     mentionTrigger: () => {
       editor.update(() => {
-        const selection = (0, import_lexical12.$getSelection)();
-        if ((0, import_lexical12.$isRangeSelection)(selection)) {
+        const selection = (0, import_lexical16.$getSelection)();
+        if ((0, import_lexical16.$isRangeSelection)(selection)) {
           selection.insertText("@");
         }
       });
@@ -2415,12 +3019,12 @@ function useFormatActions() {
     },
     spoiler: () => {
       editor.update(() => {
-        const selection = (0, import_lexical12.$getSelection)();
-        if (!(0, import_lexical12.$isRangeSelection)(selection) || selection.isCollapsed()) return;
+        const selection = (0, import_lexical16.$getSelection)();
+        if (!(0, import_lexical16.$isRangeSelection)(selection) || selection.isCollapsed()) return;
         const anchorNode = selection.anchor.getNode();
-        const existing = (0, import_utils4.$findMatchingParent)(anchorNode, $isSpoilerNode);
+        const existing = (0, import_utils5.$findMatchingParent)(anchorNode, $isSpoilerNode);
         if (existing) {
-          const textNode = (0, import_lexical12.$createTextNode)(existing.getTextContent());
+          const textNode = (0, import_lexical16.$createTextNode)(existing.getTextContent());
           existing.replace(textNode);
           textNode.select();
           return;
@@ -2429,7 +3033,7 @@ function useFormatActions() {
         if (!text) return;
         selection.removeText();
         const spoiler = $createSpoilerNode();
-        spoiler.append((0, import_lexical12.$createTextNode)(text));
+        spoiler.append((0, import_lexical16.$createTextNode)(text));
         selection.insertNodes([spoiler]);
       });
     }
@@ -2437,7 +3041,7 @@ function useFormatActions() {
 }
 
 // src/components/plugins/SelectionMenuPlugin.tsx
-var import_jsx_runtime6 = require("react/jsx-runtime");
+var import_jsx_runtime8 = require("react/jsx-runtime");
 function isItemEnabled(item, features) {
   switch (item) {
     case "bold":
@@ -2470,29 +3074,29 @@ function isItemEnabled(item, features) {
 function MenuIcon({ item }) {
   switch (item) {
     case "bold":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconBold, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconBold, {});
     case "italic":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconItalic, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconItalic, {});
     case "strikethrough":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconStrikethrough, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconStrikethrough, {});
     case "code":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconCode, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconCode, {});
     case "quote":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconQuote, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconQuote, {});
     case "codeBlock":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconCodeBlock, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconCodeBlock, {});
     case "bulletList":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconBulletList, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconBulletList, {});
     case "numberedList":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconNumberedList, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconNumberedList, {});
     case "link":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconLink, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconLink, {});
     case "heading":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconHeading, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconHeading, {});
     case "mention":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconMention, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconMention, {});
     case "spoiler":
-      return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(IconSpoiler, {});
+      return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconSpoiler, {});
     default:
       return null;
   }
@@ -2601,22 +3205,22 @@ function SelectionMenuPlugin({
   items = defaultSelectionMenuItems,
   containerRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  const [editor] = (0, import_LexicalComposerContext10.useLexicalComposerContext)();
   const active = useFormatState();
   const format = useFormatActions();
-  const [position, setPosition] = (0, import_react11.useState)(
+  const [position, setPosition] = (0, import_react12.useState)(
     null
   );
   const visibleItems = items.filter((item) => isItemEnabled(item, features));
-  (0, import_react11.useEffect)(() => {
+  (0, import_react12.useEffect)(() => {
     if (!features.selectionMenu || visibleItems.length === 0) {
       setPosition(null);
       return;
     }
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = (0, import_lexical13.$getSelection)();
-        if (!(0, import_lexical13.$isRangeSelection)(selection) || selection.isCollapsed()) {
+        const selection = (0, import_lexical17.$getSelection)();
+        if (!(0, import_lexical17.$isRangeSelection)(selection) || selection.isCollapsed()) {
           setPosition(null);
           return;
         }
@@ -2645,12 +3249,12 @@ function SelectionMenuPlugin({
     };
     update();
     const removeSelection = editor.registerCommand(
-      import_lexical13.SELECTION_CHANGE_COMMAND,
+      import_lexical17.SELECTION_CHANGE_COMMAND,
       () => {
         update();
         return false;
       },
-      import_lexical13.COMMAND_PRIORITY_LOW
+      import_lexical17.COMMAND_PRIORITY_LOW
     );
     const removeUpdate = editor.registerUpdateListener(update);
     window.addEventListener("scroll", update, true);
@@ -2665,7 +3269,7 @@ function SelectionMenuPlugin({
   if (!features.selectionMenu || !position || visibleItems.length === 0) {
     return null;
   }
-  const menu = /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  const menu = /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
     "div",
     {
       className: "re-selection-menu",
@@ -2675,7 +3279,7 @@ function SelectionMenuPlugin({
       },
       role: "toolbar",
       "aria-label": labels.selectionMenu,
-      children: visibleItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      children: visibleItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         "button",
         {
           type: "button",
@@ -2689,7 +3293,7 @@ function SelectionMenuPlugin({
             event.preventDefault();
             runItemAction(item, format);
           },
-          children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MenuIcon, { item })
+          children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(MenuIcon, { item })
         },
         item
       ))
@@ -2699,93 +3303,93 @@ function SelectionMenuPlugin({
 }
 
 // src/components/plugins/LineBreakPlugin.tsx
-var import_react12 = require("react");
-var import_LexicalComposerContext10 = require("@lexical/react/LexicalComposerContext");
-var import_lexical14 = require("lexical");
+var import_react13 = require("react");
+var import_LexicalComposerContext11 = require("@lexical/react/LexicalComposerContext");
+var import_lexical18 = require("lexical");
 function LineBreakPlugin() {
-  const [editor] = (0, import_LexicalComposerContext10.useLexicalComposerContext)();
-  (0, import_react12.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
+  (0, import_react13.useEffect)(() => {
     return editor.registerCommand(
-      import_lexical14.INSERT_LINE_BREAK_COMMAND,
+      import_lexical18.INSERT_LINE_BREAK_COMMAND,
       () => {
-        const selection = (0, import_lexical14.$getSelection)();
-        if (!(0, import_lexical14.$isRangeSelection)(selection)) return false;
+        const selection = (0, import_lexical18.$getSelection)();
+        if (!(0, import_lexical18.$isRangeSelection)(selection)) return false;
         if ($getBlockCode(selection.anchor.getNode())) return false;
         selection.insertParagraph();
         return true;
       },
-      import_lexical14.COMMAND_PRIORITY_HIGH
+      import_lexical18.COMMAND_PRIORITY_HIGH
     );
   }, [editor]);
   return null;
 }
 
 // src/components/plugins/LinkUiPlugin.tsx
-var import_react13 = require("react");
+var import_react14 = require("react");
 var import_react_dom4 = require("react-dom");
-var import_LexicalComposerContext11 = require("@lexical/react/LexicalComposerContext");
+var import_LexicalComposerContext12 = require("@lexical/react/LexicalComposerContext");
 var import_link3 = require("@lexical/link");
-var import_utils5 = require("@lexical/utils");
-var import_lexical16 = require("lexical");
+var import_utils6 = require("@lexical/utils");
+var import_lexical20 = require("lexical");
 
 // src/core/links.ts
 var import_link2 = require("@lexical/link");
-var import_lexical15 = require("lexical");
+var import_lexical19 = require("lexical");
 function $applyLinkForm(values, linkKey) {
   const text = values.text.trim();
   const url = values.url.trim();
   if (!text || !url) return;
   if (linkKey) {
-    const link2 = (0, import_lexical15.$getNodeByKey)(linkKey);
+    const link2 = (0, import_lexical19.$getNodeByKey)(linkKey);
     if (!(0, import_link2.$isLinkNode)(link2)) return;
     const nextLink = (0, import_link2.$createLinkNode)(url, {
       rel: link2.getRel(),
       target: link2.getTarget(),
       title: link2.getTitle()
     });
-    nextLink.append((0, import_lexical15.$createTextNode)(text));
+    nextLink.append((0, import_lexical19.$createTextNode)(text));
     link2.replace(nextLink);
     nextLink.selectEnd();
     return;
   }
-  const selection = (0, import_lexical15.$getSelection)();
-  if (!(0, import_lexical15.$isRangeSelection)(selection)) return;
+  const selection = (0, import_lexical19.$getSelection)();
+  if (!(0, import_lexical19.$isRangeSelection)(selection)) return;
   if (!selection.isCollapsed()) {
     selection.removeText();
   }
   const link = (0, import_link2.$createLinkNode)(url);
-  link.append((0, import_lexical15.$createTextNode)(text));
+  link.append((0, import_lexical19.$createTextNode)(text));
   selection.insertNodes([link]);
 }
 function $removeLinkByKey(linkKey) {
-  const link = (0, import_lexical15.$getNodeByKey)(linkKey);
+  const link = (0, import_lexical19.$getNodeByKey)(linkKey);
   if (!(0, import_link2.$isLinkNode)(link)) return;
-  const textNode = (0, import_lexical15.$createTextNode)(link.getTextContent());
+  const textNode = (0, import_lexical19.$createTextNode)(link.getTextContent());
   link.replace(textNode);
   textNode.select();
 }
 
 // src/components/plugins/LinkUiPlugin.tsx
-var import_jsx_runtime7 = require("react/jsx-runtime");
+var import_jsx_runtime9 = require("react/jsx-runtime");
 function LinkModal({
   state,
   labels,
   onClose,
   onSave
 }) {
-  const titleId = (0, import_react13.useId)();
-  const textId = (0, import_react13.useId)();
-  const urlId = (0, import_react13.useId)();
-  const [text, setText] = (0, import_react13.useState)(state.text);
-  const [url, setUrl] = (0, import_react13.useState)(state.url);
-  const textRef = (0, import_react13.useRef)(null);
-  (0, import_react13.useEffect)(() => {
+  const titleId = (0, import_react14.useId)();
+  const textId = (0, import_react14.useId)();
+  const urlId = (0, import_react14.useId)();
+  const [text, setText] = (0, import_react14.useState)(state.text);
+  const [url, setUrl] = (0, import_react14.useState)(state.url);
+  const textRef = (0, import_react14.useRef)(null);
+  (0, import_react14.useEffect)(() => {
     setText(state.text);
     setUrl(state.url || "https://");
     const timer = window.setTimeout(() => textRef.current?.focus(), 0);
     return () => window.clearTimeout(timer);
   }, [state]);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -2797,7 +3401,7 @@ function LinkModal({
   }, [onClose]);
   const title = state.mode === "edit" ? labels.linkEdit : labels.linkAdd;
   return (0, import_react_dom4.createPortal)(
-    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { className: "re-link-modal-backdrop", onMouseDown: onClose, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "re-link-modal-backdrop", onMouseDown: onClose, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
       "div",
       {
         className: "re-link-modal",
@@ -2806,10 +3410,10 @@ function LinkModal({
         "aria-labelledby": titleId,
         onMouseDown: (event) => event.stopPropagation(),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("h3", { id: titleId, className: "re-link-modal-title", children: title }),
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("label", { className: "re-link-field", htmlFor: textId, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { className: "re-link-field-label", children: labels.linkText }),
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h3", { id: titleId, className: "re-link-modal-title", children: title }),
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("label", { className: "re-link-field", htmlFor: textId, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "re-link-field-label", children: labels.linkText }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
               "input",
               {
                 ref: textRef,
@@ -2822,9 +3426,9 @@ function LinkModal({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("label", { className: "re-link-field", htmlFor: urlId, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { className: "re-link-field-label", children: labels.linkUrl }),
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("label", { className: "re-link-field", htmlFor: urlId, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "re-link-field-label", children: labels.linkUrl }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
               "input",
               {
                 id: urlId,
@@ -2836,8 +3440,8 @@ function LinkModal({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { className: "re-link-modal-actions", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "re-link-modal-actions", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
               "button",
               {
                 type: "button",
@@ -2846,7 +3450,7 @@ function LinkModal({
                 children: labels.linkCancel
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
               "button",
               {
                 type: "button",
@@ -2869,7 +3473,7 @@ function LinkFloatingToolbar({
   onEdit,
   onRemove
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
     "div",
     {
       className: "re-link-floating-toolbar",
@@ -2880,7 +3484,7 @@ function LinkFloatingToolbar({
       role: "toolbar",
       "aria-label": labels.linkToolbar,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
           "button",
           {
             type: "button",
@@ -2891,10 +3495,10 @@ function LinkFloatingToolbar({
               event.preventDefault();
               onEdit();
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconEdit, {})
+            children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(IconEdit, {})
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
           "button",
           {
             type: "button",
@@ -2905,7 +3509,7 @@ function LinkFloatingToolbar({
               event.preventDefault();
               onRemove();
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(IconTrash, {})
+            children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(IconTrash, {})
           }
         )
       ]
@@ -2919,25 +3523,25 @@ function LinkUiPlugin({
   children
 }) {
   if (!enabled) {
-    return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(import_jsx_runtime7.Fragment, { children });
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_jsx_runtime9.Fragment, { children });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(LinkUiPluginInner, { labels, containerRef, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(LinkUiPluginInner, { labels, containerRef, children });
 }
 function LinkUiPluginInner({
   labels,
   containerRef,
   children
 }) {
-  const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
-  const [modal, setModal] = (0, import_react13.useState)(null);
-  const [toolbar, setToolbar] = (0, import_react13.useState)(null);
-  const closeModal = (0, import_react13.useCallback)(() => setModal(null), []);
-  const hideToolbar = (0, import_react13.useCallback)(() => setToolbar(null), []);
-  const openLinkDialog = (0, import_react13.useCallback)(() => {
+  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
+  const [modal, setModal] = (0, import_react14.useState)(null);
+  const [toolbar, setToolbar] = (0, import_react14.useState)(null);
+  const closeModal = (0, import_react14.useCallback)(() => setModal(null), []);
+  const hideToolbar = (0, import_react14.useCallback)(() => setToolbar(null), []);
+  const openLinkDialog = (0, import_react14.useCallback)(() => {
     editor.getEditorState().read(() => {
-      const selection = (0, import_lexical16.$getSelection)();
-      if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
-      const existing = (0, import_utils5.$findMatchingParent)(selection.anchor.getNode(), import_link3.$isLinkNode);
+      const selection = (0, import_lexical20.$getSelection)();
+      if (!(0, import_lexical20.$isRangeSelection)(selection)) return;
+      const existing = (0, import_utils6.$findMatchingParent)(selection.anchor.getNode(), import_link3.$isLinkNode);
       if (existing) {
         setModal({
           mode: "edit",
@@ -2956,10 +3560,10 @@ function LinkUiPluginInner({
       hideToolbar();
     });
   }, [editor, hideToolbar]);
-  const openEditForLinkKey = (0, import_react13.useCallback)(
+  const openEditForLinkKey = (0, import_react14.useCallback)(
     (linkKey) => {
       editor.getEditorState().read(() => {
-        const link = (0, import_lexical16.$getNodeByKey)(linkKey);
+        const link = (0, import_lexical20.$getNodeByKey)(linkKey);
         if (!(0, import_link3.$isLinkNode)(link)) return;
         setModal({
           mode: "edit",
@@ -2972,7 +3576,7 @@ function LinkUiPluginInner({
     },
     [editor, hideToolbar]
   );
-  const handleSaveModal = (0, import_react13.useCallback)(
+  const handleSaveModal = (0, import_react14.useCallback)(
     (text, url, linkKey) => {
       editor.update(() => {
         $applyLinkForm({ text, url }, linkKey);
@@ -2982,7 +3586,7 @@ function LinkUiPluginInner({
     },
     [closeModal, editor]
   );
-  const removeLink = (0, import_react13.useCallback)(
+  const removeLink = (0, import_react14.useCallback)(
     (linkKey) => {
       editor.update(() => {
         $removeLinkByKey(linkKey);
@@ -2991,17 +3595,17 @@ function LinkUiPluginInner({
     },
     [editor, hideToolbar]
   );
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     const removeClick = editor.registerCommand(
-      import_lexical16.CLICK_COMMAND,
+      import_lexical20.CLICK_COMMAND,
       (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return false;
         const anchor = target.closest("a.re-link");
         if (!anchor || !containerRef.current?.contains(anchor)) return false;
         event.preventDefault();
-        const node = (0, import_lexical16.$getNearestNodeFromDOMNode)(anchor);
-        const link = node ? (0, import_utils5.$findMatchingParent)(node, import_link3.$isLinkNode) : null;
+        const node = (0, import_lexical20.$getNearestNodeFromDOMNode)(anchor);
+        const link = node ? (0, import_utils6.$findMatchingParent)(node, import_link3.$isLinkNode) : null;
         if (!link) return true;
         const rect = anchor.getBoundingClientRect();
         const host = containerRef.current.getBoundingClientRect();
@@ -3017,7 +3621,7 @@ function LinkUiPluginInner({
         setModal(null);
         return true;
       },
-      import_lexical16.COMMAND_PRIORITY_HIGH
+      import_lexical20.COMMAND_PRIORITY_HIGH
     );
     const onDocumentMouseDown = (event) => {
       const target = event.target;
@@ -3033,11 +3637,11 @@ function LinkUiPluginInner({
       document.removeEventListener("mousedown", onDocumentMouseDown);
     };
   }, [containerRef, editor, hideToolbar]);
-  (0, import_react13.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     if (!toolbar) return;
     const update = () => {
       editor.getEditorState().read(() => {
-        const link = (0, import_lexical16.$getNodeByKey)(toolbar.linkKey);
+        const link = (0, import_lexical20.$getNodeByKey)(toolbar.linkKey);
         if (!(0, import_link3.$isLinkNode)(link)) {
           hideToolbar();
           return;
@@ -3068,10 +3672,10 @@ function LinkUiPluginInner({
       window.removeEventListener("resize", update);
     };
   }, [containerRef, editor, hideToolbar, toolbar]);
-  return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(LinkUiProvider, { openLinkDialog, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(LinkUiProvider, { openLinkDialog, children: [
     children,
     toolbar && containerRef.current && (0, import_react_dom4.createPortal)(
-      /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
         LinkFloatingToolbar,
         {
           position: toolbar,
@@ -3082,7 +3686,7 @@ function LinkUiPluginInner({
       ),
       containerRef.current
     ),
-    modal && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+    modal && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
       LinkModal,
       {
         state: modal,
@@ -3095,14 +3699,14 @@ function LinkUiPluginInner({
 }
 
 // src/components/plugins/SpoilerPlugin.tsx
-var import_react14 = require("react");
-var import_LexicalComposerContext12 = require("@lexical/react/LexicalComposerContext");
-var import_utils6 = require("@lexical/utils");
-var import_lexical17 = require("lexical");
+var import_react15 = require("react");
+var import_LexicalComposerContext13 = require("@lexical/react/LexicalComposerContext");
+var import_utils7 = require("@lexical/utils");
+var import_lexical21 = require("lexical");
 function SpoilerPlugin() {
-  const [editor] = (0, import_LexicalComposerContext12.useLexicalComposerContext)();
-  const editingRef = (0, import_react14.useRef)(null);
-  (0, import_react14.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
+  const editingRef = (0, import_react15.useRef)(null);
+  (0, import_react15.useEffect)(() => {
     const root = editor.getRootElement();
     if (!root) return;
     const clearEditing = () => {
@@ -3127,9 +3731,9 @@ function SpoilerPlugin() {
     };
     const removeUpdate = editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const selection = (0, import_lexical17.$getSelection)();
-        if (!(0, import_lexical17.$isRangeSelection)(selection)) return;
-        const spoiler = (0, import_utils6.$findMatchingParent)(
+        const selection = (0, import_lexical21.$getSelection)();
+        if (!(0, import_lexical21.$isRangeSelection)(selection)) return;
+        const spoiler = (0, import_utils7.$findMatchingParent)(
           selection.anchor.getNode(),
           $isSpoilerNode
         );
@@ -3147,17 +3751,129 @@ function SpoilerPlugin() {
   return null;
 }
 
+// src/components/plugins/AttachmentsPlugin.tsx
+var import_LexicalComposerContext14 = require("@lexical/react/LexicalComposerContext");
+var import_lexical22 = require("lexical");
+var import_react16 = require("react");
+init_attachments();
+init_attachmentInsert();
+init_ImageNode();
+function syncUploadedImages(editor, attachments) {
+  editor.update(() => {
+    const imageNodes = (0, import_lexical22.$nodesOfType)(ImageNode);
+    for (const attachment of attachments) {
+      if (attachment.status !== "ready" || !attachment.id || !attachment.url) {
+        continue;
+      }
+      for (const node of imageNodes) {
+        if (node.getFileId() !== attachment.localId) continue;
+        node.setSrc(attachment.url);
+        node.setFileId(attachment.id);
+      }
+    }
+  });
+}
+function AttachmentsPlugin({
+  disabled,
+  attachments,
+  addFiles,
+  containerRef,
+  insertInlineOnDrop = true
+}) {
+  const [editor] = (0, import_LexicalComposerContext14.useLexicalComposerContext)();
+  const dragDepthRef = (0, import_react16.useRef)(0);
+  (0, import_react16.useEffect)(() => {
+    if (disabled) return;
+    syncUploadedImages(editor, attachments);
+  }, [attachments, disabled, editor]);
+  (0, import_react16.useEffect)(() => {
+    if (disabled) return;
+    return editor.registerCommand(
+      import_lexical22.PASTE_COMMAND,
+      (event) => {
+        if (!(event instanceof ClipboardEvent)) return false;
+        const files = collectFilesFromClipboard(event.clipboardData);
+        if (files.length === 0) return false;
+        event.preventDefault();
+        const added = addFiles(files);
+        const imageAttachment = added.find((item) => isImageMime(item.mimeType));
+        if (imageAttachment) {
+          void insertImageAtSelection(editor, imageAttachment);
+        }
+        return true;
+      },
+      import_lexical22.COMMAND_PRIORITY_HIGH
+    );
+  }, [addFiles, disabled, editor]);
+  (0, import_react16.useEffect)(() => {
+    const container = containerRef.current;
+    if (!container || disabled) return;
+    const setDragOver = (active) => {
+      container.classList.toggle("re-editor-drag-over", active);
+    };
+    const onDragEnter = (event) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      event.preventDefault();
+      dragDepthRef.current += 1;
+      setDragOver(true);
+    };
+    const onDragLeave = (event) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      if (dragDepthRef.current === 0) setDragOver(false);
+    };
+    const onDragOver = (event) => {
+      if (!event.dataTransfer?.types.includes("Files")) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    };
+    const onDrop = (event) => {
+      const files = collectFilesFromDataTransfer(event.dataTransfer);
+      if (files.length === 0) return;
+      event.preventDefault();
+      dragDepthRef.current = 0;
+      setDragOver(false);
+      const added = addFiles(files);
+      if (!insertInlineOnDrop) return;
+      const imageAttachment = added.find(
+        (item) => getFileKind(item.mimeType) === "image"
+      );
+      if (imageAttachment) {
+        void insertImageAtSelection(editor, imageAttachment);
+      }
+    };
+    container.addEventListener("dragenter", onDragEnter);
+    container.addEventListener("dragleave", onDragLeave);
+    container.addEventListener("dragover", onDragOver);
+    container.addEventListener("drop", onDrop);
+    return () => {
+      container.removeEventListener("dragenter", onDragEnter);
+      container.removeEventListener("dragleave", onDragLeave);
+      container.removeEventListener("dragover", onDragOver);
+      container.removeEventListener("drop", onDrop);
+      setDragOver(false);
+    };
+  }, [addFiles, containerRef, disabled, editor, insertInlineOnDrop]);
+  return null;
+}
+async function handleInsertAttachment(editor, attachments, localId) {
+  const attachment = attachments.find((item) => item.localId === localId);
+  if (!attachment) return;
+  const { insertAttachmentAtSelection: insertAttachmentAtSelection2 } = await Promise.resolve().then(() => (init_attachmentInsert(), attachmentInsert_exports));
+  await insertAttachmentAtSelection2(editor, attachment);
+}
+
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
-  const lastApplied = (0, import_react15.useRef)(void 0);
-  (0, import_react15.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext15.useLexicalComposerContext)();
+  const lastApplied = (0, import_react17.useRef)(void 0);
+  (0, import_react17.useEffect)(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
-      const root = (0, import_lexical18.$getRoot)();
+      const root = (0, import_lexical23.$getRoot)();
       root.clear();
       if (!html?.trim()) {
-        const paragraph = (0, import_lexical18.$createParagraphNode)();
+        const paragraph = (0, import_lexical23.$createParagraphNode)();
         root.append(paragraph);
         paragraph.select();
         lastApplied.current = html;
@@ -3177,8 +3893,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
-  (0, import_react15.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext15.useLexicalComposerContext)();
+  (0, import_react17.useEffect)(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -3195,8 +3911,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
-  (0, import_react15.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext15.useLexicalComposerContext)();
+  (0, import_react17.useEffect)(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -3207,14 +3923,14 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
-  (0, import_react15.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext15.useLexicalComposerContext)();
+  (0, import_react17.useEffect)(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
-        const root = (0, import_lexical18.$getRoot)();
+        const root = (0, import_lexical23.$getRoot)();
         root.clear();
         if (!html.trim()) {
-          const paragraph = (0, import_lexical18.$createParagraphNode)();
+          const paragraph = (0, import_lexical23.$createParagraphNode)();
           root.append(paragraph);
           paragraph.select();
           return;
@@ -3234,13 +3950,13 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
-  (0, import_react15.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext15.useLexicalComposerContext)();
+  (0, import_react17.useEffect)(() => {
     clearRef.current = () => {
       editor.update(() => {
-        const root = (0, import_lexical18.$getRoot)();
+        const root = (0, import_lexical23.$getRoot)();
         root.clear();
-        const paragraph = (0, import_lexical18.$createParagraphNode)();
+        const paragraph = (0, import_lexical23.$createParagraphNode)();
         root.append(paragraph);
         paragraph.select();
       });
@@ -3255,11 +3971,11 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
-  (0, import_react15.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext15.useLexicalComposerContext)();
+  (0, import_react17.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        onEmptyChange((0, import_lexical18.$getRoot)().getTextContent().trim() === "");
+        onEmptyChange((0, import_lexical23.$getRoot)().getTextContent().trim() === "");
       });
     };
     update();
@@ -3268,8 +3984,283 @@ function EmptyStatePlugin({
   return null;
 }
 
+// src/components/attachments/AttachmentsBridge.tsx
+var import_LexicalComposerContext16 = require("@lexical/react/LexicalComposerContext");
+
+// src/components/attachments/AttachmentStrip.tsx
+var import_react18 = require("react");
+init_attachments();
+var import_jsx_runtime10 = require("react/jsx-runtime");
+function useAttachmentUploads({
+  onUploadFile,
+  disabled
+}) {
+  const [attachments, setAttachments] = (0, import_react18.useState)([]);
+  const abortControllers = (0, import_react18.useRef)(/* @__PURE__ */ new Map());
+  const uploadSingle = (0, import_react18.useCallback)(
+    async (file, localId) => {
+      const controller = new AbortController();
+      abortControllers.current.set(localId, controller);
+      try {
+        const uploaded = await onUploadFile(file, {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            setAttachments(
+              (current) => current.map(
+                (item) => item.localId === localId ? { ...item, progress } : item
+              )
+            );
+          }
+        });
+        setAttachments(
+          (current) => current.map(
+            (item) => item.localId === localId ? {
+              ...item,
+              id: uploaded.id,
+              name: uploaded.name,
+              mimeType: uploaded.mimeType,
+              size: uploaded.size,
+              url: uploaded.url,
+              thumbnailUrl: uploaded.thumbnailUrl,
+              status: "ready",
+              progress: 100,
+              error: void 0
+            } : item
+          )
+        );
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setAttachments(
+          (current) => current.map(
+            (item) => item.localId === localId ? {
+              ...item,
+              status: "error",
+              error: error instanceof Error ? error.message : "Upload failed"
+            } : item
+          )
+        );
+      } finally {
+        abortControllers.current.delete(localId);
+      }
+    },
+    [onUploadFile]
+  );
+  const addFiles = (0, import_react18.useCallback)(
+    (files) => {
+      if (disabled || files.length === 0) return [];
+      const nextItems = files.map((file) => {
+        const localId = createLocalId();
+        const previewUrl = URL.createObjectURL(file);
+        return {
+          localId,
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          size: file.size,
+          previewUrl,
+          status: "uploading",
+          progress: 0
+        };
+      });
+      setAttachments((current) => [...current, ...nextItems]);
+      nextItems.forEach((item, index) => {
+        void uploadSingle(files[index], item.localId);
+      });
+      return nextItems;
+    },
+    [disabled, uploadSingle]
+  );
+  const removeAttachment = (0, import_react18.useCallback)((localId) => {
+    const controller = abortControllers.current.get(localId);
+    controller?.abort();
+    abortControllers.current.delete(localId);
+    setAttachments((current) => {
+      const target = current.find((item) => item.localId === localId);
+      if (target?.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return current.filter((item) => item.localId !== localId);
+    });
+  }, []);
+  const clearAttachments = (0, import_react18.useCallback)(() => {
+    abortControllers.current.forEach((controller) => controller.abort());
+    abortControllers.current.clear();
+    setAttachments((current) => {
+      for (const item of current) {
+        if (item.previewUrl?.startsWith("blob:")) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      }
+      return [];
+    });
+  }, []);
+  const hasReadyAttachments = attachments.some(
+    (item) => item.status === "ready" && !!item.id
+  );
+  const hasUploadingAttachments = attachments.some(
+    (item) => item.status === "uploading"
+  );
+  return {
+    attachments,
+    addFiles,
+    removeAttachment,
+    clearAttachments,
+    hasReadyAttachments,
+    hasUploadingAttachments
+  };
+}
+function AttachmentPreview({
+  attachment
+}) {
+  const kind = getFileKind(attachment.mimeType);
+  const previewUrl = getAttachmentPreviewUrl(attachment);
+  if (kind === "image" && previewUrl) {
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      "img",
+      {
+        className: "re-attachment-thumb",
+        src: previewUrl,
+        alt: "",
+        draggable: false
+      }
+    );
+  }
+  if (kind === "video" && previewUrl) {
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      "video",
+      {
+        className: "re-attachment-thumb re-attachment-thumb-video",
+        src: previewUrl,
+        muted: true,
+        playsInline: true,
+        preload: "metadata"
+      }
+    );
+  }
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "re-attachment-file-icon", "aria-hidden": "true", children: getFileExtension(attachment.name) || "FILE" });
+}
+function AttachmentStrip({
+  attachments,
+  labels,
+  disabled,
+  onRemove,
+  onInsert
+}) {
+  if (attachments.length === 0) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "re-attachments", "aria-label": labels.attachments, children: attachments.map((attachment) => {
+    const canInsert = attachment.status === "ready";
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+      "div",
+      {
+        className: `re-attachment-item re-attachment-item-${attachment.status}`,
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+            "button",
+            {
+              type: "button",
+              className: "re-attachment-main",
+              disabled: disabled || !canInsert,
+              title: canInsert ? labels.insertAttachment : attachment.error,
+              onClick: () => onInsert(attachment.localId),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(AttachmentPreview, { attachment }),
+                /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "re-attachment-meta", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "re-attachment-name", children: attachment.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "re-attachment-sub", children: attachment.status === "uploading" ? `${labels.uploading} ${attachment.progress ?? 0}%` : attachment.status === "error" ? attachment.error ?? labels.uploadFailed : formatFileSize(attachment.size) })
+                ] })
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "button",
+            {
+              type: "button",
+              className: "re-attachment-remove",
+              "aria-label": labels.removeAttachment,
+              title: labels.removeAttachment,
+              disabled,
+              onClick: () => onRemove(attachment.localId),
+              children: "\xD7"
+            }
+          )
+        ]
+      },
+      attachment.localId
+    );
+  }) });
+}
+function AttachmentUploadButton({
+  labels,
+  disabled,
+  multiple = true,
+  accept,
+  onFilesSelected
+}) {
+  const inputRef = (0, import_react18.useRef)(null);
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_jsx_runtime10.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      "button",
+      {
+        type: "button",
+        className: "re-toolbar-btn",
+        "aria-label": labels.attachFile,
+        title: labels.attachFile,
+        disabled,
+        onClick: () => inputRef.current?.click(),
+        children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          "path",
+          {
+            d: "M21.44 11.05l-8.49 8.49a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a1.5 1.5 0 1 1-2.12-2.12l8.49-8.48",
+            stroke: "currentColor",
+            strokeWidth: "1.8",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }
+        ) })
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      "input",
+      {
+        ref: inputRef,
+        type: "file",
+        className: "sr-only",
+        multiple,
+        accept,
+        onChange: (event) => {
+          const files = Array.from(event.target.files ?? []);
+          if (files.length > 0) onFilesSelected(files);
+          event.target.value = "";
+        }
+      }
+    )
+  ] });
+}
+
+// src/components/attachments/AttachmentsBridge.tsx
+var import_jsx_runtime11 = require("react/jsx-runtime");
+function AttachmentsBridge({
+  attachments,
+  labels,
+  disabled,
+  onRemove
+}) {
+  const [editor] = (0, import_LexicalComposerContext16.useLexicalComposerContext)();
+  return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+    AttachmentStrip,
+    {
+      attachments,
+      labels,
+      disabled,
+      onRemove,
+      onInsert: (localId) => {
+        void handleInsertAttachment(editor, attachments, localId);
+      }
+    }
+  );
+}
+
 // src/components/toolbar/EditorToolbar.tsx
-var import_react16 = require("react");
+var import_react19 = require("react");
 
 // src/core/shortcuts.ts
 var formatKeyboardShortcuts = [
@@ -3389,7 +4380,7 @@ function shortcutById(id) {
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-var import_jsx_runtime8 = require("react/jsx-runtime");
+var import_jsx_runtime12 = require("react/jsx-runtime");
 function ToolbarButton({
   label,
   active,
@@ -3398,7 +4389,7 @@ function ToolbarButton({
   children
 }) {
   const shortcut = shortcutId ? shortcutById(shortcutId) : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
     "button",
     {
       type: "button",
@@ -3417,14 +4408,17 @@ function EditorToolbar({
   labels,
   slots,
   editorInputId,
-  showMentionButton
+  showMentionButton,
+  showAttachButton,
+  onAttachFiles,
+  acceptFiles
 }) {
   const active = useFormatState();
   const format = useFormatActions();
-  const [menuOpen, setMenuOpen] = (0, import_react16.useState)(false);
-  const menuId = (0, import_react16.useId)();
+  const [menuOpen, setMenuOpen] = (0, import_react19.useState)(false);
+  const menuId = (0, import_react19.useId)();
   const hasMenu = !!slots.toolbarMenu;
-  (0, import_react16.useEffect)(() => {
+  (0, import_react19.useEffect)(() => {
     if (!menuOpen) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -3432,7 +4426,7 @@ function EditorToolbar({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
     "div",
     {
       className: "re-toolbar",
@@ -3440,119 +4434,127 @@ function EditorToolbar({
       "aria-label": labels.toolbar,
       "aria-controls": editorInputId,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
           slots.toolbarStart,
-          features.bold && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.bold && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.bold,
               active: active.bold,
               onClick: format.bold,
               shortcutId: "format.bold",
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconBold, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconBold, {})
             }
           ),
-          features.italic && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.italic && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.italic,
               active: active.italic,
               onClick: format.italic,
               shortcutId: "format.italic",
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconItalic, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconItalic, {})
             }
           ),
-          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.strikethrough,
               active: active.strikethrough,
               onClick: format.strikethrough,
               shortcutId: "format.strikethrough",
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconStrikethrough, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconStrikethrough, {})
             }
           ),
-          features.code && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.code && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.code,
               active: active.code,
               onClick: format.code,
               shortcutId: "format.code",
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconCode, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconCode, {})
             }
           ),
-          features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.spoiler,
               active: active.spoiler,
               onClick: format.spoiler,
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconSpoiler, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconSpoiler, {})
             }
           ),
-          features.quote && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.quote && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.quote,
               active: active.quote,
               onClick: format.quote,
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconQuote, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconQuote, {})
             }
           ),
-          features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.codeBlock,
               active: active.codeBlock,
               onClick: format.codeBlock,
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconCodeBlock, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconCodeBlock, {})
             }
           ),
-          features.lists && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.lists && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_jsx_runtime12.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
               ToolbarButton,
               {
                 label: labels.bulletList,
                 active: active.bulletList,
                 onClick: format.bulletList,
-                children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconBulletList, {})
+                children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconBulletList, {})
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
               ToolbarButton,
               {
                 label: labels.numberedList,
                 active: active.numberedList,
                 onClick: format.numberedList,
-                children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconNumberedList, {})
+                children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconNumberedList, {})
               }
             )
           ] }),
-          features.links && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.links && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.link,
               active: active.link,
               onClick: format.link,
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconLink, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconLink, {})
             }
           ),
-          features.headings && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          features.headings && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             ToolbarButton,
             {
               label: labels.heading,
               active: active.heading,
               onClick: format.heading,
-              children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconHeading, {})
+              children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconHeading, {})
             }
           ),
-          showMentionButton && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(IconMention, {}) })
+          showMentionButton && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(IconMention, {}) }),
+          showAttachButton && onAttachFiles && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+            AttachmentUploadButton,
+            {
+              labels,
+              accept: acceptFiles,
+              onFilesSelected: onAttachFiles
+            }
+          )
         ] }),
-        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
+        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
           slots.toolbarEnd,
-          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_jsx_runtime12.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
               "button",
               {
                 type: "button",
@@ -3566,8 +4568,8 @@ function EditorToolbar({
                 children: "\u22EE"
               }
             ),
-            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_jsx_runtime12.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
                 "div",
                 {
                   className: "re-toolbar-menu-backdrop",
@@ -3575,7 +4577,7 @@ function EditorToolbar({
                   "aria-hidden": "true"
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
                 "div",
                 {
                   id: menuId,
@@ -3594,7 +4596,7 @@ function EditorToolbar({
 }
 
 // src/components/slots/createSlot.tsx
-var import_react17 = require("react");
+var import_react20 = require("react");
 function createSlot(name) {
   const Slot = ({ children }) => null;
   Slot.slotName = name;
@@ -3602,11 +4604,11 @@ function createSlot(name) {
   return Slot;
 }
 function isSlotComponent(child) {
-  return (0, import_react17.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
+  return (0, import_react20.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
 }
 function collectSlots(children) {
   const slots = {};
-  import_react17.Children.forEach(children, (child) => {
+  import_react20.Children.forEach(children, (child) => {
     if (!isSlotComponent(child)) return;
     const name = child.type.slotName;
     slots[name] = child.props.children;
@@ -3614,11 +4616,11 @@ function collectSlots(children) {
   return slots;
 }
 function hasToolbar(features, slots) {
-  return features.bold || features.italic || features.strikethrough || features.code || features.quote || features.codeBlock || features.lists || features.links || features.headings || features.spoiler || features.mentions || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
+  return features.bold || features.italic || features.strikethrough || features.code || features.quote || features.codeBlock || features.lists || features.links || features.headings || features.spoiler || features.mentions || features.attachments || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
 }
 
 // src/components/RichTextEditor.tsx
-var import_jsx_runtime9 = require("react/jsx-runtime");
+var import_jsx_runtime13 = require("react/jsx-runtime");
 function onError(error) {
   console.error(error);
 }
@@ -3637,8 +4639,8 @@ function EditorRefPlugin({
   getHtmlRef,
   useTrim
 }) {
-  const [editor] = (0, import_LexicalComposerContext14.useLexicalComposerContext)();
-  (0, import_react18.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext17.useLexicalComposerContext)();
+  (0, import_react21.useEffect)(() => {
     getHtmlRef.current = () => exportEditorHtml(editor, { useTrim });
     return () => {
       getHtmlRef.current = null;
@@ -3649,11 +4651,11 @@ function EditorRefPlugin({
 function DefaultSubmitButton({
   disabled,
   onSubmit,
-  label
+  label,
+  show
 }) {
-  const { isEmpty } = useRichTextEditor();
-  if (isEmpty) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+  if (!show) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
     "button",
     {
       type: "button",
@@ -3662,7 +4664,7 @@ function DefaultSubmitButton({
       className: "re-submit-btn",
       "aria-label": label,
       title: label,
-      children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
+      children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
     }
   );
 }
@@ -3672,18 +4674,20 @@ function SubmitArea({
   sending,
   onSubmit,
   label,
-  showDefault
+  showDefault,
+  showSubmit
 }) {
   if (slots.submitButton !== void 0) {
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_jsx_runtime9.Fragment, { children: slots.submitButton });
+    return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_jsx_runtime13.Fragment, { children: slots.submitButton });
   }
   if (!showDefault) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
     DefaultSubmitButton,
     {
       disabled: disabled || sending,
       onSubmit,
-      label
+      label,
+      show: showSubmit
     }
   );
 }
@@ -3697,11 +4701,13 @@ function ContextBridge({
   setHtmlRef,
   clearRef,
   onSubmit,
+  attachments,
+  hasReadyAttachments,
   children
 }) {
   const formatState = useFormatState();
   const format = useFormatActions();
-  const ctx = (0, import_react18.useMemo)(
+  const ctx = (0, import_react21.useMemo)(
     () => ({
       getHtml: () => getHtmlRef.current?.() ?? "",
       setHtml: (html) => setHtmlRef.current?.(html),
@@ -3709,6 +4715,8 @@ function ContextBridge({
       focus: () => focusRef.current?.(),
       submit: onSubmit,
       isEmpty,
+      attachments,
+      hasReadyAttachments,
       formatState,
       format,
       disabled,
@@ -3723,13 +4731,15 @@ function ContextBridge({
       format,
       formatState,
       getHtmlRef,
+      hasReadyAttachments,
       isEmpty,
       labels,
+      attachments,
       setHtmlRef,
       onSubmit
     ]
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(RichTextEditorProvider, { value: ctx, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(RichTextEditorProvider, { value: ctx, children });
 }
 function RichTextEditorInner({
   value,
@@ -3750,34 +4760,43 @@ function RichTextEditorInner({
   minRows = 1,
   maxRows = 8,
   mentionSearch,
+  onUploadFile,
+  acceptFiles,
   children
 }, ref) {
-  const features = (0, import_react18.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
-  const labels = (0, import_react18.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
-  const slots = (0, import_react18.useMemo)(() => collectSlots(children), [children]);
-  const rootId = (0, import_react18.useId)();
+  const features = (0, import_react21.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
+  const labels = (0, import_react21.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
+  const slots = (0, import_react21.useMemo)(() => collectSlots(children), [children]);
+  const rootId = (0, import_react21.useId)();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
-  const rootRef = (0, import_react18.useRef)(null);
-  const bodyRef = (0, import_react18.useRef)(null);
-  const getHtmlRef = (0, import_react18.useRef)(null);
-  const setHtmlRef = (0, import_react18.useRef)(null);
-  const clearRef = (0, import_react18.useRef)(null);
-  const focusRef = (0, import_react18.useRef)(null);
-  const [isEmpty, setIsEmpty] = (0, import_react18.useState)(true);
-  const [sending, setSending] = (0, import_react18.useState)(false);
-  const inputStyle = (0, import_react18.useMemo)(
+  const rootRef = (0, import_react21.useRef)(null);
+  const bodyRef = (0, import_react21.useRef)(null);
+  const getHtmlRef = (0, import_react21.useRef)(null);
+  const setHtmlRef = (0, import_react21.useRef)(null);
+  const clearRef = (0, import_react21.useRef)(null);
+  const focusRef = (0, import_react21.useRef)(null);
+  const [isEmpty, setIsEmpty] = (0, import_react21.useState)(true);
+  const [sending, setSending] = (0, import_react21.useState)(false);
+  const attachmentsEnabled = features.attachments && !!onUploadFile;
+  const uploads = useAttachmentUploads({
+    onUploadFile: onUploadFile ?? (async () => {
+      throw new Error("onUploadFile is required when attachments feature is enabled");
+    }),
+    disabled: disabled || !attachmentsEnabled
+  });
+  const inputStyle = (0, import_react21.useMemo)(
     () => ({
       minHeight: `${minRows * EDITOR_LINE_HEIGHT_PX}px`,
       maxHeight: `${maxRows * EDITOR_LINE_HEIGHT_PX}px`
     }),
     [minRows, maxRows]
   );
-  const enterBindings = (0, import_react18.useMemo)(
+  const enterBindings = (0, import_react21.useMemo)(
     () => resolveEnterKeyBindings({ enterBehavior, enterKeyBindings }),
     [enterBehavior, enterKeyBindings]
   );
-  const initialConfig = (0, import_react18.useMemo)(
+  const initialConfig = (0, import_react21.useMemo)(
     () => ({
       namespace: "RichTextEditor",
       theme: editorTheme,
@@ -3793,50 +4812,66 @@ function RichTextEditorInner({
         import_link4.LinkNode,
         import_link4.AutoLinkNode,
         ...features.mentions ? [MentionNode] : [],
-        ...features.spoiler ? [SpoilerNode] : []
+        ...features.spoiler ? [SpoilerNode] : [],
+        ...attachmentsEnabled ? [ImageNode, FileLinkNode] : []
       ]
     }),
-    [disabled, features.mentions, features.quote, features.spoiler]
+    [attachmentsEnabled, disabled, features.mentions, features.quote, features.spoiler]
   );
-  const transformers = (0, import_react18.useMemo)(
+  const transformers = (0, import_react21.useMemo)(
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
-  const getHtml = (0, import_react18.useCallback)(() => getHtmlRef.current?.() ?? "", []);
-  const submit = (0, import_react18.useCallback)(async () => {
-    if (disabled || sending || isEmpty || !onSubmit) return;
+  const getHtml = (0, import_react21.useCallback)(() => getHtmlRef.current?.() ?? "", []);
+  const submit = (0, import_react21.useCallback)(async () => {
+    if (disabled || sending || !onSubmit) return;
     const html = getHtml();
-    if (!html) return;
+    const attachmentPayloads = getReadyAttachmentPayloads(uploads.attachments);
+    if (!html && attachmentPayloads.length === 0) return;
+    if (uploads.hasUploadingAttachments) return;
     setSending(true);
     try {
-      await onSubmit(html);
+      await onSubmit({ html, attachments: attachmentPayloads });
       if (clearOnSubmit) {
         clearRef.current?.();
+        uploads.clearAttachments();
       }
     } finally {
       setSending(false);
     }
-  }, [clearOnSubmit, disabled, getHtml, isEmpty, onSubmit, sending]);
-  (0, import_react18.useImperativeHandle)(
+  }, [
+    clearOnSubmit,
+    disabled,
+    getHtml,
+    onSubmit,
+    sending,
+    uploads
+  ]);
+  const canSubmit = !isEmpty || uploads.hasReadyAttachments;
+  (0, import_react21.useImperativeHandle)(
     ref,
     () => ({
       getHtml,
       setHtml: (html) => setHtmlRef.current?.(html),
-      clear: () => clearRef.current?.(),
+      clear: () => {
+        clearRef.current?.();
+        uploads.clearAttachments();
+      },
       focus: () => focusRef.current?.(),
-      isEmpty: () => isEmpty
+      isEmpty: () => isEmpty,
+      getAttachments: () => uploads.attachments
     }),
-    [getHtml, isEmpty]
+    [getHtml, isEmpty, uploads]
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(EditorRefPlugin, { getHtmlRef, useTrim }),
-    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ClearPlugin, { clearRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(FocusPlugin, { focusRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
-    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(EditorRefPlugin, { getHtmlRef, useTrim }),
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(SetHtmlPlugin, { setHtmlRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(FocusPlugin, { focusRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
       ContextBridge,
       {
         disabled,
@@ -3847,8 +4882,10 @@ function RichTextEditorInner({
         focusRef,
         setHtmlRef,
         clearRef,
+        attachments: uploads.attachments,
+        hasReadyAttachments: uploads.hasReadyAttachments,
         onSubmit: () => void submit(),
-        children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(
           "div",
           {
             ref: rootRef,
@@ -3856,17 +4893,20 @@ function RichTextEditorInner({
             ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
-              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                 EditorToolbar,
                 {
                   features,
                   labels,
                   slots,
                   editorInputId,
-                  showMentionButton: features.mentions && !!mentionSearch
+                  showMentionButton: features.mentions && !!mentionSearch,
+                  showAttachButton: attachmentsEnabled,
+                  onAttachFiles: uploads.addFiles,
+                  acceptFiles
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                 BlurCapturePlugin,
                 {
                   rootRef,
@@ -3874,15 +4914,15 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(BlockBehaviorPlugin, {}),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(LineBreakPlugin, {}),
-                features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(SpoilerPlugin, {}),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(LineBreakPlugin, {}),
+                features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(SpoilerPlugin, {}),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(InitialHtmlPlugin, { html: value }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                   import_LexicalRichTextPlugin.RichTextPlugin,
                   {
-                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                       import_LexicalContentEditable.ContentEditable,
                       {
                         id: editorInputId,
@@ -3895,16 +4935,16 @@ function RichTextEditorInner({
                         "aria-describedby": placeholder ? placeholderId : void 0
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
                     ErrorBoundary: import_LexicalErrorBoundary.LexicalErrorBoundary
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_LexicalListPlugin.ListPlugin, {}),
-                features.links && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
-                features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
-                  /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
+                features.lists && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_LexicalListPlugin.ListPlugin, {}),
+                features.links && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
+                features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
+                  /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                     CodeLanguagePlugin,
                     {
                       labels,
@@ -3913,18 +4953,27 @@ function RichTextEditorInner({
                     }
                   )
                 ] }),
-                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
+                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
+                attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                  AttachmentsPlugin,
+                  {
+                    disabled,
+                    attachments: uploads.attachments,
+                    addFiles: uploads.addFiles,
+                    containerRef: bodyRef
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                   EnterPlugin,
                   {
                     bindings: enterBindings,
                     onSubmit: onSubmit ? () => void submit() : void 0
                   }
                 ),
-                features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                   SelectionMenuPlugin,
                   {
                     features,
@@ -3933,7 +4982,16 @@ function RichTextEditorInner({
                     containerRef: bodyRef
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                attachmentsEnabled && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+                  AttachmentsBridge,
+                  {
+                    attachments: uploads.attachments,
+                    labels,
+                    disabled,
+                    onRemove: uploads.removeAttachment
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
                   SubmitArea,
                   {
                     slots,
@@ -3941,11 +4999,12 @@ function RichTextEditorInner({
                     sending,
                     onSubmit: () => void submit(),
                     label: labels.submit,
-                    showDefault: showDefaultSubmit
+                    showDefault: showDefaultSubmit,
+                    showSubmit: canSubmit
                   }
                 )
               ] }),
-              slots.footer && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { className: "re-footer", children: slots.footer })
+              slots.footer && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "re-footer", children: slots.footer })
             ]
           }
         )
@@ -3953,7 +5012,7 @@ function RichTextEditorInner({
     ) })
   ] });
 }
-var RichTextEditorBase = (0, import_react18.forwardRef)(RichTextEditorInner);
+var RichTextEditorBase = (0, import_react21.forwardRef)(RichTextEditorInner);
 var ToolbarStart = createSlot("toolbarStart");
 var ToolbarEnd = createSlot("toolbarEnd");
 var ToolbarMenu = createSlot("toolbarMenu");
@@ -3968,7 +5027,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-var import_react19 = require("react");
+var import_react22 = require("react");
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -4245,7 +5304,7 @@ function enhanceViewerCodeBlocks(root, labels) {
 }
 
 // src/components/RichTextViewer.tsx
-var import_jsx_runtime10 = require("react/jsx-runtime");
+var import_jsx_runtime14 = require("react/jsx-runtime");
 function mentionAriaLabel(template, label) {
   return template.replace("{label}", label);
 }
@@ -4265,12 +5324,12 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
-  const ref = (0, import_react19.useRef)(null);
-  const prepared = (0, import_react19.useMemo)(
+  const ref = (0, import_react22.useRef)(null);
+  const prepared = (0, import_react22.useMemo)(
     () => prepareViewerContent(content, features),
     [content, features]
   );
-  (0, import_react19.useLayoutEffect)(() => {
+  (0, import_react22.useLayoutEffect)(() => {
     if (prepared.kind !== "html") return;
     const run = async () => {
       if (features.codeHighlight) {
@@ -4286,7 +5345,7 @@ function RichTextViewer({
     });
     return () => cleanup?.();
   }, [features.codeHighlight, labels, prepared]);
-  (0, import_react19.useEffect)(() => {
+  (0, import_react22.useEffect)(() => {
     if (prepared.kind !== "html") return;
     const root = ref.current;
     if (!root) return;
@@ -4298,7 +5357,7 @@ function RichTextViewer({
     root.addEventListener("click", onSpoilerClick);
     return () => root.removeEventListener("click", onSpoilerClick);
   }, [prepared]);
-  (0, import_react19.useEffect)(() => {
+  (0, import_react22.useEffect)(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
@@ -4341,7 +5400,7 @@ function RichTextViewer({
     };
   }, [labels.mention, onMentionClick, prepared]);
   if (prepared.kind === "plain") {
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
       "p",
       {
         ...themeDataAttribute(theme),
@@ -4351,7 +5410,7 @@ function RichTextViewer({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
     "div",
     {
       ref,

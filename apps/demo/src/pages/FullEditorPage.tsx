@@ -4,6 +4,7 @@ import {
   RichTextViewer,
   allSelectionMenuItems,
 } from "@rinsvent/rich-editor";
+import { mockUploadFile } from "../mockUpload";
 
 const DEMO_USERS = [
   { id: "alice", label: "Alice" },
@@ -29,7 +30,9 @@ export function FullEditorPage() {
             mentions: true,
             spoiler: true,
             selectionMenu: true,
+            attachments: true,
           }}
+          onUploadFile={mockUploadFile}
           selectionMenuItems={allSelectionMenuItems}
           mentionSearch={(query) =>
             DEMO_USERS.filter((user) =>
@@ -52,7 +55,7 @@ export function FullEditorPage() {
             submit: "Отправить",
           }}
           placeholder="Markdown shortcuts, toolbar icons, ||spoiler||…"
-          onSubmit={setLast}
+          onSubmit={(payload) => setLast(payload.html)}
           clearOnSubmit
           minRows={3}
           maxRows={12}

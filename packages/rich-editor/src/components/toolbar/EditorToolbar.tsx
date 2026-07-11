@@ -6,6 +6,7 @@ import type { EditorFeatures, EditorLabels } from "../../core/features";
 import { shortcutById } from "../../core/shortcuts";
 import type { SlotMap } from "../slots/createSlot";
 import { useFormatActions, useFormatState } from "./useFormatState";
+import { AttachmentUploadButton } from "../attachments/AttachmentStrip";
 import {
   IconBold,
   IconBulletList,
@@ -57,12 +58,18 @@ export function EditorToolbar({
   slots,
   editorInputId,
   showMentionButton,
+  showAttachButton,
+  onAttachFiles,
+  acceptFiles,
 }: {
   features: EditorFeatures;
   labels: EditorLabels;
   slots: SlotMap;
   editorInputId: string;
   showMentionButton?: boolean;
+  showAttachButton?: boolean;
+  onAttachFiles?: (files: File[]) => void;
+  acceptFiles?: string;
 }) {
   const active = useFormatState();
   const format = useFormatActions();
@@ -195,6 +202,13 @@ export function EditorToolbar({
           <ToolbarButton label={labels.mention} onClick={format.mentionTrigger}>
             <IconMention />
           </ToolbarButton>
+        )}
+        {showAttachButton && onAttachFiles && (
+          <AttachmentUploadButton
+            labels={labels}
+            accept={acceptFiles}
+            onFilesSelected={onAttachFiles}
+          />
         )}
       </div>
       {(slots.toolbarEnd || hasMenu) && (

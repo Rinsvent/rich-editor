@@ -167,3 +167,4 @@ export { SelectionMenuPlugin } from "./SelectionMenuPlugin";
 export { LineBreakPlugin } from "./LineBreakPlugin";
 export { LinkUiPlugin } from "./LinkUiPlugin";
 export { SpoilerPlugin } from "./SpoilerPlugin";
+export { AttachmentsPlugin } from "./AttachmentsPlugin";
