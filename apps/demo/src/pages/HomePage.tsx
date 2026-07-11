@@ -30,6 +30,9 @@ export function HomePage() {
         <li>
           <Link to="/mentions">Mentions</Link> — @user typeahead
         </li>
+        <li>
+          <Link to="/themes">Themes</Link> — presets: dark, light, telegram, slack, clickup
+        </li>
       </ul>
     </div>
   );

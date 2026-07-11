@@ -378,7 +378,7 @@ Lexical-пакеты — **dependencies** библиотеки, не peer (чт�
 - [x] Unit-тесты: html normalize, sanitize, markdown transformers (vitest)
 - [x] Удалён legacy messenger `src/`
 - [x] Mentions (`features.mentions` + `mentionSearch`, custom MentionNode)
-- [ ] Темы оформления (presets)
+- [x] Темы оформления (presets: dark, light, telegram, slack, clickup)
 - [ ] SSR-safe viewer (улучшения)
 - [ ] a11y: расширенные aria, документация shortcuts
 
@@ -464,4 +464,4 @@ function CommentThread({ comments }: Props) {
 | Дата | Изменение |
 |------|-----------|
 | 2026-06-27 | Первая версия: цели, анализ src, API, roadmap |
-| 2026-06-28 | Mentions: MentionNode, typeahead @, mentionSearch prop, viewer onMentionClick |
+| 2026-06-28 | Theme presets: dark, light, telegram, slack, clickup + theme="none" |

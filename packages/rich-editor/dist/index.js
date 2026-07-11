@@ -89,6 +89,38 @@ function resolveViewerFeatures(partial) {
 }
 var EDITOR_LINE_HEIGHT_PX = 28;
 
+// src/core/presets.ts
+var editorThemePresets = [
+  "dark",
+  "light",
+  "telegram",
+  "slack",
+  "clickup"
+];
+var defaultEditorTheme = "dark";
+function isEditorThemePreset(value) {
+  return editorThemePresets.includes(value);
+}
+var editorCssVariables = [
+  "--re-bg",
+  "--re-border",
+  "--re-text",
+  "--re-muted",
+  "--re-accent",
+  "--re-accent-hover",
+  "--re-hover",
+  "--re-code-bg",
+  "--re-pre-bg",
+  "--re-font-size",
+  "--re-line-height"
+];
+
+// src/core/themePresets.ts
+function themeDataAttribute(theme) {
+  if (theme === "none") return void 0;
+  return { "data-re-theme": theme };
+}
+
 // src/nodes/MentionNode.ts
 import {
   $applyNodeReplacement,
@@ -1182,7 +1214,7 @@ function RichTextEditorInner({
   enterBehavior = "shift-newline",
   clearOnSubmit = false,
   className,
-  theme = "dark",
+  theme = defaultEditorTheme,
   minRows = 1,
   maxRows = 8,
   mentionSearch,
@@ -1281,7 +1313,7 @@ function RichTextEditorInner({
           {
             ref: rootRef,
             id: rootId,
-            "data-re-theme": theme,
+            ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
               showToolbar && /* @__PURE__ */ jsx4(EditorToolbar, { features, labels, slots }),
@@ -1375,7 +1407,7 @@ function RichTextViewer({
   content,
   features: featuresProp,
   className,
-  theme = "dark",
+  theme = defaultEditorTheme,
   onMentionClick
 }) {
   const features = resolveViewerFeatures(featuresProp);
@@ -1420,7 +1452,7 @@ function RichTextViewer({
     return /* @__PURE__ */ jsx5(
       "p",
       {
-        "data-re-theme": theme,
+        ...themeDataAttribute(theme),
         className: cn("re-viewer re-viewer-plain", className),
         children: content
       }
@@ -1430,7 +1462,7 @@ function RichTextViewer({
     "div",
     {
       ref,
-      "data-re-theme": theme,
+      ...themeDataAttribute(theme),
       className: cn("re-viewer", className),
       dangerouslySetInnerHTML: { __html: html }
     }
@@ -1440,10 +1472,14 @@ export {
   RichTextEditor,
   RichTextViewer,
   buildMarkdownTransformers,
+  defaultEditorTheme,
   defaultFeatures,
   defaultLabels,
   defaultViewerFeatures,
+  editorCssVariables,
+  editorThemePresets,
   exportEditorHtml,
+  isEditorThemePreset,
   isHtmlContent,
   looksLikeMarkdown,
   markdownToHtml,

@@ -87,3 +87,25 @@ a {
 .demo-menu-item:hover {
   background: rgba(255, 255, 255, 0.06);
 }
+
+.demo-theme-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.demo-theme-picker button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+}
+
+.demo-theme-picker button.active {
+  border-color: #2aabee;
+  background: rgba(42, 171, 238, 0.2);
+}

@@ -40,6 +40,11 @@ import {
   resolveLabels,
 } from "../core/features";
 import type { MentionSearchFn } from "../core/mentions";
+import {
+  defaultEditorTheme,
+  type EditorTheme,
+} from "../core/presets";
+import { themeDataAttribute } from "../core/themePresets";
 import { MentionNode } from "../nodes/MentionNode";
 import { normalizeHtml } from "../core/html";
 import { buildMarkdownTransformers } from "../core/markdown";
@@ -85,7 +90,7 @@ export type RichTextEditorProps = {
   enterBehavior?: EnterBehavior;
   clearOnSubmit?: boolean;
   className?: string;
-  theme?: "light" | "dark";
+  theme?: EditorTheme;
   minRows?: number;
   maxRows?: number;
   mentionSearch?: MentionSearchFn;
@@ -249,7 +254,7 @@ function RichTextEditorInner(
     enterBehavior = "shift-newline",
     clearOnSubmit = false,
     className,
-    theme = "dark",
+    theme = defaultEditorTheme,
     minRows = 1,
     maxRows = 8,
     mentionSearch,
@@ -357,7 +362,7 @@ function RichTextEditorInner(
         <div
           ref={rootRef}
           id={rootId}
-          data-re-theme={theme}
+          {...themeDataAttribute(theme)}
           className={cn("re-editor-root", className)}
         >
           {showToolbar && (

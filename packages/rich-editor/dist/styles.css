@@ -1,4 +1,36 @@
 :root {
+  --re-font-size: 15px;
+  --re-line-height: 1.6;
+}
+
+/* Default + generic dark */
+:root,
+[data-re-theme="dark"] {
+  --re-bg: #242f3d;
+  --re-border: rgba(255, 255, 255, 0.08);
+  --re-text: #f5f5f5;
+  --re-muted: #8b98a5;
+  --re-accent: #5eb3f6;
+  --re-accent-hover: #4aa3e8;
+  --re-hover: rgba(255, 255, 255, 0.06);
+  --re-code-bg: rgba(0, 0, 0, 0.2);
+  --re-pre-bg: rgba(0, 0, 0, 0.25);
+}
+
+[data-re-theme="light"] {
+  --re-bg: #ffffff;
+  --re-border: rgba(0, 0, 0, 0.08);
+  --re-text: #1a1a1a;
+  --re-muted: #707579;
+  --re-accent: #3390ec;
+  --re-accent-hover: #2481cc;
+  --re-hover: rgba(0, 0, 0, 0.04);
+  --re-code-bg: rgba(0, 0, 0, 0.06);
+  --re-pre-bg: rgba(0, 0, 0, 0.06);
+}
+
+/* Telegram-style chat composer */
+[data-re-theme="telegram"] {
   --re-bg: #242f3d;
   --re-border: rgba(255, 255, 255, 0.08);
   --re-text: #f5f5f5;
@@ -6,22 +38,34 @@
   --re-accent: #2aabee;
   --re-accent-hover: #229ed9;
   --re-hover: rgba(255, 255, 255, 0.06);
-  --re-code-bg: rgba(0, 0, 0, 0.2);
-  --re-pre-bg: rgba(0, 0, 0, 0.25);
-  --re-font-size: 15px;
-  --re-line-height: 1.6;
+  --re-code-bg: rgba(0, 0, 0, 0.22);
+  --re-pre-bg: rgba(0, 0, 0, 0.28);
 }
 
-[data-re-theme="light"] {
-  --re-bg: #ffffff;
-  --re-border: rgba(0, 0, 0, 0.08);
-  --re-text: #000000;
-  --re-muted: #707579;
-  --re-accent: #3390ec;
-  --re-accent-hover: #2481cc;
-  --re-hover: rgba(0, 0, 0, 0.04);
-  --re-code-bg: rgba(0, 0, 0, 0.06);
-  --re-pre-bg: rgba(0, 0, 0, 0.06);
+/* Slack-style dark */
+[data-re-theme="slack"] {
+  --re-bg: #222529;
+  --re-border: rgba(255, 255, 255, 0.1);
+  --re-text: #d1d2d3;
+  --re-muted: #9a9b9e;
+  --re-accent: #1d9bd1;
+  --re-accent-hover: #148bbd;
+  --re-hover: rgba(255, 255, 255, 0.08);
+  --re-code-bg: rgba(0, 0, 0, 0.25);
+  --re-pre-bg: rgba(0, 0, 0, 0.32);
+}
+
+/* ClickUp-style dark */
+[data-re-theme="clickup"] {
+  --re-bg: #2b2f36;
+  --re-border: rgba(255, 255, 255, 0.09);
+  --re-text: #eceef1;
+  --re-muted: #9ca3af;
+  --re-accent: #7b68ee;
+  --re-accent-hover: #6a56e0;
+  --re-hover: rgba(123, 104, 238, 0.12);
+  --re-code-bg: rgba(0, 0, 0, 0.22);
+  --re-pre-bg: rgba(0, 0, 0, 0.3);
 }
 
 .re-editor-root {

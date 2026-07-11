@@ -14,6 +14,8 @@ import { isHtmlContent, sanitizeHtml } from "../core/html";
 import { cn } from "../core/cn";
 import type { MentionOption } from "../core/mentions";
 import { MENTION_ID_ATTR, MENTION_LABEL_ATTR } from "../core/mentions";
+import { defaultEditorTheme, type EditorTheme } from "../core/presets";
+import { themeDataAttribute } from "../core/themePresets";
 
 hljs.registerLanguage("javascript", javascript);
 hljs.registerLanguage("js", javascript);
@@ -26,7 +28,7 @@ export type RichTextViewerProps = {
   content: string;
   features?: Partial<ViewerFeatures>;
   className?: string;
-  theme?: "light" | "dark";
+  theme?: EditorTheme;
   onMentionClick?: (mention: MentionOption) => void;
 };
 
@@ -34,7 +36,7 @@ export function RichTextViewer({
   content,
   features: featuresProp,
   className,
-  theme = "dark",
+  theme = defaultEditorTheme,
   onMentionClick,
 }: RichTextViewerProps) {
   const features = resolveViewerFeatures(featuresProp);
@@ -87,7 +89,7 @@ export function RichTextViewer({
   if (!isHtml) {
     return (
       <p
-        data-re-theme={theme}
+        {...themeDataAttribute(theme)}
         className={cn("re-viewer re-viewer-plain", className)}
       >
         {content}
@@ -98,7 +100,7 @@ export function RichTextViewer({
   return (
     <div
       ref={ref}
-      data-re-theme={theme}
+      {...themeDataAttribute(theme)}
       className={cn("re-viewer", className)}
       dangerouslySetInnerHTML={{ __html: html }}
     />

@@ -21,6 +21,19 @@ export type {
 
 export type { MentionOption, MentionSearchFn } from "./core/mentions";
 
+export type {
+  EditorTheme,
+  EditorThemePreset,
+  EditorCssVariable,
+} from "./core/presets";
+
+export {
+  editorThemePresets,
+  defaultEditorTheme,
+  editorCssVariables,
+  isEditorThemePreset,
+} from "./core/presets";
+
 export {
   defaultFeatures,
   defaultLabels,

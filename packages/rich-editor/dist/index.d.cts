@@ -44,6 +44,17 @@ type MentionOption = {
 };
 type MentionSearchFn = (query: string) => MentionOption[] | Promise<MentionOption[]>;
 
+/** CSS theme presets applied via `data-re-theme` on editor/viewer root. */
+declare const editorThemePresets: readonly ["dark", "light", "telegram", "slack", "clickup"];
+type EditorThemePreset = (typeof editorThemePresets)[number];
+/** Disable built-in preset; style via your own CSS targeting `.re-editor-root`. */
+type EditorTheme = EditorThemePreset | "none";
+declare const defaultEditorTheme: EditorThemePreset;
+declare function isEditorThemePreset(value: string): value is EditorThemePreset;
+/** CSS custom properties consumed by `editor.css`. Override on a parent element. */
+declare const editorCssVariables: readonly ["--re-bg", "--re-border", "--re-text", "--re-muted", "--re-accent", "--re-accent-hover", "--re-hover", "--re-code-bg", "--re-pre-bg", "--re-font-size", "--re-line-height"];
+type EditorCssVariable = (typeof editorCssVariables)[number];
+
 type RichTextEditorHandle = {
     getHtml: () => string;
     setHtml: (html: string) => void;
@@ -62,7 +73,7 @@ type RichTextEditorProps = {
     enterBehavior?: EnterBehavior;
     clearOnSubmit?: boolean;
     className?: string;
-    theme?: "light" | "dark";
+    theme?: EditorTheme;
     minRows?: number;
     maxRows?: number;
     mentionSearch?: MentionSearchFn;
@@ -101,7 +112,7 @@ type RichTextViewerProps = {
     content: string;
     features?: Partial<ViewerFeatures>;
     className?: string;
-    theme?: "light" | "dark";
+    theme?: EditorTheme;
     onMentionClick?: (mention: MentionOption) => void;
 };
 declare function RichTextViewer({ content, features: featuresProp, className, theme, onMentionClick, }: RichTextViewerProps): react.JSX.Element;
@@ -144,4 +155,4 @@ declare function buildMarkdownTransformers(features: EditorFeatures): Transforme
 declare function looksLikeMarkdown(text: string): boolean;
 declare function markdownToHtml(markdown: string): string;
 
-export { type EditorFeatures, type EditorLabels, type EnterBehavior, type MentionOption, type MentionSearchFn, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, buildMarkdownTransformers, defaultFeatures, defaultLabels, defaultViewerFeatures, exportEditorHtml, isHtmlContent, looksLikeMarkdown, markdownToHtml, normalizeHtml, plainTextFromHtml, sanitizeHtml, useRichTextEditor };
+export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type MentionOption, type MentionSearchFn, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, buildMarkdownTransformers, defaultEditorTheme, defaultFeatures, defaultLabels, defaultViewerFeatures, editorCssVariables, editorThemePresets, exportEditorHtml, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownToHtml, normalizeHtml, plainTextFromHtml, sanitizeHtml, useRichTextEditor };

@@ -81,6 +81,23 @@ Keyboard shortcuts (when `keyboardShortcuts` is enabled):
 
 Storage: `<span data-mention-id="…" data-mention-label="…">@label</span>`
 
+### Theme presets
+
+```tsx
+<RichTextEditor theme="telegram" … />
+<RichTextViewer theme="slack" content={html} />
+```
+
+Presets: `dark` (default), `light`, `telegram`, `slack`, `clickup`, or `none` for fully custom CSS.
+
+Override variables on a wrapper:
+
+```css
+.my-chat [data-re-theme="dark"] {
+  --re-accent: #ff6600;
+}
+```
+
 ## Tests
 
 ```bash

@@ -7,6 +7,7 @@ import { TaskPage } from "./pages/TaskPage";
 import { ViewerPage } from "./pages/ViewerPage";
 import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { MentionsPage } from "./pages/MentionsPage";
+import { ThemesPage } from "./pages/ThemesPage";
 
 const links = [
   { to: "/", label: "Overview" },
@@ -17,6 +18,7 @@ const links = [
   { to: "/viewer", label: "Viewer" },
   { to: "/playground", label: "Playground" },
   { to: "/mentions", label: "Mentions" },
+  { to: "/themes", label: "Themes" },
 ];
 
 export function App() {
@@ -44,6 +46,7 @@ export function App() {
         <Route path="/viewer" element={<ViewerPage />} />
         <Route path="/playground" element={<PlaygroundPage />} />
         <Route path="/mentions" element={<MentionsPage />} />
+        <Route path="/themes" element={<ThemesPage />} />
       </Routes>
     </div>
   );
