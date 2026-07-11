@@ -11,11 +11,14 @@ import {
   QUOTE,
   STRIKETHROUGH,
   UNORDERED_LIST,
+  type TextMatchTransformer,
   type Transformer,
 } from "@lexical/markdown";
+import { $createTextNode } from "lexical";
 import { marked } from "marked";
 import type { EditorFeatures } from "./features";
 import { sanitizeHtml } from "./html";
+import { $createSpoilerNode, $isSpoilerNode, SpoilerNode } from "../nodes/SpoilerNode";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -35,6 +38,23 @@ marked.use({
     },
   },
 });
+
+const SPOILER: TextMatchTransformer = {
+  dependencies: [SpoilerNode],
+  export: (node) => {
+    if (!$isSpoilerNode(node)) return null;
+    return `||${node.getTextContent()}||`;
+  },
+  importRegExp: /(?:^|\s)\|\|([^|]+?)\|\|/,
+  regExp: /\|\|([^|]+?)\|\|$/,
+  replace: (textNode, match) => {
+    const spoiler = $createSpoilerNode();
+    spoiler.append($createTextNode(match[1]));
+    textNode.replace(spoiler);
+  },
+  trigger: "|",
+  type: "text-match",
+};
 
 export function buildMarkdownTransformers(
   features: EditorFeatures,
@@ -56,6 +76,7 @@ export function buildMarkdownTransformers(
   }
   if (features.strikethrough) transformers.push(STRIKETHROUGH);
   if (features.links) transformers.push(LINK);
+  if (features.spoiler) transformers.push(SPOILER);
 
   return transformers;
 }
@@ -73,6 +94,7 @@ export function looksLikeMarkdown(text: string): boolean {
     /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) ||
     /`[^`\n]+`/.test(t) ||
     /~~[^~\n]+~~/.test(t) ||
+    /\|\|[^|\n]+\|\|/.test(t) ||
     /\[[^\]]+\]\([^)]+\)/.test(t)
   );
 }

@@ -13,7 +13,7 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { HeadingNode } from "@lexical/rich-text";
 import { type LexicalEditor } from "lexical";
 import {
   forwardRef,
@@ -39,20 +39,28 @@ import {
   resolveFeatures,
   resolveLabels,
 } from "../core/features";
+import type { EnterKeyBinding } from "../core/enterBindings";
+import { resolveEnterKeyBindings } from "../core/enterBindings";
 import type { MentionSearchFn } from "../core/mentions";
+import type { SelectionMenuItem } from "../core/selectionMenu";
+import { defaultSelectionMenuItems } from "../core/selectionMenu";
 import {
   defaultEditorTheme,
   type EditorTheme,
 } from "../core/presets";
 import { themeDataAttribute } from "../core/themePresets";
 import { MentionNode } from "../nodes/MentionNode";
+import { SpoilerNode } from "../nodes/SpoilerNode";
+import { RichQuoteNode } from "../nodes/RichQuoteNode";
 import { normalizeHtml } from "../core/html";
 import { buildMarkdownTransformers } from "../core/markdown";
 import { editorTheme } from "../core/theme";
 import { cn } from "../core/cn";
 import {
   BlurCapturePlugin,
+  BlockBehaviorPlugin,
   ClearPlugin,
+  CodeHighlightPlugin,
   EmptyStatePlugin,
   EnterPlugin,
   FocusPlugin,
@@ -60,6 +68,7 @@ import {
   KeyboardShortcutsPlugin,
   MarkdownPastePlugin,
   MentionsPlugin,
+  SelectionMenuPlugin,
   SetHtmlPlugin,
 } from "./plugins";
 import { EditorToolbar } from "./toolbar/EditorToolbar";
@@ -88,6 +97,9 @@ export type RichTextEditorProps = {
   features?: Partial<EditorFeatures>;
   labels?: Partial<EditorLabels>;
   enterBehavior?: EnterBehavior;
+  /** Custom Enter/Ctrl+Enter bindings. Default: Enter → newline, Ctrl/Cmd+Enter → submit */
+  enterKeyBindings?: EnterKeyBinding[];
+  selectionMenuItems?: SelectionMenuItem[];
   clearOnSubmit?: boolean;
   className?: string;
   theme?: EditorTheme;
@@ -251,7 +263,9 @@ function RichTextEditorInner(
     disabled = false,
     features: featuresProp,
     labels: labelsProp,
-    enterBehavior = "shift-newline",
+    enterBehavior,
+    enterKeyBindings,
+    selectionMenuItems = defaultSelectionMenuItems,
     clearOnSubmit = false,
     className,
     theme = defaultEditorTheme,
@@ -269,6 +283,7 @@ function RichTextEditorInner(
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
   const rootRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const getHtmlRef = useRef<(() => string) | null>(null);
   const setHtmlRef = useRef<((html: string) => void) | null>(null);
   const clearRef = useRef<(() => void) | null>(null);
@@ -284,6 +299,11 @@ function RichTextEditorInner(
     [minRows, maxRows],
   );
 
+  const enterBindings = useMemo(
+    () => resolveEnterKeyBindings({ enterBehavior, enterKeyBindings }),
+    [enterBehavior, enterKeyBindings],
+  );
+
   const initialConfig = useMemo(
     () => ({
       namespace: "RichTextEditor",
@@ -292,7 +312,7 @@ function RichTextEditorInner(
       onError,
       nodes: [
         HeadingNode,
-        QuoteNode,
+        ...(features.quote ? [RichQuoteNode] : []),
         ListNode,
         ListItemNode,
         CodeNode,
@@ -300,9 +320,10 @@ function RichTextEditorInner(
         LinkNode,
         AutoLinkNode,
         ...(features.mentions ? [MentionNode] : []),
+        ...(features.spoiler ? [SpoilerNode] : []),
       ],
     }),
-    [disabled, features.mentions],
+    [disabled, features.mentions, features.quote, features.spoiler],
   );
 
   const transformers = useMemo(
@@ -373,6 +394,7 @@ function RichTextEditorInner(
               labels={labels}
               slots={slots}
               editorInputId={editorInputId}
+              showMentionButton={features.mentions && !!mentionSearch}
             />
           )}
           <BlurCapturePlugin
@@ -380,7 +402,8 @@ function RichTextEditorInner(
             onBlur={onBlur}
             getHtml={getHtml}
           />
-          <div className="re-editor-body">
+          <div ref={bodyRef} className="re-editor-body">
+            <BlockBehaviorPlugin />
             <InitialHtmlPlugin html={value} />
             <RichTextPlugin
               contentEditable={
@@ -407,6 +430,9 @@ function RichTextEditorInner(
             <HistoryPlugin />
             {features.lists && <ListPlugin />}
             {features.links && <LinkPlugin />}
+            {features.codeBlock && (
+              <CodeHighlightPlugin enabled={!disabled} />
+            )}
             {transformers.length > 0 && (
               <MarkdownShortcutPlugin transformers={transformers} />
             )}
@@ -415,10 +441,16 @@ function RichTextEditorInner(
             {features.mentions && mentionSearch && (
               <MentionsPlugin searchMentions={mentionSearch} />
             )}
-            {onSubmit && (
-              <EnterPlugin
-                behavior={enterBehavior}
-                onSubmit={() => void submit()}
+            <EnterPlugin
+              bindings={enterBindings}
+              onSubmit={onSubmit ? () => void submit() : undefined}
+            />
+            {features.selectionMenu && (
+              <SelectionMenuPlugin
+                features={features}
+                labels={labels}
+                items={selectionMenuItems}
+                containerRef={bodyRef}
               />
             )}
             <SubmitArea

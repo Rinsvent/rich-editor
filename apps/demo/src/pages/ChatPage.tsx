@@ -22,7 +22,7 @@ export function ChatPage() {
     <>
       <div className="demo-card">
         <h2>Chat mode</h2>
-        <p>Enter — отправить, Shift+Enter — новая строка. Draft подгружается через value.</p>
+        <p>Ctrl+Enter — отправить, Enter — новая строка. Draft подгружается через value.</p>
         <RichTextEditor
           value={draft}
           onBlur={setDraft}

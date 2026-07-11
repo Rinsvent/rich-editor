@@ -1,3 +1,42 @@
+/** Prism token types → CSS classes for CodeHighlightNode */
+const PRISM_TOKEN_TYPES = [
+  "atrule",
+  "attr",
+  "attr-name",
+  "attr-value",
+  "boolean",
+  "builtin",
+  "cdata",
+  "char",
+  "class-name",
+  "comment",
+  "constant",
+  "deleted",
+  "doctype",
+  "entity",
+  "function",
+  "important",
+  "inserted",
+  "keyword",
+  "namespace",
+  "number",
+  "operator",
+  "prolog",
+  "property",
+  "punctuation",
+  "regex",
+  "selector",
+  "string",
+  "symbol",
+  "tag",
+  "url",
+  "variable",
+] as const;
+
+export const codeHighlightTheme = Object.fromEntries(
+  PRISM_TOKEN_TYPES.map((type) => [type, `token ${type}`]),
+) as Record<(typeof PRISM_TOKEN_TYPES)[number], string>;
+
 export const editorTheme = {
   paragraph: "re-paragraph",
   quote: "re-quote",
@@ -16,6 +55,7 @@ export const editorTheme = {
     code: "re-text-code",
   },
   code: "re-block-code",
+  codeHighlight: codeHighlightTheme,
   list: {
     ul: "re-list-ul",
     ol: "re-list-ol",
@@ -23,4 +63,5 @@ export const editorTheme = {
   },
   link: "re-link",
   mention: "re-mention",
+  spoiler: "re-spoiler",
 };

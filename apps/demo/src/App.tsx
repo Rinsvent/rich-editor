@@ -9,6 +9,7 @@ import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { MentionsPage } from "./pages/MentionsPage";
 import { ThemesPage } from "./pages/ThemesPage";
 import { A11yPage } from "./pages/A11yPage";
+import { EnterBehaviorPage } from "./pages/EnterBehaviorPage";
 
 const links = [
   { to: "/", label: "Overview" },
@@ -21,6 +22,7 @@ const links = [
   { to: "/mentions", label: "Mentions" },
   { to: "/themes", label: "Themes" },
   { to: "/a11y", label: "A11y" },
+  { to: "/enter", label: "Enter keys" },
 ];
 
 export function App() {
@@ -50,6 +52,7 @@ export function App() {
         <Route path="/mentions" element={<MentionsPage />} />
         <Route path="/themes" element={<ThemesPage />} />
         <Route path="/a11y" element={<A11yPage />} />
+        <Route path="/enter" element={<EnterBehaviorPage />} />
       </Routes>
     </div>
   );

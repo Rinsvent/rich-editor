@@ -3,8 +3,6 @@ import { ReactNode } from 'react';
 import { LexicalEditor } from 'lexical';
 import { Transformer } from '@lexical/markdown';
 
-type SlotName = "toolbarStart" | "toolbarEnd" | "toolbarMenu" | "submitButton" | "footer";
-
 type EditorFeatures = {
     bold: boolean;
     italic: boolean;
@@ -19,6 +17,8 @@ type EditorFeatures = {
     markdownPaste: boolean;
     keyboardShortcuts: boolean;
     mentions: boolean;
+    spoiler: boolean;
+    selectionMenu: boolean;
 };
 declare const defaultFeatures: EditorFeatures;
 type EditorLabels = {
@@ -26,15 +26,20 @@ type EditorLabels = {
     italic: string;
     strikethrough: string;
     code: string;
+    codeBlock: string;
     quote: string;
+    bulletList: string;
+    numberedList: string;
+    link: string;
+    heading: string;
+    mention: string;
+    spoiler: string;
     submit: string;
     menu: string;
-    /** Accessible name for the editable area */
     editor: string;
-    /** Accessible name for the formatting toolbar */
     toolbar: string;
-    /** Accessible name for the @mention typeahead menu */
     mentionMenu: string;
+    selectionMenu: string;
 };
 declare const defaultLabels: EditorLabels;
 type ViewerLabels = {
@@ -51,11 +56,45 @@ type ViewerFeatures = {
 };
 declare const defaultViewerFeatures: ViewerFeatures;
 
+type SlotName = "toolbarStart" | "toolbarEnd" | "toolbarMenu" | "submitButton" | "footer";
+
+type EnterKeyAction = "submit" | "newline";
+type EnterKeyBinding = {
+    key: "Enter";
+    shift?: boolean;
+    mod?: boolean;
+    alt?: boolean;
+    action: EnterKeyAction;
+};
+/**
+ * Default submit binding only. Plain Enter is handled by Lexical (markdown, lists, quotes…).
+ */
+declare const defaultEnterKeyBindings: EnterKeyBinding[];
+declare function enterBehaviorToBindings(behavior: EnterBehavior): EnterKeyBinding[];
+declare function resolveEnterKeyBindings(options: {
+    enterBehavior?: EnterBehavior;
+    enterKeyBindings?: EnterKeyBinding[];
+}): EnterKeyBinding[];
+declare function matchEnterKeyAction(event: KeyboardEvent, bindings: EnterKeyBinding[]): EnterKeyAction | null;
+/** Whether EnterPlugin should handle this action (plain Enter passes through to Lexical). */
+declare function shouldPluginHandleEnterAction(event: KeyboardEvent, action: EnterKeyAction, bindings: EnterKeyBinding[]): boolean;
+declare function formatEnterKeyBinding(binding: EnterKeyBinding): string;
+/** Human-readable description of active enter bindings. */
+declare function describeEnterKeyBindings(bindings: EnterKeyBinding[]): {
+    enter: string;
+    modEnter?: string;
+    shiftEnter?: string;
+};
+
 type MentionOption = {
     id: string;
     label: string;
 };
 type MentionSearchFn = (query: string) => MentionOption[] | Promise<MentionOption[]>;
+
+type SelectionMenuItem = "bold" | "italic" | "strikethrough" | "code" | "quote" | "codeBlock" | "bulletList" | "numberedList" | "link" | "heading" | "mention" | "spoiler";
+declare const defaultSelectionMenuItems: SelectionMenuItem[];
+declare const allSelectionMenuItems: SelectionMenuItem[];
 
 /** CSS theme presets applied via `data-re-theme` on editor/viewer root. */
 declare const editorThemePresets: readonly ["dark", "light", "telegram", "slack", "clickup"];
@@ -84,6 +123,9 @@ type RichTextEditorProps = {
     features?: Partial<EditorFeatures>;
     labels?: Partial<EditorLabels>;
     enterBehavior?: EnterBehavior;
+    /** Custom Enter/Ctrl+Enter bindings. Default: Enter → newline, Ctrl/Cmd+Enter → submit */
+    enterKeyBindings?: EnterKeyBinding[];
+    selectionMenuItems?: SelectionMenuItem[];
     clearOnSubmit?: boolean;
     className?: string;
     theme?: EditorTheme;
@@ -131,12 +173,34 @@ type RichTextViewerProps = {
 };
 declare function RichTextViewer({ content, features: featuresProp, labels: labelsProp, className, theme, onMentionClick, }: RichTextViewerProps): react.JSX.Element;
 
+declare function useFormatActions(): {
+    bold: () => boolean;
+    italic: () => boolean;
+    strikethrough: () => boolean;
+    code: () => boolean;
+    quote: () => void;
+    codeBlock: () => void;
+    bulletList: () => void;
+    numberedList: () => void;
+    link: () => void;
+    heading: () => void;
+    mentionTrigger: () => void;
+    spoiler: () => void;
+};
+type FormatActions = ReturnType<typeof useFormatActions>;
+
 type FormatState = {
     bold: boolean;
     italic: boolean;
     strikethrough: boolean;
     code: boolean;
     quote: boolean;
+    codeBlock: boolean;
+    bulletList: boolean;
+    numberedList: boolean;
+    link: boolean;
+    heading: boolean;
+    spoiler: boolean;
 };
 type RichTextEditorContextValue = {
     getHtml: () => string;
@@ -146,13 +210,7 @@ type RichTextEditorContextValue = {
     submit: () => void;
     isEmpty: boolean;
     formatState: FormatState;
-    format: {
-        bold: () => void;
-        italic: () => void;
-        strikethrough: () => void;
-        code: () => void;
-        quote: () => void;
-    };
+    format: FormatActions;
     disabled: boolean;
     features: EditorFeatures;
     labels: EditorLabels;
@@ -198,10 +256,11 @@ declare const formatKeyboardShortcuts: KeyboardShortcut[];
 declare const mentionKeyboardShortcuts: KeyboardShortcut[];
 declare const markdownShortcuts: MarkdownShortcut[];
 declare function getActiveFormatShortcuts(features: Pick<EditorFeatures, "bold" | "italic" | "code" | "strikethrough" | "keyboardShortcuts">): KeyboardShortcut[];
-declare function getEnterBehaviorDescription(behavior: EnterBehavior): {
+declare function getEnterBehaviorDescription(behavior?: EnterBehavior): {
     enter: string;
     shiftEnter: string;
+    modEnter?: string;
 };
 declare function shortcutById(id: string): KeyboardShortcut | undefined;
 
-export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type ViewerFeatures, type ViewerLabels, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultFeatures, defaultLabels, defaultViewerFeatures, defaultViewerLabels, editorCssVariables, editorThemePresets, exportEditorHtml, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, mentionKeyboardShortcuts, normalizeHtml, plainTextFromHtml, prepareViewerContent, sanitizeHtml, shortcutById, useRichTextEditor };
+export { type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type EnterKeyAction, type EnterKeyBinding, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, RichTextViewer, type RichTextViewerProps, type SelectionMenuItem, type ViewerFeatures, type ViewerLabels, allSelectionMenuItems, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultEnterKeyBindings, defaultFeatures, defaultLabels, defaultSelectionMenuItems, defaultViewerFeatures, defaultViewerLabels, describeEnterKeyBindings, editorCssVariables, editorThemePresets, enterBehaviorToBindings, exportEditorHtml, formatEnterKeyBinding, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, matchEnterKeyAction, mentionKeyboardShortcuts, normalizeHtml, plainTextFromHtml, prepareViewerContent, resolveEnterKeyBindings, sanitizeHtml, shortcutById, shouldPluginHandleEnterAction, useRichTextEditor };

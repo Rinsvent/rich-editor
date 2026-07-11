@@ -68,3 +68,20 @@ export {
   shortcutById,
 } from "./core/shortcuts";
 export type { KeyboardShortcut, MarkdownShortcut } from "./core/shortcuts";
+
+export {
+  defaultEnterKeyBindings,
+  resolveEnterKeyBindings,
+  enterBehaviorToBindings,
+  formatEnterKeyBinding,
+  matchEnterKeyAction,
+  describeEnterKeyBindings,
+  shouldPluginHandleEnterAction,
+} from "./core/enterBindings";
+export type { EnterKeyBinding, EnterKeyAction } from "./core/enterBindings";
+
+export {
+  defaultSelectionMenuItems,
+  allSelectionMenuItems,
+} from "./core/selectionMenu";
+export type { SelectionMenuItem } from "./core/selectionMenu";

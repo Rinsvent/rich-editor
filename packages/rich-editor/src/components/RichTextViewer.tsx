@@ -61,6 +61,21 @@ export function RichTextViewer({
   }, [prepared, features.codeHighlight]);
 
   useEffect(() => {
+    if (prepared.kind !== "html") return;
+    const root = ref.current;
+    if (!root) return;
+
+    const onSpoilerClick = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement).closest(".re-spoiler");
+      if (!target || !root.contains(target)) return;
+      target.classList.add("re-spoiler-revealed");
+    };
+
+    root.addEventListener("click", onSpoilerClick);
+    return () => root.removeEventListener("click", onSpoilerClick);
+  }, [prepared]);
+
+  useEffect(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;

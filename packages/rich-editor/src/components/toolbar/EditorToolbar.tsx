@@ -6,6 +6,20 @@ import type { EditorFeatures, EditorLabels } from "../../core/features";
 import { shortcutById } from "../../core/shortcuts";
 import type { SlotMap } from "../slots/createSlot";
 import { useFormatActions, useFormatState } from "./useFormatState";
+import {
+  IconBold,
+  IconBulletList,
+  IconCode,
+  IconCodeBlock,
+  IconHeading,
+  IconItalic,
+  IconLink,
+  IconMention,
+  IconNumberedList,
+  IconQuote,
+  IconSpoiler,
+  IconStrikethrough,
+} from "./ToolbarIcons";
 
 function ToolbarButton({
   label,
@@ -42,11 +56,13 @@ export function EditorToolbar({
   labels,
   slots,
   editorInputId,
+  showMentionButton,
 }: {
   features: EditorFeatures;
   labels: EditorLabels;
   slots: SlotMap;
   editorInputId: string;
+  showMentionButton?: boolean;
 }) {
   const active = useFormatState();
   const format = useFormatActions();
@@ -70,7 +86,7 @@ export function EditorToolbar({
       aria-label={labels.toolbar}
       aria-controls={editorInputId}
     >
-      <div className="re-toolbar-group">
+      <div className="re-toolbar-group re-toolbar-group-main">
         {slots.toolbarStart}
         {features.bold && (
           <ToolbarButton
@@ -79,7 +95,7 @@ export function EditorToolbar({
             onClick={format.bold}
             shortcutId="format.bold"
           >
-            B
+            <IconBold />
           </ToolbarButton>
         )}
         {features.italic && (
@@ -89,7 +105,7 @@ export function EditorToolbar({
             onClick={format.italic}
             shortcutId="format.italic"
           >
-            I
+            <IconItalic />
           </ToolbarButton>
         )}
         {features.strikethrough && (
@@ -99,7 +115,7 @@ export function EditorToolbar({
             onClick={format.strikethrough}
             shortcutId="format.strikethrough"
           >
-            S
+            <IconStrikethrough />
           </ToolbarButton>
         )}
         {features.code && (
@@ -109,12 +125,75 @@ export function EditorToolbar({
             onClick={format.code}
             shortcutId="format.code"
           >
-            {"</>"}
+            <IconCode />
+          </ToolbarButton>
+        )}
+        {features.spoiler && (
+          <ToolbarButton
+            label={labels.spoiler}
+            active={active.spoiler}
+            onClick={format.spoiler}
+          >
+            <IconSpoiler />
           </ToolbarButton>
         )}
         {features.quote && (
-          <ToolbarButton label={labels.quote} active={active.quote} onClick={format.quote}>
-            "
+          <ToolbarButton
+            label={labels.quote}
+            active={active.quote}
+            onClick={format.quote}
+          >
+            <IconQuote />
+          </ToolbarButton>
+        )}
+        {features.codeBlock && (
+          <ToolbarButton
+            label={labels.codeBlock}
+            active={active.codeBlock}
+            onClick={format.codeBlock}
+          >
+            <IconCodeBlock />
+          </ToolbarButton>
+        )}
+        {features.lists && (
+          <>
+            <ToolbarButton
+              label={labels.bulletList}
+              active={active.bulletList}
+              onClick={format.bulletList}
+            >
+              <IconBulletList />
+            </ToolbarButton>
+            <ToolbarButton
+              label={labels.numberedList}
+              active={active.numberedList}
+              onClick={format.numberedList}
+            >
+              <IconNumberedList />
+            </ToolbarButton>
+          </>
+        )}
+        {features.links && (
+          <ToolbarButton
+            label={labels.link}
+            active={active.link}
+            onClick={format.link}
+          >
+            <IconLink />
+          </ToolbarButton>
+        )}
+        {features.headings && (
+          <ToolbarButton
+            label={labels.heading}
+            active={active.heading}
+            onClick={format.heading}
+          >
+            <IconHeading />
+          </ToolbarButton>
+        )}
+        {showMentionButton && (
+          <ToolbarButton label={labels.mention} onClick={format.mentionTrigger}>
+            <IconMention />
           </ToolbarButton>
         )}
       </div>

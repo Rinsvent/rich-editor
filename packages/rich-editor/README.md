@@ -144,13 +144,42 @@ import {
 | Ctrl/Cmd+I | Italic |
 | Ctrl/Cmd+E | Inline code |
 | Ctrl/Cmd+Shift+X | Strikethrough |
+| Enter | New line (default) |
+| Ctrl/Cmd+Enter | Submit (default) |
 | `@` | Open mentions menu |
 | ↑ / ↓ | Navigate mentions |
-| Enter | Select mention / submit (depends on `enterBehavior`) |
 | Esc | Close mentions menu |
-| Shift+Enter | New line (when `enterBehavior="submit"`) |
 
 Markdown typing shortcuts (`**bold**`, `` `code` ``, `> quote`, …) work when `features.markdownShortcuts` is enabled.
+
+### Enter key bindings
+
+Default: **Enter** → new line, **Ctrl/Cmd+Enter** → submit.
+
+```tsx
+import { defaultEnterKeyBindings } from "@rinsvent/rich-editor";
+
+<RichTextEditor
+  enterKeyBindings={defaultEnterKeyBindings}
+  onSubmit={send}
+/>
+
+// Legacy presets still supported:
+<RichTextEditor enterBehavior="shift-newline" onSubmit={send} />
+```
+
+### Toolbar & selection menu
+
+All format actions have toolbar icons when the feature is enabled. Optional floating menu on text selection:
+
+```tsx
+<RichTextEditor
+  features={{ selectionMenu: true, spoiler: true }}
+  selectionMenuItems={["bold", "italic", "link", "spoiler"]}
+/>
+```
+
+Spoiler: toolbar button or `||hidden text||` markdown → click to reveal in viewer.
 
 See demo page `/a11y` for a live checklist.
 

@@ -6,6 +6,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
+import type { EditorFeatures } from "../../core/features";
 
 export type SlotName =
   | "toolbarStart"
@@ -51,13 +52,7 @@ export function collectSlots(children: ReactNode): SlotMap {
 }
 
 export function hasToolbar(
-  features: {
-    bold: boolean;
-    italic: boolean;
-    strikethrough: boolean;
-    code: boolean;
-    quote: boolean;
-  },
+  features: EditorFeatures,
   slots: SlotMap,
 ): boolean {
   return (
@@ -66,6 +61,12 @@ export function hasToolbar(
     features.strikethrough ||
     features.code ||
     features.quote ||
+    features.codeBlock ||
+    features.lists ||
+    features.links ||
+    features.headings ||
+    features.spoiler ||
+    features.mentions ||
     !!slots.toolbarStart ||
     !!slots.toolbarEnd ||
     !!slots.toolbarMenu

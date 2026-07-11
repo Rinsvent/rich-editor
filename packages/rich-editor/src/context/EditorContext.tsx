@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import type { EditorLabels, EditorFeatures } from "../core/features";
+import type { FormatActions } from "../components/toolbar/useFormatState";
 
 export type FormatState = {
   bold: boolean;
@@ -13,6 +14,12 @@ export type FormatState = {
   strikethrough: boolean;
   code: boolean;
   quote: boolean;
+  codeBlock: boolean;
+  bulletList: boolean;
+  numberedList: boolean;
+  link: boolean;
+  heading: boolean;
+  spoiler: boolean;
 };
 
 export type RichTextEditorContextValue = {
@@ -23,13 +30,7 @@ export type RichTextEditorContextValue = {
   submit: () => void;
   isEmpty: boolean;
   formatState: FormatState;
-  format: {
-    bold: () => void;
-    italic: () => void;
-    strikethrough: () => void;
-    code: () => void;
-    quote: () => void;
-  };
+  format: FormatActions;
   disabled: boolean;
   features: EditorFeatures;
   labels: EditorLabels;

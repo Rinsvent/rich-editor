@@ -25,6 +25,12 @@ describe("normalizeHtml", () => {
       "<p><s>x</s> <s>y</s></p>",
     );
   });
+
+  it("merges adjacent blockquotes", () => {
+    expect(
+      normalizeHtml("<blockquote><p>a</p></blockquote><blockquote><p>b</p></blockquote>"),
+    ).toBe("<blockquote><p>a</p><p>b</p></blockquote>");
+  });
 });
 
 describe("isHtmlContent", () => {

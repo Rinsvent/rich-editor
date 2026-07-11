@@ -13,7 +13,7 @@ const SAMPLE_HTML =
 
 export function A11yPage() {
   const [lastMention, setLastMention] = useState<string | null>(null);
-  const enter = getEnterBehaviorDescription("submit");
+  const enter = getEnterBehaviorDescription();
 
   return (
     <section className="demo-page">
@@ -71,15 +71,15 @@ export function A11yPage() {
           ))}
           <tr>
             <td>
-              <kbd>Enter</kbd>
+              <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
             </td>
-            <td>{enter.enter}</td>
+            <td>{enter.modEnter ?? "Submit"}</td>
           </tr>
           <tr>
             <td>
-              <kbd>Shift</kbd> + <kbd>Enter</kbd>
+              <kbd>Enter</kbd>
             </td>
-            <td>{enter.shiftEnter}</td>
+            <td>{enter.enter}</td>
           </tr>
         </tbody>
       </table>

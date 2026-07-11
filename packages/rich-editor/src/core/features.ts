@@ -12,6 +12,8 @@ export type EditorFeatures = {
   markdownPaste: boolean;
   keyboardShortcuts: boolean;
   mentions: boolean;
+  spoiler: boolean;
+  selectionMenu: boolean;
 };
 
 export const defaultFeatures: EditorFeatures = {
@@ -28,6 +30,8 @@ export const defaultFeatures: EditorFeatures = {
   markdownPaste: true,
   keyboardShortcuts: true,
   mentions: false,
+  spoiler: false,
+  selectionMenu: false,
 };
 
 export function resolveFeatures(
@@ -41,28 +45,41 @@ export type EditorLabels = {
   italic: string;
   strikethrough: string;
   code: string;
+  codeBlock: string;
   quote: string;
+  bulletList: string;
+  numberedList: string;
+  link: string;
+  heading: string;
+  mention: string;
+  spoiler: string;
   submit: string;
   menu: string;
-  /** Accessible name for the editable area */
   editor: string;
-  /** Accessible name for the formatting toolbar */
   toolbar: string;
-  /** Accessible name for the @mention typeahead menu */
   mentionMenu: string;
+  selectionMenu: string;
 };
 
 export const defaultLabels: EditorLabels = {
   bold: "Bold",
   italic: "Italic",
   strikethrough: "Strikethrough",
-  code: "Code",
+  code: "Inline code",
+  codeBlock: "Code block",
   quote: "Quote",
+  bulletList: "Bullet list",
+  numberedList: "Numbered list",
+  link: "Link",
+  heading: "Heading",
+  mention: "Mention",
+  spoiler: "Spoiler",
   submit: "Submit",
   menu: "Menu",
   editor: "Rich text editor",
   toolbar: "Formatting",
   mentionMenu: "Mention suggestions",
+  selectionMenu: "Selection formatting",
 };
 
 export function resolveLabels(partial?: Partial<EditorLabels>): EditorLabels {

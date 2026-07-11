@@ -80,9 +80,15 @@ export const markdownShortcuts: MarkdownShortcut[] = [
   { pattern: "```lang", action: "Code block" },
   { pattern: "[text](url)", action: "Link" },
   { pattern: "# Heading", action: "Heading (when enabled)" },
+  { pattern: "||spoiler||", action: "Spoiler (when enabled)" },
 ];
 
-const enterBehaviorShortcuts: Record<
+const defaultEnterShortcuts = {
+  enter: "New line",
+  modEnter: "Submit",
+};
+
+const legacyEnterBehaviorShortcuts: Record<
   EnterBehavior,
   { enter: string; shiftEnter: string }
 > = {
@@ -124,11 +130,19 @@ export function getActiveFormatShortcuts(
   });
 }
 
-export function getEnterBehaviorDescription(behavior: EnterBehavior): {
+export function getEnterBehaviorDescription(behavior?: EnterBehavior): {
   enter: string;
   shiftEnter: string;
+  modEnter?: string;
 } {
-  return enterBehaviorShortcuts[behavior];
+  if (!behavior) {
+    return {
+      enter: defaultEnterShortcuts.enter,
+      shiftEnter: defaultEnterShortcuts.enter,
+      modEnter: defaultEnterShortcuts.modEnter,
+    };
+  }
+  return legacyEnterBehaviorShortcuts[behavior];
 }
 
 export function shortcutById(id: string): KeyboardShortcut | undefined {

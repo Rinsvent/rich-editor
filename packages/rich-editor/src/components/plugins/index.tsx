@@ -147,3 +147,6 @@ export { EnterPlugin } from "./EnterPlugin";
 export { MarkdownPastePlugin } from "./MarkdownPastePlugin";
 export { KeyboardShortcutsPlugin } from "./KeyboardShortcutsPlugin";
 export { MentionsPlugin } from "./MentionsPlugin";
+export { BlockBehaviorPlugin } from "./BlockBehaviorPlugin";
+export { CodeHighlightPlugin } from "./CodeHighlightPlugin";
+export { SelectionMenuPlugin } from "./SelectionMenuPlugin";

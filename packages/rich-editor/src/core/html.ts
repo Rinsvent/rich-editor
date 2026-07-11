@@ -36,6 +36,7 @@ export function sanitizeHtml(html: string): string {
       "rel",
       "data-mention-id",
       "data-mention-label",
+      "data-re-spoiler",
     ],
   });
 }
@@ -126,7 +127,33 @@ export function normalizeHtml(html: string): string {
   flattenTag(container, "i");
   flattenTag(container, "s");
 
+  mergeAdjacentBlockquotes(container);
+
   return container.innerHTML.trim();
+}
+
+function mergeAdjacentBlockquotes(container: Element): void {
+  const parents = new Set<Element>();
+  container.querySelectorAll("blockquote").forEach((quote) => {
+    if (quote.parentElement) parents.add(quote.parentElement);
+  });
+
+  for (const parent of parents) {
+    const children = Array.from(parent.children);
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      if (child.tagName.toLowerCase() !== "blockquote") continue;
+      let next = child.nextElementSibling;
+      while (next && next.tagName.toLowerCase() === "blockquote") {
+        while (next.firstChild) {
+          child.appendChild(next.firstChild);
+        }
+        const toRemove = next;
+        next = next.nextElementSibling;
+        toRemove.remove();
+      }
+    }
+  }
 }
 
 function flattenTag(container: Element, tagName: string): void {

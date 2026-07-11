@@ -33,16 +33,22 @@ var index_exports = {};
 __export(index_exports, {
   RichTextEditor: () => RichTextEditor,
   RichTextViewer: () => RichTextViewer,
+  allSelectionMenuItems: () => allSelectionMenuItems,
   applyLinkTargetToHtml: () => applyLinkTargetToHtml,
   buildMarkdownTransformers: () => buildMarkdownTransformers,
   defaultEditorTheme: () => defaultEditorTheme,
+  defaultEnterKeyBindings: () => defaultEnterKeyBindings,
   defaultFeatures: () => defaultFeatures,
   defaultLabels: () => defaultLabels,
+  defaultSelectionMenuItems: () => defaultSelectionMenuItems,
   defaultViewerFeatures: () => defaultViewerFeatures,
   defaultViewerLabels: () => defaultViewerLabels,
+  describeEnterKeyBindings: () => describeEnterKeyBindings,
   editorCssVariables: () => editorCssVariables,
   editorThemePresets: () => editorThemePresets,
+  enterBehaviorToBindings: () => enterBehaviorToBindings,
   exportEditorHtml: () => exportEditorHtml,
+  formatEnterKeyBinding: () => formatEnterKeyBinding,
   formatKeyboardShortcuts: () => formatKeyboardShortcuts,
   getActiveFormatShortcuts: () => getActiveFormatShortcuts,
   getEnterBehaviorDescription: () => getEnterBehaviorDescription,
@@ -51,23 +57,26 @@ __export(index_exports, {
   looksLikeMarkdown: () => looksLikeMarkdown,
   markdownShortcuts: () => markdownShortcuts,
   markdownToHtml: () => markdownToHtml,
+  matchEnterKeyAction: () => matchEnterKeyAction,
   mentionKeyboardShortcuts: () => mentionKeyboardShortcuts,
   normalizeHtml: () => normalizeHtml,
   plainTextFromHtml: () => plainTextFromHtml,
   prepareViewerContent: () => prepareViewerContent,
+  resolveEnterKeyBindings: () => resolveEnterKeyBindings,
   sanitizeHtml: () => sanitizeHtml,
   shortcutById: () => shortcutById,
+  shouldPluginHandleEnterAction: () => shouldPluginHandleEnterAction,
   useRichTextEditor: () => useRichTextEditor
 });
 module.exports = __toCommonJS(index_exports);
 
 // src/components/RichTextEditor.tsx
 var import_html5 = require("@lexical/html");
-var import_code = require("@lexical/code");
-var import_link = require("@lexical/link");
-var import_list = require("@lexical/list");
+var import_code5 = require("@lexical/code");
+var import_link2 = require("@lexical/link");
+var import_list3 = require("@lexical/list");
 var import_LexicalComposer = require("@lexical/react/LexicalComposer");
-var import_LexicalComposerContext7 = require("@lexical/react/LexicalComposerContext");
+var import_LexicalComposerContext10 = require("@lexical/react/LexicalComposerContext");
 var import_LexicalContentEditable = require("@lexical/react/LexicalContentEditable");
 var import_LexicalErrorBoundary = require("@lexical/react/LexicalErrorBoundary");
 var import_LexicalHistoryPlugin = require("@lexical/react/LexicalHistoryPlugin");
@@ -75,8 +84,8 @@ var import_LexicalLinkPlugin = require("@lexical/react/LexicalLinkPlugin");
 var import_LexicalListPlugin = require("@lexical/react/LexicalListPlugin");
 var import_LexicalMarkdownShortcutPlugin = require("@lexical/react/LexicalMarkdownShortcutPlugin");
 var import_LexicalRichTextPlugin = require("@lexical/react/LexicalRichTextPlugin");
-var import_rich_text2 = require("@lexical/rich-text");
-var import_react10 = require("react");
+var import_rich_text5 = require("@lexical/rich-text");
+var import_react13 = require("react");
 
 // src/context/EditorContext.tsx
 var import_react = require("react");
@@ -112,7 +121,9 @@ var defaultFeatures = {
   markdownShortcuts: true,
   markdownPaste: true,
   keyboardShortcuts: true,
-  mentions: false
+  mentions: false,
+  spoiler: false,
+  selectionMenu: false
 };
 function resolveFeatures(partial) {
   return { ...defaultFeatures, ...partial };
@@ -121,13 +132,21 @@ var defaultLabels = {
   bold: "Bold",
   italic: "Italic",
   strikethrough: "Strikethrough",
-  code: "Code",
+  code: "Inline code",
+  codeBlock: "Code block",
   quote: "Quote",
+  bulletList: "Bullet list",
+  numberedList: "Numbered list",
+  link: "Link",
+  heading: "Heading",
+  mention: "Mention",
+  spoiler: "Spoiler",
   submit: "Submit",
   menu: "Menu",
   editor: "Rich text editor",
   toolbar: "Formatting",
-  mentionMenu: "Mention suggestions"
+  mentionMenu: "Mention suggestions",
+  selectionMenu: "Selection formatting"
 };
 function resolveLabels(partial) {
   return { ...defaultLabels, ...partial };
@@ -147,6 +166,113 @@ function resolveViewerFeatures(partial) {
   return { ...defaultViewerFeatures, ...partial };
 }
 var EDITOR_LINE_HEIGHT_PX = 28;
+
+// src/core/enterBindings.ts
+var defaultEnterKeyBindings = [
+  { key: "Enter", mod: true, action: "submit" }
+];
+function enterBehaviorToBindings(behavior) {
+  switch (behavior) {
+    case "submit":
+      return [
+        { key: "Enter", shift: true, action: "newline" },
+        { key: "Enter", action: "submit" }
+      ];
+    case "newline":
+      return [{ key: "Enter", action: "newline" }];
+    case "shift-newline":
+      return [
+        { key: "Enter", shift: true, action: "newline" },
+        { key: "Enter", action: "submit" }
+      ];
+    default:
+      return defaultEnterKeyBindings;
+  }
+}
+function resolveEnterKeyBindings(options) {
+  if (options.enterKeyBindings?.length) {
+    return options.enterKeyBindings;
+  }
+  if (options.enterBehavior) {
+    return enterBehaviorToBindings(options.enterBehavior);
+  }
+  return defaultEnterKeyBindings;
+}
+function matchesEnterKeyBinding(event, binding) {
+  if (event.key !== binding.key) return false;
+  const mod = event.metaKey || event.ctrlKey;
+  if (!!binding.mod !== mod) return false;
+  if (!!binding.shift !== event.shiftKey) return false;
+  if (!!binding.alt !== event.altKey) return false;
+  return true;
+}
+function matchEnterKeyAction(event, bindings) {
+  for (const binding of bindings) {
+    if (matchesEnterKeyBinding(event, binding)) {
+      return binding.action;
+    }
+  }
+  return null;
+}
+function shouldPluginHandleEnterAction(event, action, bindings) {
+  if (action === "submit") return true;
+  const isPlainEnter = !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+  if (action === "newline" && isPlainEnter) {
+    const submitOnPlainEnter = bindings.some(
+      (b) => b.action === "submit" && !b.mod && !b.shift && !b.alt
+    );
+    return submitOnPlainEnter;
+  }
+  return true;
+}
+function formatEnterKeyBinding(binding) {
+  const parts = [];
+  if (binding.mod) parts.push("Ctrl");
+  if (binding.shift) parts.push("Shift");
+  if (binding.alt) parts.push("Alt");
+  parts.push(binding.key);
+  return parts.join("+");
+}
+function describeEnterKeyBindings(bindings) {
+  const submit = bindings.find((b) => b.action === "submit");
+  const newline = bindings.find((b) => b.action === "newline");
+  const enterLabel = (() => {
+    if (submit && !submit.mod && !submit.shift) return "Submit";
+    if (newline && !newline.mod && !newline.shift) return "New line";
+    return "New line";
+  })();
+  const modSubmit = bindings.find((b) => b.action === "submit" && b.mod);
+  const shiftNewline = bindings.find((b) => b.action === "newline" && b.shift);
+  return {
+    enter: enterLabel,
+    modEnter: modSubmit ? formatEnterKeyBinding(modSubmit) + " \u2192 Submit" : void 0,
+    shiftEnter: shiftNewline ? formatEnterKeyBinding(shiftNewline) + " \u2192 New line" : void 0
+  };
+}
+
+// src/core/selectionMenu.ts
+var defaultSelectionMenuItems = [
+  "bold",
+  "italic",
+  "strikethrough",
+  "code",
+  "link",
+  "spoiler"
+];
+var allSelectionMenuItems = [
+  "bold",
+  "italic",
+  "strikethrough",
+  "code",
+  "quote",
+  "codeBlock",
+  "bulletList",
+  "numberedList",
+  "link",
+  "heading",
+  "mention",
+  "spoiler"
+];
 
 // src/core/presets.ts
 var editorThemePresets = [
@@ -280,6 +406,92 @@ function $createMentionNode(mentionId, mentionLabel, textContent) {
   return (0, import_lexical.$applyNodeReplacement)(mentionNode);
 }
 
+// src/nodes/SpoilerNode.ts
+var import_lexical2 = require("lexical");
+var SpoilerNode = class _SpoilerNode extends import_lexical2.ElementNode {
+  static getType() {
+    return "spoiler";
+  }
+  static clone(node) {
+    return new _SpoilerNode(node.__key);
+  }
+  static importJSON(_serialized) {
+    return $createSpoilerNode();
+  }
+  static importDOM() {
+    return {
+      span: (domNode) => {
+        if (!domNode.classList.contains("re-spoiler")) return null;
+        return {
+          conversion: () => ({ node: $createSpoilerNode() }),
+          priority: 2
+        };
+      }
+    };
+  }
+  constructor(key) {
+    super(key);
+  }
+  isInline() {
+    return true;
+  }
+  canBeEmpty() {
+    return false;
+  }
+  canInsertTextBefore() {
+    return true;
+  }
+  canInsertTextAfter() {
+    return true;
+  }
+  createDOM(_config) {
+    const dom = document.createElement("span");
+    dom.className = "re-spoiler";
+    dom.setAttribute("data-re-spoiler", "");
+    dom.style.display = "inline";
+    return dom;
+  }
+  extractWithChild() {
+    return true;
+  }
+  updateDOM() {
+    return false;
+  }
+  exportDOM() {
+    const element = document.createElement("span");
+    element.className = "re-spoiler";
+    element.setAttribute("data-re-spoiler", "");
+    return { element };
+  }
+  exportJSON() {
+    return {
+      ...super.exportJSON(),
+      type: "spoiler"
+    };
+  }
+};
+function $createSpoilerNode() {
+  return (0, import_lexical2.$applyNodeReplacement)(new SpoilerNode());
+}
+function $isSpoilerNode(node) {
+  return node instanceof SpoilerNode;
+}
+
+// src/nodes/RichQuoteNode.ts
+var import_rich_text = require("@lexical/rich-text");
+var import_lexical3 = require("lexical");
+var RichQuoteNode = class _RichQuoteNode extends import_rich_text.QuoteNode {
+  static getType() {
+    return "quote";
+  }
+  static clone(node) {
+    return new _RichQuoteNode(node.__key);
+  }
+};
+function $createRichQuoteNode() {
+  return (0, import_lexical3.$applyNodeReplacement)(new RichQuoteNode());
+}
+
 // src/core/html.ts
 var import_isomorphic_dompurify = __toESM(require("isomorphic-dompurify"), 1);
 var ALLOWED_TAGS = [
@@ -316,7 +528,8 @@ function sanitizeHtml(html) {
       "target",
       "rel",
       "data-mention-id",
-      "data-mention-label"
+      "data-mention-label",
+      "data-re-spoiler"
     ]
   });
 }
@@ -393,7 +606,30 @@ function normalizeHtml(html) {
   flattenTag(container, "b");
   flattenTag(container, "i");
   flattenTag(container, "s");
+  mergeAdjacentBlockquotes(container);
   return container.innerHTML.trim();
+}
+function mergeAdjacentBlockquotes(container) {
+  const parents = /* @__PURE__ */ new Set();
+  container.querySelectorAll("blockquote").forEach((quote) => {
+    if (quote.parentElement) parents.add(quote.parentElement);
+  });
+  for (const parent of parents) {
+    const children = Array.from(parent.children);
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      if (child.tagName.toLowerCase() !== "blockquote") continue;
+      let next = child.nextElementSibling;
+      while (next && next.tagName.toLowerCase() === "blockquote") {
+        while (next.firstChild) {
+          child.appendChild(next.firstChild);
+        }
+        const toRemove = next;
+        next = next.nextElementSibling;
+        toRemove.remove();
+      }
+    }
+  }
 }
 function flattenTag(container, tagName) {
   const lower = tagName.toLowerCase();
@@ -415,6 +651,7 @@ function flattenTag(container, tagName) {
 
 // src/core/markdown.ts
 var import_markdown = require("@lexical/markdown");
+var import_lexical4 = require("lexical");
 var import_marked = require("marked");
 import_marked.marked.setOptions({ gfm: true, breaks: true });
 import_marked.marked.use({
@@ -433,6 +670,22 @@ import_marked.marked.use({
     }
   }
 });
+var SPOILER = {
+  dependencies: [SpoilerNode],
+  export: (node) => {
+    if (!$isSpoilerNode(node)) return null;
+    return `||${node.getTextContent()}||`;
+  },
+  importRegExp: /(?:^|\s)\|\|([^|]+?)\|\|/,
+  regExp: /\|\|([^|]+?)\|\|$/,
+  replace: (textNode, match) => {
+    const spoiler = $createSpoilerNode();
+    spoiler.append((0, import_lexical4.$createTextNode)(match[1]));
+    textNode.replace(spoiler);
+  },
+  trigger: "|",
+  type: "text-match"
+};
 function buildMarkdownTransformers(features) {
   const transformers = [];
   if (features.headings) transformers.push(import_markdown.HEADING);
@@ -450,12 +703,13 @@ function buildMarkdownTransformers(features) {
   }
   if (features.strikethrough) transformers.push(import_markdown.STRIKETHROUGH);
   if (features.links) transformers.push(import_markdown.LINK);
+  if (features.spoiler) transformers.push(SPOILER);
   return transformers;
 }
 function looksLikeMarkdown(text) {
   const t = text.trim();
   if (t.length < 2) return false;
-  return /^#{1,6}\s/m.test(t) || /^>\s/m.test(t) || /^[-*+]\s/m.test(t) || /^\d+\.\s/m.test(t) || /```[\s\S]*?```/.test(t) || /\*\*[^*\n]+\*\*/.test(t) || /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) || /`[^`\n]+`/.test(t) || /~~[^~\n]+~~/.test(t) || /\[[^\]]+\]\([^)]+\)/.test(t);
+  return /^#{1,6}\s/m.test(t) || /^>\s/m.test(t) || /^[-*+]\s/m.test(t) || /^\d+\.\s/m.test(t) || /```[\s\S]*?```/.test(t) || /\*\*[^*\n]+\*\*/.test(t) || /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) || /`[^`\n]+`/.test(t) || /~~[^~\n]+~~/.test(t) || /\|\|[^|\n]+\|\|/.test(t) || /\[[^\]]+\]\([^)]+\)/.test(t);
 }
 function markdownToHtml(markdown) {
   const raw = import_marked.marked.parse(markdown, { async: false });
@@ -463,6 +717,42 @@ function markdownToHtml(markdown) {
 }
 
 // src/core/theme.ts
+var PRISM_TOKEN_TYPES = [
+  "atrule",
+  "attr",
+  "attr-name",
+  "attr-value",
+  "boolean",
+  "builtin",
+  "cdata",
+  "char",
+  "class-name",
+  "comment",
+  "constant",
+  "deleted",
+  "doctype",
+  "entity",
+  "function",
+  "important",
+  "inserted",
+  "keyword",
+  "namespace",
+  "number",
+  "operator",
+  "prolog",
+  "property",
+  "punctuation",
+  "regex",
+  "selector",
+  "string",
+  "symbol",
+  "tag",
+  "url",
+  "variable"
+];
+var codeHighlightTheme = Object.fromEntries(
+  PRISM_TOKEN_TYPES.map((type) => [type, `token ${type}`])
+);
 var editorTheme = {
   paragraph: "re-paragraph",
   quote: "re-quote",
@@ -481,13 +771,15 @@ var editorTheme = {
     code: "re-text-code"
   },
   code: "re-block-code",
+  codeHighlight: codeHighlightTheme,
   list: {
     ul: "re-list-ul",
     ol: "re-list-ol",
     listitem: "re-list-item"
   },
   link: "re-link",
-  mention: "re-mention"
+  mention: "re-mention",
+  spoiler: "re-spoiler"
 };
 
 // src/core/cn.ts
@@ -496,72 +788,58 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-var import_react6 = require("react");
+var import_react10 = require("react");
 var import_html4 = require("@lexical/html");
-var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
-var import_lexical6 = require("lexical");
+var import_LexicalComposerContext9 = require("@lexical/react/LexicalComposerContext");
+var import_lexical13 = require("lexical");
 
 // src/components/plugins/EnterPlugin.tsx
 var import_react2 = require("react");
 var import_LexicalComposerContext = require("@lexical/react/LexicalComposerContext");
-var import_lexical2 = require("lexical");
+var import_lexical5 = require("lexical");
 function EnterPlugin({
-  behavior,
+  bindings,
   onSubmit
 }) {
   const [editor] = (0, import_LexicalComposerContext.useLexicalComposerContext)();
   (0, import_react2.useEffect)(() => {
+    if (!bindings.length) return;
     return editor.registerCommand(
-      import_lexical2.KEY_ENTER_COMMAND,
+      import_lexical5.KEY_ENTER_COMMAND,
       (event) => {
-        if (behavior === "newline") return false;
-        if (behavior === "shift-newline") {
-          if (event?.shiftKey) {
-            event.preventDefault();
-            editor.update(() => {
-              const selection = (0, import_lexical2.$getSelection)();
-              if ((0, import_lexical2.$isRangeSelection)(selection)) {
-                selection.insertParagraph();
-              }
-            });
-            return true;
-          }
-          if (onSubmit) {
-            event?.preventDefault();
-            onSubmit();
-            return true;
-          }
+        if (!(event instanceof KeyboardEvent)) return false;
+        const action = matchEnterKeyAction(event, bindings);
+        if (!action) return false;
+        if (!shouldPluginHandleEnterAction(event, action, bindings)) {
           return false;
         }
-        if (behavior === "submit") {
-          if (event?.shiftKey) {
-            event.preventDefault();
-            editor.update(() => {
-              const selection = (0, import_lexical2.$getSelection)();
-              if ((0, import_lexical2.$isRangeSelection)(selection)) {
-                selection.insertParagraph();
-              }
-            });
-            return true;
-          }
-          if (onSubmit) {
-            event?.preventDefault();
-            onSubmit();
-            return true;
-          }
+        if (action === "newline") {
+          event.preventDefault();
+          editor.update(() => {
+            const selection = (0, import_lexical5.$getSelection)();
+            if ((0, import_lexical5.$isRangeSelection)(selection)) {
+              selection.insertParagraph();
+            }
+          });
+          return true;
+        }
+        if (action === "submit" && onSubmit) {
+          event.preventDefault();
+          onSubmit();
+          return true;
         }
         return false;
       },
-      import_lexical2.COMMAND_PRIORITY_LOW
+      import_lexical5.COMMAND_PRIORITY_LOW
     );
-  }, [behavior, editor, onSubmit]);
+  }, [bindings, editor, onSubmit]);
   return null;
 }
 
 // src/components/plugins/MarkdownPastePlugin.tsx
 var import_html2 = require("@lexical/html");
 var import_LexicalComposerContext2 = require("@lexical/react/LexicalComposerContext");
-var import_lexical3 = require("lexical");
+var import_lexical6 = require("lexical");
 var import_react3 = require("react");
 function htmlToNodes(editor, html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -574,7 +852,7 @@ function MarkdownPastePlugin({
   (0, import_react3.useEffect)(() => {
     if (!features.markdownPaste) return;
     return editor.registerCommand(
-      import_lexical3.PASTE_COMMAND,
+      import_lexical6.PASTE_COMMAND,
       (event) => {
         if (!(event instanceof ClipboardEvent)) return false;
         const clipboard = event.clipboardData;
@@ -585,14 +863,14 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = markdownToHtml(text);
           editor.update(() => {
-            const selection = (0, import_lexical3.$getSelection)();
-            if (!(0, import_lexical3.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical6.$getSelection)();
+            if (!(0, import_lexical6.$isRangeSelection)(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
             const nodes = htmlToNodes(editor, html);
             if (nodes.length > 0) {
-              (0, import_lexical3.$insertNodes)(nodes);
+              (0, import_lexical6.$insertNodes)(nodes);
             }
           });
           return true;
@@ -601,21 +879,21 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = sanitizeHtml(htmlRaw);
           editor.update(() => {
-            const selection = (0, import_lexical3.$getSelection)();
-            if (!(0, import_lexical3.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical6.$getSelection)();
+            if (!(0, import_lexical6.$isRangeSelection)(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
             const nodes = htmlToNodes(editor, html);
             if (nodes.length > 0) {
-              (0, import_lexical3.$insertNodes)(nodes);
+              (0, import_lexical6.$insertNodes)(nodes);
             }
           });
           return true;
         }
         return false;
       },
-      import_lexical3.COMMAND_PRIORITY_HIGH
+      import_lexical6.COMMAND_PRIORITY_HIGH
     );
   }, [editor, features.markdownPaste]);
   return null;
@@ -624,7 +902,7 @@ function MarkdownPastePlugin({
 // src/components/plugins/KeyboardShortcutsPlugin.tsx
 var import_react4 = require("react");
 var import_LexicalComposerContext3 = require("@lexical/react/LexicalComposerContext");
-var import_lexical4 = require("lexical");
+var import_lexical7 = require("lexical");
 function isModKey(event) {
   return event.metaKey || event.ctrlKey;
 }
@@ -636,7 +914,7 @@ function KeyboardShortcutsPlugin({
   (0, import_react4.useEffect)(() => {
     if (!features.keyboardShortcuts || disabled) return;
     return editor.registerCommand(
-      import_lexical4.KEY_DOWN_COMMAND,
+      import_lexical7.KEY_DOWN_COMMAND,
       (event) => {
         if (!(event instanceof KeyboardEvent) || !isModKey(event)) {
           return false;
@@ -644,27 +922,27 @@ function KeyboardShortcutsPlugin({
         const key = event.key.toLowerCase();
         if (key === "b" && features.bold) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical4.FORMAT_TEXT_COMMAND, "bold");
+          editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "bold");
           return true;
         }
         if (key === "i" && features.italic) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical4.FORMAT_TEXT_COMMAND, "italic");
+          editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "italic");
           return true;
         }
         if (key === "e" && features.code && !event.shiftKey) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical4.FORMAT_TEXT_COMMAND, "code");
+          editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "code");
           return true;
         }
         if (event.shiftKey && key === "x" && features.strikethrough) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical4.FORMAT_TEXT_COMMAND, "strikethrough");
+          editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "strikethrough");
           return true;
         }
         return false;
       },
-      import_lexical4.COMMAND_PRIORITY_LOW
+      import_lexical7.COMMAND_PRIORITY_LOW
     );
   }, [disabled, editor, features]);
   return null;
@@ -675,7 +953,7 @@ var import_LexicalTypeaheadMenuPlugin = require("@lexical/react/LexicalTypeahead
 var import_LexicalComposerContext4 = require("@lexical/react/LexicalComposerContext");
 var import_react5 = require("react");
 var import_react_dom = require("react-dom");
-var import_lexical5 = require("lexical");
+var import_lexical8 = require("lexical");
 var import_jsx_runtime2 = require("react/jsx-runtime");
 var MentionMenuOption = class extends import_LexicalTypeaheadMenuPlugin.MenuOption {
   constructor(option) {
@@ -803,19 +1081,897 @@ function MentionsPlugin({
       triggerFn,
       options,
       menuRenderFn,
-      commandPriority: import_lexical5.COMMAND_PRIORITY_HIGH
+      commandPriority: import_lexical8.COMMAND_PRIORITY_HIGH
     }
   );
 }
 
+// src/components/plugins/BlockBehaviorPlugin.tsx
+var import_react6 = require("react");
+var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
+var import_code2 = require("@lexical/code");
+var import_rich_text3 = require("@lexical/rich-text");
+var import_lexical10 = require("lexical");
+
+// src/core/blockBehavior.ts
+var import_code = require("@lexical/code");
+var import_list = require("@lexical/list");
+var import_rich_text2 = require("@lexical/rich-text");
+var import_utils = require("@lexical/utils");
+var import_lexical9 = require("lexical");
+function $getBlockQuote(node) {
+  return (0, import_utils.$findMatchingParent)(node, import_rich_text2.$isQuoteNode);
+}
+function $getBlockCode(node) {
+  return (0, import_utils.$findMatchingParent)(node, import_code.$isCodeNode);
+}
+function $isParagraphEmpty(node) {
+  return (0, import_lexical9.$isParagraphNode)(node) && node.getTextContent().trim() === "";
+}
+function $countTrailingEmptyParagraphs(quote) {
+  const children = quote.getChildren();
+  let count = 0;
+  for (let i = children.length - 1; i >= 0; i--) {
+    if ($isParagraphEmpty(children[i])) count += 1;
+    else break;
+  }
+  return count;
+}
+function $isAtStartOfBlock(selection) {
+  const anchor = selection.anchor;
+  if (anchor.offset !== 0) return false;
+  const node = anchor.getNode();
+  if ((0, import_lexical9.$isTextNode)(node)) {
+    const parent = node.getParent();
+    if ((0, import_lexical9.$isElementNode)(parent)) {
+      const firstChild = parent.getFirstChild();
+      return firstChild === node || firstChild === null;
+    }
+  }
+  if ((0, import_lexical9.$isParagraphNode)(node)) return true;
+  return false;
+}
+function $isAtEndOfBlock(selection) {
+  const focus = selection.focus;
+  const node = focus.getNode();
+  if ((0, import_lexical9.$isTextNode)(node)) {
+    return focus.offset === node.getTextContentSize();
+  }
+  if ((0, import_lexical9.$isParagraphNode)(node)) {
+    const lastDescendant = node.getLastDescendant();
+    if (!lastDescendant) return true;
+    if ((0, import_lexical9.$isTextNode)(lastDescendant)) {
+      return focus.offset === lastDescendant.getTextContentSize();
+    }
+  }
+  return false;
+}
+function $unwrapParagraphFromQuote(paragraph) {
+  const quote = paragraph.getParent();
+  if (!(0, import_rich_text2.$isQuoteNode)(quote)) return;
+  const newParagraph = (0, import_lexical9.$createParagraphNode)();
+  newParagraph.append(...paragraph.getChildren());
+  quote.insertAfter(newParagraph);
+  if (quote.getChildrenSize() === 1 && quote.getFirstChild() === paragraph) {
+    quote.replace(newParagraph);
+    return;
+  }
+  paragraph.remove();
+  if (quote.getChildrenSize() === 0) {
+    quote.remove();
+  }
+}
+function $insertParagraphBeforeBlock(block) {
+  const paragraph = (0, import_lexical9.$createParagraphNode)();
+  block.insertBefore(paragraph);
+  paragraph.selectEnd();
+}
+function $insertParagraphInsideQuoteAfter(quote, after) {
+  const paragraph = (0, import_lexical9.$createParagraphNode)();
+  after.insertAfter(paragraph);
+  paragraph.selectStart();
+}
+function $exitQuoteWithEmptyLines(quote) {
+  while (quote.getLastChild() && $isParagraphEmpty(quote.getLastChild())) {
+    quote.getLastChild().remove();
+  }
+  const exitParagraph = (0, import_lexical9.$createParagraphNode)();
+  quote.insertAfter(exitParagraph);
+  exitParagraph.selectStart();
+  if (quote.getChildrenSize() === 0) {
+    quote.remove();
+  }
+}
+function $handleQuoteEnter(quote, paragraph, selection) {
+  if (!(0, import_lexical9.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) {
+    selection.insertParagraph();
+    return;
+  }
+  if ($isAtStartOfBlock(selection) && paragraph === quote.getFirstChild()) {
+    $insertParagraphBeforeBlock(quote);
+    return;
+  }
+  if (!$isAtEndOfBlock(selection)) {
+    selection.insertParagraph();
+    return;
+  }
+  const trailingEmpty = $countTrailingEmptyParagraphs(quote);
+  const isEmpty = $isParagraphEmpty(paragraph);
+  if (isEmpty) {
+    if (trailingEmpty >= 2) {
+      $exitQuoteWithEmptyLines(quote);
+    } else {
+      $insertParagraphInsideQuoteAfter(quote, paragraph);
+    }
+    return;
+  }
+  $insertParagraphInsideQuoteAfter(quote, paragraph);
+}
+function $handleQuoteBackspace(quote, paragraph, selection) {
+  if (!(0, import_lexical9.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) return;
+  if (!$isAtStartOfBlock(selection)) return;
+  if ($isParagraphEmpty(paragraph)) {
+    if (quote.getChildrenSize() <= 1) {
+      const replacement = (0, import_lexical9.$createParagraphNode)();
+      quote.replace(replacement);
+      replacement.selectStart();
+      return;
+    }
+    const prev = paragraph.getPreviousSibling();
+    paragraph.remove();
+    if (prev && (0, import_lexical9.$isParagraphNode)(prev)) {
+      prev.selectEnd();
+    } else {
+      quote.getFirstChild()?.selectStart();
+    }
+    return;
+  }
+  if (quote.getChildrenSize() > 1) {
+    $unwrapParagraphFromQuote(paragraph);
+  }
+}
+function $mergeAdjacentQuoteBlocks() {
+  const root = (0, import_lexical9.$getRoot)();
+  const children = [...root.getChildren()];
+  for (let i = 0; i < children.length - 1; i++) {
+    const current = children[i];
+    const next = children[i + 1];
+    if ((0, import_rich_text2.$isQuoteNode)(current) && (0, import_rich_text2.$isQuoteNode)(next)) {
+      for (const child of [...next.getChildren()]) {
+        current.append(child);
+      }
+      next.remove();
+      children.splice(i + 1, 1);
+      i -= 1;
+    }
+  }
+}
+function $mergeAdjacentCodeBlocks() {
+  const root = (0, import_lexical9.$getRoot)();
+  const children = [...root.getChildren()];
+  for (let i = 0; i < children.length - 1; i++) {
+    const current = children[i];
+    const next = children[i + 1];
+    if ((0, import_code.$isCodeNode)(current) && (0, import_code.$isCodeNode)(next)) {
+      const merged = current.getTextContent();
+      const nextText = next.getTextContent();
+      const join = merged.endsWith("\n") || nextText.startsWith("\n") ? "" : "\n";
+      current.clear();
+      current.append((0, import_lexical9.$createTextNode)(merged + join + nextText));
+      next.remove();
+      children.splice(i + 1, 1);
+      i -= 1;
+    }
+  }
+}
+function $getCodeTrailingEmptyLines(codeNode) {
+  const text = codeNode.getTextContent();
+  const lines = text.split("\n");
+  let count = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].trim() === "") count += 1;
+    else break;
+  }
+  return count;
+}
+function $isAtEndOfCodeBlock(selection) {
+  const code = $getBlockCode(selection.focus.getNode());
+  if (!code) return false;
+  return selection.focus.offset === code.getTextContent().length;
+}
+function $exitCodeBlock(codeNode) {
+  const text = codeNode.getTextContent().replace(/\n{1,2}$/, "");
+  codeNode.clear();
+  if (text) {
+    codeNode.append((0, import_lexical9.$createTextNode)(text));
+  }
+  const exitParagraph = (0, import_lexical9.$createParagraphNode)();
+  codeNode.insertAfter(exitParagraph);
+  exitParagraph.selectStart();
+}
+function $shouldSkipBlockBehavior() {
+  const selection = (0, import_lexical9.$getSelection)();
+  if (!(0, import_lexical9.$isRangeSelection)(selection)) return true;
+  const node = selection.anchor.getNode();
+  if ((0, import_utils.$findMatchingParent)(node, import_list.$isListItemNode)) return true;
+  return false;
+}
+
+// src/components/plugins/BlockBehaviorPlugin.tsx
+function $needsBlockMerge() {
+  const children = (0, import_lexical10.$getRoot)().getChildren();
+  for (let i = 0; i < children.length - 1; i++) {
+    const current = children[i];
+    const next = children[i + 1];
+    if ((0, import_rich_text3.$isQuoteNode)(current) && (0, import_rich_text3.$isQuoteNode)(next)) return true;
+    if ((0, import_code2.$isCodeNode)(current) && (0, import_code2.$isCodeNode)(next)) return true;
+  }
+  return false;
+}
+function BlockBehaviorPlugin() {
+  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
+  (0, import_react6.useEffect)(() => {
+    const removeMerge = editor.registerUpdateListener(({ editorState }) => {
+      const needsMerge = editorState.read(() => $needsBlockMerge());
+      if (!needsMerge) return;
+      editor.update(
+        () => {
+          $mergeAdjacentQuoteBlocks();
+          $mergeAdjacentCodeBlocks();
+        },
+        { discrete: true }
+      );
+    });
+    const removeEnter = editor.registerCommand(
+      import_lexical10.KEY_ENTER_COMMAND,
+      (event) => {
+        if ($shouldSkipBlockBehavior()) return false;
+        let handled = false;
+        editor.update(() => {
+          const selection = (0, import_lexical10.$getSelection)();
+          if (!(0, import_lexical10.$isRangeSelection)(selection)) return;
+          const quote = $getBlockQuote(selection.anchor.getNode());
+          if (quote && (0, import_rich_text3.$isQuoteNode)(quote)) {
+            event?.preventDefault();
+            const paragraph = selection.anchor.getNode().getTopLevelElementOrThrow();
+            $handleQuoteEnter(quote, paragraph, selection);
+            handled = true;
+            return;
+          }
+          const code = $getBlockCode(selection.anchor.getNode());
+          if (code && (0, import_code2.$isCodeNode)(code) && $isAtEndOfCodeBlock(selection)) {
+            const trailingEmpty = $getCodeTrailingEmptyLines(code);
+            const text = code.getTextContent();
+            const atEmptyLine = selection.focus.offset === text.length && text.endsWith("\n");
+            if (atEmptyLine && trailingEmpty >= 2) {
+              event?.preventDefault();
+              $exitCodeBlock(code);
+              handled = true;
+            }
+          }
+        });
+        return handled;
+      },
+      import_lexical10.COMMAND_PRIORITY_HIGH
+    );
+    const removeBackspace = editor.registerCommand(
+      import_lexical10.KEY_BACKSPACE_COMMAND,
+      (event) => {
+        if ($shouldSkipBlockBehavior()) return false;
+        let handled = false;
+        editor.update(() => {
+          const selection = (0, import_lexical10.$getSelection)();
+          if (!(0, import_lexical10.$isRangeSelection)(selection) || !selection.isCollapsed()) return;
+          const quote = $getBlockQuote(selection.anchor.getNode());
+          if (!quote || !(0, import_rich_text3.$isQuoteNode)(quote)) return;
+          const paragraph = selection.anchor.getNode().getTopLevelElementOrThrow();
+          if (!(0, import_lexical10.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) {
+            return;
+          }
+          event?.preventDefault();
+          $handleQuoteBackspace(quote, paragraph, selection);
+          handled = true;
+        });
+        return handled;
+      },
+      import_lexical10.COMMAND_PRIORITY_CRITICAL
+    );
+    return () => {
+      removeMerge();
+      removeEnter();
+      removeBackspace();
+    };
+  }, [editor]);
+  return null;
+}
+
+// src/components/plugins/CodeHighlightPlugin.tsx
+var import_react7 = require("react");
+var import_code3 = require("@lexical/code");
+var import_LexicalComposerContext6 = require("@lexical/react/LexicalComposerContext");
+function CodeHighlightPlugin({ enabled }) {
+  const [editor] = (0, import_LexicalComposerContext6.useLexicalComposerContext)();
+  (0, import_react7.useEffect)(() => {
+    if (!enabled) return;
+    return (0, import_code3.registerCodeHighlighting)(editor);
+  }, [editor, enabled]);
+  return null;
+}
+
+// src/components/plugins/SelectionMenuPlugin.tsx
+var import_react9 = require("react");
+var import_react_dom2 = require("react-dom");
+var import_LexicalComposerContext8 = require("@lexical/react/LexicalComposerContext");
+var import_lexical12 = require("lexical");
+
+// src/components/toolbar/ToolbarIcons.tsx
+var import_jsx_runtime3 = require("react/jsx-runtime");
+var defaults = {
+  width: 18,
+  height: 18,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": true
+};
+function IconBold(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M6 4h8a4 4 0 0 1 0 8H6z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M6 12h9a4 4 0 0 1 0 8H6z" })
+  ] });
+}
+function IconItalic(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "19", y1: "4", x2: "10", y2: "4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "14", y1: "20", x2: "5", y2: "20" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "15", y1: "4", x2: "9", y2: "20" })
+  ] });
+}
+function IconStrikethrough(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M16 4H9a3 3 0 0 0-2.83 4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M14 12a4 4 0 0 1 0 8H6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "4", y1: "12", x2: "20", y2: "12" })
+  ] });
+}
+function IconCode(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "16 18 22 12 16 6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "8 6 2 12 8 18" })
+  ] });
+}
+function IconQuote(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M3 10h4v7H3z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M13 10h4v7h-4z" })
+  ] });
+}
+function IconCodeBlock(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("rect", { x: "4", y: "4", width: "16", height: "16", rx: "2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M8 10l2 2-2 2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M13 14h3" })
+  ] });
+}
+function IconBulletList(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "9", y1: "6", x2: "20", y2: "6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "9", y1: "12", x2: "20", y2: "12" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "9", y1: "18", x2: "20", y2: "18" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("circle", { cx: "5", cy: "6", r: "1.5", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("circle", { cx: "5", cy: "12", r: "1.5", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("circle", { cx: "5", cy: "18", r: "1.5", fill: "currentColor", stroke: "none" })
+  ] });
+}
+function IconNumberedList(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "6", x2: "20", y2: "6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "12", x2: "20", y2: "12" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "18", x2: "20", y2: "18" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M4 6h1v4H4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M4 16h2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M6 14H4" })
+  ] });
+}
+function IconLink(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M10 13a5 5 0 0 0 7.54.54l2.92-2.92a5 5 0 0 0-7.07-7.07l-1.5 1.5" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M14 11a5 5 0 0 0-7.54-.54L3.54 13.4a5 5 0 0 0 7.07 7.07l1.5-1.5" })
+  ] });
+}
+function IconHeading(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M4 12V4h4v16H4v-8" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 4h8" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M16 4v16" })
+  ] });
+}
+function IconMention(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("circle", { cx: "12", cy: "12", r: "4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" })
+  ] });
+}
+function IconSpoiler(props) {
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "3", y1: "3", x2: "21", y2: "21" })
+  ] });
+}
+
+// src/components/toolbar/useFormatState.ts
+var import_react8 = require("react");
+var import_LexicalComposerContext7 = require("@lexical/react/LexicalComposerContext");
+var import_code4 = require("@lexical/code");
+var import_link = require("@lexical/link");
+var import_list2 = require("@lexical/list");
+var import_rich_text4 = require("@lexical/rich-text");
+var import_selection = require("@lexical/selection");
+var import_utils2 = require("@lexical/utils");
+var import_lexical11 = require("lexical");
+var emptyFormat = {
+  bold: false,
+  italic: false,
+  strikethrough: false,
+  code: false,
+  quote: false,
+  codeBlock: false,
+  bulletList: false,
+  numberedList: false,
+  link: false,
+  heading: false,
+  spoiler: false
+};
+function useFormatState() {
+  const [editor] = (0, import_LexicalComposerContext7.useLexicalComposerContext)();
+  const [state, setState] = (0, import_react8.useState)(emptyFormat);
+  (0, import_react8.useEffect)(() => {
+    const update = () => {
+      editor.getEditorState().read(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if (!(0, import_lexical11.$isRangeSelection)(selection)) {
+          setState(emptyFormat);
+          return;
+        }
+        const anchorNode = selection.anchor.getNode();
+        const listNode = (0, import_utils2.$findMatchingParent)(anchorNode, import_list2.$isListNode);
+        setState({
+          bold: selection.hasFormat("bold"),
+          italic: selection.hasFormat("italic"),
+          strikethrough: selection.hasFormat("strikethrough"),
+          code: selection.hasFormat("code"),
+          quote: !!(0, import_utils2.$findMatchingParent)(anchorNode, import_rich_text4.$isQuoteNode),
+          codeBlock: !!(0, import_utils2.$findMatchingParent)(anchorNode, import_code4.$isCodeNode),
+          bulletList: listNode?.getListType() === "bullet",
+          numberedList: listNode?.getListType() === "number",
+          link: !!(0, import_utils2.$findMatchingParent)(anchorNode, import_link.$isLinkNode),
+          heading: !!(0, import_utils2.$findMatchingParent)(anchorNode, import_rich_text4.$isHeadingNode),
+          spoiler: !!(0, import_utils2.$findMatchingParent)(anchorNode, $isSpoilerNode)
+        });
+      });
+    };
+    const removeUpdate = editor.registerUpdateListener(() => update());
+    const removeSelection = editor.registerCommand(
+      import_lexical11.SELECTION_CHANGE_COMMAND,
+      () => {
+        update();
+        return false;
+      },
+      import_lexical11.COMMAND_PRIORITY_LOW
+    );
+    return () => {
+      removeUpdate();
+      removeSelection();
+    };
+  }, [editor]);
+  return state;
+}
+function useFormatActions() {
+  const [editor] = (0, import_LexicalComposerContext7.useLexicalComposerContext)();
+  return {
+    bold: () => editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "bold"),
+    italic: () => editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "italic"),
+    strikethrough: () => editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "strikethrough"),
+    code: () => editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "code"),
+    quote: () => {
+      editor.update(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
+        const inQuote = !!(0, import_utils2.$findMatchingParent)(
+          selection.anchor.getNode(),
+          import_rich_text4.$isQuoteNode
+        );
+        if (inQuote) {
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical11.$createParagraphNode)());
+        } else {
+          (0, import_selection.$setBlocksType)(selection, () => $createRichQuoteNode());
+        }
+      });
+    },
+    codeBlock: () => {
+      editor.update(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
+        const inCode = !!(0, import_utils2.$findMatchingParent)(
+          selection.anchor.getNode(),
+          import_code4.$isCodeNode
+        );
+        if (inCode) {
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical11.$createParagraphNode)());
+        } else {
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_code4.$createCodeNode)());
+        }
+      });
+    },
+    bulletList: () => {
+      editor.update(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
+        const listNode = (0, import_utils2.$findMatchingParent)(
+          selection.anchor.getNode(),
+          import_list2.$isListNode
+        );
+        if (listNode?.getListType() === "bullet") {
+          editor.dispatchCommand(import_list2.REMOVE_LIST_COMMAND, void 0);
+        } else {
+          editor.dispatchCommand(import_list2.INSERT_UNORDERED_LIST_COMMAND, void 0);
+        }
+      });
+    },
+    numberedList: () => {
+      editor.update(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
+        const listNode = (0, import_utils2.$findMatchingParent)(
+          selection.anchor.getNode(),
+          import_list2.$isListNode
+        );
+        if (listNode?.getListType() === "number") {
+          editor.dispatchCommand(import_list2.REMOVE_LIST_COMMAND, void 0);
+        } else {
+          editor.dispatchCommand(import_list2.INSERT_ORDERED_LIST_COMMAND, void 0);
+        }
+      });
+    },
+    link: () => {
+      editor.update(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
+        const existing = (0, import_utils2.$findMatchingParent)(
+          selection.anchor.getNode(),
+          import_link.$isLinkNode
+        );
+        if (existing) {
+          editor.dispatchCommand(import_link.TOGGLE_LINK_COMMAND, null);
+          return;
+        }
+        const url = window.prompt("URL", "https://");
+        if (url === null) return;
+        if (url.trim()) {
+          editor.dispatchCommand(import_link.TOGGLE_LINK_COMMAND, url.trim());
+        }
+      });
+    },
+    heading: () => {
+      editor.update(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if (!(0, import_lexical11.$isRangeSelection)(selection)) return;
+        const heading = (0, import_utils2.$findMatchingParent)(
+          selection.anchor.getNode(),
+          import_rich_text4.$isHeadingNode
+        );
+        if (heading) {
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical11.$createParagraphNode)());
+        } else {
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_rich_text4.$createHeadingNode)("h2"));
+        }
+      });
+    },
+    mentionTrigger: () => {
+      editor.update(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if ((0, import_lexical11.$isRangeSelection)(selection)) {
+          selection.insertText("@");
+        }
+      });
+      editor.focus();
+    },
+    spoiler: () => {
+      editor.update(() => {
+        const selection = (0, import_lexical11.$getSelection)();
+        if (!(0, import_lexical11.$isRangeSelection)(selection) || selection.isCollapsed()) return;
+        const anchorNode = selection.anchor.getNode();
+        const existing = (0, import_utils2.$findMatchingParent)(anchorNode, $isSpoilerNode);
+        if (existing) {
+          const textNode = (0, import_lexical11.$createTextNode)(existing.getTextContent());
+          existing.replace(textNode);
+          textNode.select();
+          return;
+        }
+        const text = selection.getTextContent();
+        if (!text) return;
+        selection.removeText();
+        const spoiler = $createSpoilerNode();
+        spoiler.append((0, import_lexical11.$createTextNode)(text));
+        selection.insertNodes([spoiler]);
+      });
+    }
+  };
+}
+
+// src/components/plugins/SelectionMenuPlugin.tsx
+var import_jsx_runtime4 = require("react/jsx-runtime");
+function isItemEnabled(item, features) {
+  switch (item) {
+    case "bold":
+      return features.bold;
+    case "italic":
+      return features.italic;
+    case "strikethrough":
+      return features.strikethrough;
+    case "code":
+      return features.code;
+    case "quote":
+      return features.quote;
+    case "codeBlock":
+      return features.codeBlock;
+    case "bulletList":
+    case "numberedList":
+      return features.lists;
+    case "link":
+      return features.links;
+    case "heading":
+      return features.headings;
+    case "mention":
+      return features.mentions;
+    case "spoiler":
+      return features.spoiler;
+    default:
+      return false;
+  }
+}
+function MenuIcon({ item }) {
+  switch (item) {
+    case "bold":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconBold, {});
+    case "italic":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconItalic, {});
+    case "strikethrough":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconStrikethrough, {});
+    case "code":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconCode, {});
+    case "quote":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconQuote, {});
+    case "codeBlock":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconCodeBlock, {});
+    case "bulletList":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconBulletList, {});
+    case "numberedList":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconNumberedList, {});
+    case "link":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconLink, {});
+    case "heading":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconHeading, {});
+    case "mention":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconMention, {});
+    case "spoiler":
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(IconSpoiler, {});
+    default:
+      return null;
+  }
+}
+function itemLabel(item, labels) {
+  switch (item) {
+    case "bold":
+      return labels.bold;
+    case "italic":
+      return labels.italic;
+    case "strikethrough":
+      return labels.strikethrough;
+    case "code":
+      return labels.code;
+    case "quote":
+      return labels.quote;
+    case "codeBlock":
+      return labels.codeBlock;
+    case "bulletList":
+      return labels.bulletList;
+    case "numberedList":
+      return labels.numberedList;
+    case "link":
+      return labels.link;
+    case "heading":
+      return labels.heading;
+    case "mention":
+      return labels.mention;
+    case "spoiler":
+      return labels.spoiler;
+    default:
+      return item;
+  }
+}
+function runItemAction(item, format) {
+  switch (item) {
+    case "bold":
+      format.bold();
+      break;
+    case "italic":
+      format.italic();
+      break;
+    case "strikethrough":
+      format.strikethrough();
+      break;
+    case "code":
+      format.code();
+      break;
+    case "quote":
+      format.quote();
+      break;
+    case "codeBlock":
+      format.codeBlock();
+      break;
+    case "bulletList":
+      format.bulletList();
+      break;
+    case "numberedList":
+      format.numberedList();
+      break;
+    case "link":
+      format.link();
+      break;
+    case "heading":
+      format.heading();
+      break;
+    case "mention":
+      format.mentionTrigger();
+      break;
+    case "spoiler":
+      format.spoiler();
+      break;
+  }
+}
+function isItemActive(item, active) {
+  switch (item) {
+    case "bold":
+      return active.bold;
+    case "italic":
+      return active.italic;
+    case "strikethrough":
+      return active.strikethrough;
+    case "code":
+      return active.code;
+    case "quote":
+      return active.quote;
+    case "codeBlock":
+      return active.codeBlock;
+    case "bulletList":
+      return active.bulletList;
+    case "numberedList":
+      return active.numberedList;
+    case "link":
+      return active.link;
+    case "heading":
+      return active.heading;
+    case "spoiler":
+      return active.spoiler;
+    default:
+      return false;
+  }
+}
+function SelectionMenuPlugin({
+  features,
+  labels,
+  items = defaultSelectionMenuItems,
+  containerRef
+}) {
+  const [editor] = (0, import_LexicalComposerContext8.useLexicalComposerContext)();
+  const active = useFormatState();
+  const format = useFormatActions();
+  const [position, setPosition] = (0, import_react9.useState)(
+    null
+  );
+  const visibleItems = items.filter((item) => isItemEnabled(item, features));
+  (0, import_react9.useEffect)(() => {
+    if (!features.selectionMenu || visibleItems.length === 0) {
+      setPosition(null);
+      return;
+    }
+    const update = () => {
+      editor.getEditorState().read(() => {
+        const selection = (0, import_lexical12.$getSelection)();
+        if (!(0, import_lexical12.$isRangeSelection)(selection) || selection.isCollapsed()) {
+          setPosition(null);
+          return;
+        }
+        const native = window.getSelection();
+        const container = containerRef.current;
+        if (!native || native.rangeCount === 0 || !container) {
+          setPosition(null);
+          return;
+        }
+        const range = native.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const host = container.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) {
+          setPosition(null);
+          return;
+        }
+        const menuHeight = 44;
+        const gap = 8;
+        const spaceAbove = rect.top - host.top;
+        const showBelow = spaceAbove < menuHeight + gap;
+        setPosition({
+          top: showBelow ? rect.bottom - host.top + gap : rect.top - host.top - menuHeight - gap,
+          left: rect.left - host.left + rect.width / 2
+        });
+      });
+    };
+    update();
+    const removeSelection = editor.registerCommand(
+      import_lexical12.SELECTION_CHANGE_COMMAND,
+      () => {
+        update();
+        return false;
+      },
+      import_lexical12.COMMAND_PRIORITY_LOW
+    );
+    const removeUpdate = editor.registerUpdateListener(update);
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      removeSelection();
+      removeUpdate();
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [containerRef, editor, features.selectionMenu, visibleItems.length]);
+  if (!features.selectionMenu || !position || visibleItems.length === 0) {
+    return null;
+  }
+  const menu = /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+    "div",
+    {
+      className: "re-selection-menu",
+      style: {
+        top: `${Math.max(0, position.top)}px`,
+        left: `${position.left}px`
+      },
+      role: "toolbar",
+      "aria-label": labels.selectionMenu,
+      children: visibleItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        "button",
+        {
+          type: "button",
+          className: cn(
+            "re-selection-menu-btn",
+            isItemActive(item, active) && "re-selection-menu-btn-active"
+          ),
+          "aria-label": itemLabel(item, labels),
+          "aria-pressed": isItemActive(item, active),
+          onMouseDown: (event) => {
+            event.preventDefault();
+            runItemAction(item, format);
+          },
+          children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(MenuIcon, { item })
+        },
+        item
+      ))
+    }
+  );
+  return (0, import_react_dom2.createPortal)(menu, containerRef.current ?? document.body);
+}
+
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
-  const lastApplied = (0, import_react6.useRef)(void 0);
-  (0, import_react6.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  const lastApplied = (0, import_react10.useRef)(void 0);
+  (0, import_react10.useEffect)(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
-      const root = (0, import_lexical6.$getRoot)();
+      const root = (0, import_lexical13.$getRoot)();
       root.clear();
       if (!html?.trim()) {
         lastApplied.current = html;
@@ -835,8 +1991,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
-  (0, import_react6.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  (0, import_react10.useEffect)(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -853,8 +2009,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
-  (0, import_react6.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  (0, import_react10.useEffect)(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -865,11 +2021,11 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
-  (0, import_react6.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  (0, import_react10.useEffect)(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
-        const root = (0, import_lexical6.$getRoot)();
+        const root = (0, import_lexical13.$getRoot)();
         root.clear();
         if (!html.trim()) return;
         const parser = new DOMParser();
@@ -887,11 +2043,11 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
-  (0, import_react6.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  (0, import_react10.useEffect)(() => {
     clearRef.current = () => {
       editor.update(() => {
-        (0, import_lexical6.$getRoot)().clear();
+        (0, import_lexical13.$getRoot)().clear();
       });
     };
     return () => {
@@ -903,11 +2059,11 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = (0, import_LexicalComposerContext5.useLexicalComposerContext)();
-  (0, import_react6.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
+  (0, import_react10.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        onEmptyChange((0, import_lexical6.$getRoot)().getTextContent().trim() === "");
+        onEmptyChange((0, import_lexical13.$getRoot)().getTextContent().trim() === "");
       });
     };
     update();
@@ -917,7 +2073,7 @@ function EmptyStatePlugin({
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-var import_react8 = require("react");
+var import_react11 = require("react");
 
 // src/core/shortcuts.ts
 var formatKeyboardShortcuts = [
@@ -982,9 +2138,14 @@ var markdownShortcuts = [
   { pattern: "1. item", action: "Ordered list" },
   { pattern: "```lang", action: "Code block" },
   { pattern: "[text](url)", action: "Link" },
-  { pattern: "# Heading", action: "Heading (when enabled)" }
+  { pattern: "# Heading", action: "Heading (when enabled)" },
+  { pattern: "||spoiler||", action: "Spoiler (when enabled)" }
 ];
-var enterBehaviorShortcuts = {
+var defaultEnterShortcuts = {
+  enter: "New line",
+  modEnter: "Submit"
+};
+var legacyEnterBehaviorShortcuts = {
   submit: {
     enter: "Submit",
     shiftEnter: "New line"
@@ -1016,7 +2177,14 @@ function getActiveFormatShortcuts(features) {
   });
 }
 function getEnterBehaviorDescription(behavior) {
-  return enterBehaviorShortcuts[behavior];
+  if (!behavior) {
+    return {
+      enter: defaultEnterShortcuts.enter,
+      shiftEnter: defaultEnterShortcuts.enter,
+      modEnter: defaultEnterShortcuts.modEnter
+    };
+  }
+  return legacyEnterBehaviorShortcuts[behavior];
 }
 function shortcutById(id) {
   return [...formatKeyboardShortcuts, ...mentionKeyboardShortcuts].find(
@@ -1024,86 +2192,8 @@ function shortcutById(id) {
   );
 }
 
-// src/components/toolbar/useFormatState.ts
-var import_react7 = require("react");
-var import_LexicalComposerContext6 = require("@lexical/react/LexicalComposerContext");
-var import_rich_text = require("@lexical/rich-text");
-var import_selection = require("@lexical/selection");
-var import_utils = require("@lexical/utils");
-var import_lexical7 = require("lexical");
-var emptyFormat = {
-  bold: false,
-  italic: false,
-  strikethrough: false,
-  code: false,
-  quote: false
-};
-function useFormatState() {
-  const [editor] = (0, import_LexicalComposerContext6.useLexicalComposerContext)();
-  const [state, setState] = (0, import_react7.useState)(emptyFormat);
-  (0, import_react7.useEffect)(() => {
-    const update = () => {
-      editor.getEditorState().read(() => {
-        const selection = (0, import_lexical7.$getSelection)();
-        if (!(0, import_lexical7.$isRangeSelection)(selection)) {
-          setState(emptyFormat);
-          return;
-        }
-        setState({
-          bold: selection.hasFormat("bold"),
-          italic: selection.hasFormat("italic"),
-          strikethrough: selection.hasFormat("strikethrough"),
-          code: selection.hasFormat("code"),
-          quote: !!(0, import_utils.$findMatchingParent)(
-            selection.anchor.getNode(),
-            import_rich_text.$isQuoteNode
-          )
-        });
-      });
-    };
-    const removeUpdate = editor.registerUpdateListener(() => update());
-    const removeSelection = editor.registerCommand(
-      import_lexical7.SELECTION_CHANGE_COMMAND,
-      () => {
-        update();
-        return false;
-      },
-      import_lexical7.COMMAND_PRIORITY_LOW
-    );
-    return () => {
-      removeUpdate();
-      removeSelection();
-    };
-  }, [editor]);
-  return state;
-}
-function useFormatActions() {
-  const [editor] = (0, import_LexicalComposerContext6.useLexicalComposerContext)();
-  return {
-    bold: () => editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "bold"),
-    italic: () => editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "italic"),
-    strikethrough: () => editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "strikethrough"),
-    code: () => editor.dispatchCommand(import_lexical7.FORMAT_TEXT_COMMAND, "code"),
-    quote: () => {
-      editor.update(() => {
-        const selection = (0, import_lexical7.$getSelection)();
-        if (!(0, import_lexical7.$isRangeSelection)(selection)) return;
-        const inQuote = !!(0, import_utils.$findMatchingParent)(
-          selection.anchor.getNode(),
-          import_rich_text.$isQuoteNode
-        );
-        if (inQuote) {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical7.$createParagraphNode)());
-        } else {
-          (0, import_selection.$setBlocksType)(selection, () => new import_rich_text.QuoteNode());
-        }
-      });
-    }
-  };
-}
-
 // src/components/toolbar/EditorToolbar.tsx
-var import_jsx_runtime3 = require("react/jsx-runtime");
+var import_jsx_runtime5 = require("react/jsx-runtime");
 function ToolbarButton({
   label,
   active,
@@ -1112,7 +2202,7 @@ function ToolbarButton({
   children
 }) {
   const shortcut = shortcutId ? shortcutById(shortcutId) : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
     "button",
     {
       type: "button",
@@ -1130,14 +2220,15 @@ function EditorToolbar({
   features,
   labels,
   slots,
-  editorInputId
+  editorInputId,
+  showMentionButton
 }) {
   const active = useFormatState();
   const format = useFormatActions();
-  const [menuOpen, setMenuOpen] = (0, import_react8.useState)(false);
-  const menuId = (0, import_react8.useId)();
+  const [menuOpen, setMenuOpen] = (0, import_react11.useState)(false);
+  const menuId = (0, import_react11.useId)();
   const hasMenu = !!slots.toolbarMenu;
-  (0, import_react8.useEffect)(() => {
+  (0, import_react11.useEffect)(() => {
     if (!menuOpen) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -1145,7 +2236,7 @@ function EditorToolbar({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
     "div",
     {
       className: "re-toolbar",
@@ -1153,54 +2244,119 @@ function EditorToolbar({
       "aria-label": labels.toolbar,
       "aria-controls": editorInputId,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-toolbar-group", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
           slots.toolbarStart,
-          features.bold && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          features.bold && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             ToolbarButton,
             {
               label: labels.bold,
               active: active.bold,
               onClick: format.bold,
               shortcutId: "format.bold",
-              children: "B"
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBold, {})
             }
           ),
-          features.italic && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          features.italic && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             ToolbarButton,
             {
               label: labels.italic,
               active: active.italic,
               onClick: format.italic,
               shortcutId: "format.italic",
-              children: "I"
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconItalic, {})
             }
           ),
-          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          features.strikethrough && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             ToolbarButton,
             {
               label: labels.strikethrough,
               active: active.strikethrough,
               onClick: format.strikethrough,
               shortcutId: "format.strikethrough",
-              children: "S"
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconStrikethrough, {})
             }
           ),
-          features.code && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          features.code && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
             ToolbarButton,
             {
               label: labels.code,
               active: active.code,
               onClick: format.code,
               shortcutId: "format.code",
-              children: "</>"
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconCode, {})
             }
           ),
-          features.quote && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(ToolbarButton, { label: labels.quote, active: active.quote, onClick: format.quote, children: '"' })
+          features.spoiler && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            ToolbarButton,
+            {
+              label: labels.spoiler,
+              active: active.spoiler,
+              onClick: format.spoiler,
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconSpoiler, {})
+            }
+          ),
+          features.quote && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            ToolbarButton,
+            {
+              label: labels.quote,
+              active: active.quote,
+              onClick: format.quote,
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconQuote, {})
+            }
+          ),
+          features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            ToolbarButton,
+            {
+              label: labels.codeBlock,
+              active: active.codeBlock,
+              onClick: format.codeBlock,
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconCodeBlock, {})
+            }
+          ),
+          features.lists && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              ToolbarButton,
+              {
+                label: labels.bulletList,
+                active: active.bulletList,
+                onClick: format.bulletList,
+                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconBulletList, {})
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              ToolbarButton,
+              {
+                label: labels.numberedList,
+                active: active.numberedList,
+                onClick: format.numberedList,
+                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconNumberedList, {})
+              }
+            )
+          ] }),
+          features.links && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            ToolbarButton,
+            {
+              label: labels.link,
+              active: active.link,
+              onClick: format.link,
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconLink, {})
+            }
+          ),
+          features.headings && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+            ToolbarButton,
+            {
+              label: labels.heading,
+              active: active.heading,
+              onClick: format.heading,
+              children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconHeading, {})
+            }
+          ),
+          showMentionButton && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(IconMention, {}) })
         ] }),
-        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
+        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
           slots.toolbarEnd,
-          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+          hasMenu && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               "button",
               {
                 type: "button",
@@ -1214,8 +2370,8 @@ function EditorToolbar({
                 children: "\u22EE"
               }
             ),
-            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            menuOpen && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                 "div",
                 {
                   className: "re-toolbar-menu-backdrop",
@@ -1223,7 +2379,7 @@ function EditorToolbar({
                   "aria-hidden": "true"
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                 "div",
                 {
                   id: menuId,
@@ -1242,7 +2398,7 @@ function EditorToolbar({
 }
 
 // src/components/slots/createSlot.tsx
-var import_react9 = require("react");
+var import_react12 = require("react");
 function createSlot(name) {
   const Slot = ({ children }) => null;
   Slot.slotName = name;
@@ -1250,11 +2406,11 @@ function createSlot(name) {
   return Slot;
 }
 function isSlotComponent(child) {
-  return (0, import_react9.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
+  return (0, import_react12.isValidElement)(child) && typeof child.type === "function" && "slotName" in child.type && typeof child.type.slotName === "string";
 }
 function collectSlots(children) {
   const slots = {};
-  import_react9.Children.forEach(children, (child) => {
+  import_react12.Children.forEach(children, (child) => {
     if (!isSlotComponent(child)) return;
     const name = child.type.slotName;
     slots[name] = child.props.children;
@@ -1262,11 +2418,11 @@ function collectSlots(children) {
   return slots;
 }
 function hasToolbar(features, slots) {
-  return features.bold || features.italic || features.strikethrough || features.code || features.quote || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
+  return features.bold || features.italic || features.strikethrough || features.code || features.quote || features.codeBlock || features.lists || features.links || features.headings || features.spoiler || features.mentions || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
 }
 
 // src/components/RichTextEditor.tsx
-var import_jsx_runtime4 = require("react/jsx-runtime");
+var import_jsx_runtime6 = require("react/jsx-runtime");
 function onError(error) {
   console.error(error);
 }
@@ -1280,8 +2436,8 @@ function exportEditorHtml(editor) {
 function EditorRefPlugin({
   getHtmlRef
 }) {
-  const [editor] = (0, import_LexicalComposerContext7.useLexicalComposerContext)();
-  (0, import_react10.useEffect)(() => {
+  const [editor] = (0, import_LexicalComposerContext10.useLexicalComposerContext)();
+  (0, import_react13.useEffect)(() => {
     getHtmlRef.current = () => exportEditorHtml(editor);
     return () => {
       getHtmlRef.current = null;
@@ -1296,7 +2452,7 @@ function DefaultSubmitButton({
 }) {
   const { isEmpty } = useRichTextEditor();
   if (isEmpty) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
     "button",
     {
       type: "button",
@@ -1305,7 +2461,7 @@ function DefaultSubmitButton({
       className: "re-submit-btn",
       "aria-label": label,
       title: label,
-      children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
+      children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
     }
   );
 }
@@ -1318,10 +2474,10 @@ function SubmitArea({
   showDefault
 }) {
   if (slots.submitButton !== void 0) {
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_jsx_runtime4.Fragment, { children: slots.submitButton });
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_jsx_runtime6.Fragment, { children: slots.submitButton });
   }
   if (!showDefault) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
     DefaultSubmitButton,
     {
       disabled: disabled || sending,
@@ -1344,7 +2500,7 @@ function ContextBridge({
 }) {
   const formatState = useFormatState();
   const format = useFormatActions();
-  const ctx = (0, import_react10.useMemo)(
+  const ctx = (0, import_react13.useMemo)(
     () => ({
       getHtml: () => getHtmlRef.current?.() ?? "",
       setHtml: (html) => setHtmlRef.current?.(html),
@@ -1372,7 +2528,7 @@ function ContextBridge({
       onSubmit
     ]
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(RichTextEditorProvider, { value: ctx, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(RichTextEditorProvider, { value: ctx, children });
 }
 function RichTextEditorInner({
   value,
@@ -1382,7 +2538,9 @@ function RichTextEditorInner({
   disabled = false,
   features: featuresProp,
   labels: labelsProp,
-  enterBehavior = "shift-newline",
+  enterBehavior,
+  enterKeyBindings,
+  selectionMenuItems = defaultSelectionMenuItems,
   clearOnSubmit = false,
   className,
   theme = defaultEditorTheme,
@@ -1391,52 +2549,58 @@ function RichTextEditorInner({
   mentionSearch,
   children
 }, ref) {
-  const features = (0, import_react10.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
-  const labels = (0, import_react10.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
-  const slots = (0, import_react10.useMemo)(() => collectSlots(children), [children]);
-  const rootId = (0, import_react10.useId)();
+  const features = (0, import_react13.useMemo)(() => resolveFeatures(featuresProp), [featuresProp]);
+  const labels = (0, import_react13.useMemo)(() => resolveLabels(labelsProp), [labelsProp]);
+  const slots = (0, import_react13.useMemo)(() => collectSlots(children), [children]);
+  const rootId = (0, import_react13.useId)();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
-  const rootRef = (0, import_react10.useRef)(null);
-  const getHtmlRef = (0, import_react10.useRef)(null);
-  const setHtmlRef = (0, import_react10.useRef)(null);
-  const clearRef = (0, import_react10.useRef)(null);
-  const focusRef = (0, import_react10.useRef)(null);
-  const [isEmpty, setIsEmpty] = (0, import_react10.useState)(true);
-  const [sending, setSending] = (0, import_react10.useState)(false);
-  const inputStyle = (0, import_react10.useMemo)(
+  const rootRef = (0, import_react13.useRef)(null);
+  const bodyRef = (0, import_react13.useRef)(null);
+  const getHtmlRef = (0, import_react13.useRef)(null);
+  const setHtmlRef = (0, import_react13.useRef)(null);
+  const clearRef = (0, import_react13.useRef)(null);
+  const focusRef = (0, import_react13.useRef)(null);
+  const [isEmpty, setIsEmpty] = (0, import_react13.useState)(true);
+  const [sending, setSending] = (0, import_react13.useState)(false);
+  const inputStyle = (0, import_react13.useMemo)(
     () => ({
       minHeight: `${minRows * EDITOR_LINE_HEIGHT_PX}px`,
       maxHeight: `${maxRows * EDITOR_LINE_HEIGHT_PX}px`
     }),
     [minRows, maxRows]
   );
-  const initialConfig = (0, import_react10.useMemo)(
+  const enterBindings = (0, import_react13.useMemo)(
+    () => resolveEnterKeyBindings({ enterBehavior, enterKeyBindings }),
+    [enterBehavior, enterKeyBindings]
+  );
+  const initialConfig = (0, import_react13.useMemo)(
     () => ({
       namespace: "RichTextEditor",
       theme: editorTheme,
       editable: !disabled,
       onError,
       nodes: [
-        import_rich_text2.HeadingNode,
-        import_rich_text2.QuoteNode,
-        import_list.ListNode,
-        import_list.ListItemNode,
-        import_code.CodeNode,
-        import_code.CodeHighlightNode,
-        import_link.LinkNode,
-        import_link.AutoLinkNode,
-        ...features.mentions ? [MentionNode] : []
+        import_rich_text5.HeadingNode,
+        ...features.quote ? [RichQuoteNode] : [],
+        import_list3.ListNode,
+        import_list3.ListItemNode,
+        import_code5.CodeNode,
+        import_code5.CodeHighlightNode,
+        import_link2.LinkNode,
+        import_link2.AutoLinkNode,
+        ...features.mentions ? [MentionNode] : [],
+        ...features.spoiler ? [SpoilerNode] : []
       ]
     }),
-    [disabled, features.mentions]
+    [disabled, features.mentions, features.quote, features.spoiler]
   );
-  const transformers = (0, import_react10.useMemo)(
+  const transformers = (0, import_react13.useMemo)(
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
-  const getHtml = (0, import_react10.useCallback)(() => getHtmlRef.current?.() ?? "", []);
-  const submit = (0, import_react10.useCallback)(async () => {
+  const getHtml = (0, import_react13.useCallback)(() => getHtmlRef.current?.() ?? "", []);
+  const submit = (0, import_react13.useCallback)(async () => {
     if (disabled || sending || isEmpty || !onSubmit) return;
     const html = getHtml();
     if (!html) return;
@@ -1450,7 +2614,7 @@ function RichTextEditorInner({
       setSending(false);
     }
   }, [clearOnSubmit, disabled, getHtml, isEmpty, onSubmit, sending]);
-  (0, import_react10.useImperativeHandle)(
+  (0, import_react13.useImperativeHandle)(
     ref,
     () => ({
       getHtml,
@@ -1463,13 +2627,13 @@ function RichTextEditorInner({
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EditorRefPlugin, { getHtmlRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(ClearPlugin, { clearRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(FocusPlugin, { focusRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(EditorRefPlugin, { getHtmlRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SetHtmlPlugin, { setHtmlRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(FocusPlugin, { focusRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
       ContextBridge,
       {
         disabled,
@@ -1481,7 +2645,7 @@ function RichTextEditorInner({
         setHtmlRef,
         clearRef,
         onSubmit: () => void submit(),
-        children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+        children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
           "div",
           {
             ref: rootRef,
@@ -1489,16 +2653,17 @@ function RichTextEditorInner({
             ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
-              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              showToolbar && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                 EditorToolbar,
                 {
                   features,
                   labels,
                   slots,
-                  editorInputId
+                  editorInputId,
+                  showMentionButton: features.mentions && !!mentionSearch
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                 BlurCapturePlugin,
                 {
                   rootRef,
@@ -1506,12 +2671,13 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "re-editor-body", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { ref: bodyRef, className: "re-editor-body", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(InitialHtmlPlugin, { html: value }),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                   import_LexicalRichTextPlugin.RichTextPlugin,
                   {
-                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                    contentEditable: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                       import_LexicalContentEditable.ContentEditable,
                       {
                         id: editorInputId,
@@ -1524,25 +2690,35 @@ function RichTextEditorInner({
                         "aria-describedby": placeholder ? placeholderId : void 0
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                    placeholder: placeholder ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
                     ErrorBoundary: import_LexicalErrorBoundary.LexicalErrorBoundary
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_LexicalListPlugin.ListPlugin, {}),
-                features.links && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
-                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
-                onSubmit && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_LexicalHistoryPlugin.HistoryPlugin, {}),
+                features.lists && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_LexicalListPlugin.ListPlugin, {}),
+                features.links && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_LexicalLinkPlugin.LinkPlugin, {}),
+                features.codeBlock && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CodeHighlightPlugin, { enabled: !disabled }),
+                transformers.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(import_LexicalMarkdownShortcutPlugin.MarkdownShortcutPlugin, { transformers }),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(KeyboardShortcutsPlugin, { features, disabled }),
+                features.mentions && mentionSearch && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(MentionsPlugin, { searchMentions: mentionSearch }),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                   EnterPlugin,
                   {
-                    behavior: enterBehavior,
-                    onSubmit: () => void submit()
+                    bindings: enterBindings,
+                    onSubmit: onSubmit ? () => void submit() : void 0
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                features.selectionMenu && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+                  SelectionMenuPlugin,
+                  {
+                    features,
+                    labels,
+                    items: selectionMenuItems,
+                    containerRef: bodyRef
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
                   SubmitArea,
                   {
                     slots,
@@ -1554,7 +2730,7 @@ function RichTextEditorInner({
                   }
                 )
               ] }),
-              slots.footer && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "re-footer", children: slots.footer })
+              slots.footer && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "re-footer", children: slots.footer })
             ]
           }
         )
@@ -1562,7 +2738,7 @@ function RichTextEditorInner({
     )
   ] });
 }
-var RichTextEditorBase = (0, import_react10.forwardRef)(RichTextEditorInner);
+var RichTextEditorBase = (0, import_react13.forwardRef)(RichTextEditorInner);
 var ToolbarStart = createSlot("toolbarStart");
 var ToolbarEnd = createSlot("toolbarEnd");
 var ToolbarMenu = createSlot("toolbarMenu");
@@ -1577,7 +2753,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-var import_react11 = require("react");
+var import_react14 = require("react");
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -1614,7 +2790,7 @@ async function highlightViewerCodeBlocks(root) {
 }
 
 // src/components/RichTextViewer.tsx
-var import_jsx_runtime5 = require("react/jsx-runtime");
+var import_jsx_runtime7 = require("react/jsx-runtime");
 function mentionAriaLabel(template, label) {
   return template.replace("{label}", label);
 }
@@ -1634,16 +2810,28 @@ function RichTextViewer({
 }) {
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
-  const ref = (0, import_react11.useRef)(null);
-  const prepared = (0, import_react11.useMemo)(
+  const ref = (0, import_react14.useRef)(null);
+  const prepared = (0, import_react14.useMemo)(
     () => prepareViewerContent(content, features),
     [content, features]
   );
-  (0, import_react11.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
     if (prepared.kind !== "html" || !features.codeHighlight) return;
     void highlightViewerCodeBlocks(ref.current);
   }, [prepared, features.codeHighlight]);
-  (0, import_react11.useEffect)(() => {
+  (0, import_react14.useEffect)(() => {
+    if (prepared.kind !== "html") return;
+    const root = ref.current;
+    if (!root) return;
+    const onSpoilerClick = (event) => {
+      const target = event.target.closest(".re-spoiler");
+      if (!target || !root.contains(target)) return;
+      target.classList.add("re-spoiler-revealed");
+    };
+    root.addEventListener("click", onSpoilerClick);
+    return () => root.removeEventListener("click", onSpoilerClick);
+  }, [prepared]);
+  (0, import_react14.useEffect)(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
@@ -1686,7 +2874,7 @@ function RichTextViewer({
     };
   }, [labels.mention, onMentionClick, prepared]);
   if (prepared.kind === "plain") {
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
       "p",
       {
         ...themeDataAttribute(theme),
@@ -1696,7 +2884,7 @@ function RichTextViewer({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
     "div",
     {
       ref,
@@ -1712,16 +2900,22 @@ function RichTextViewer({
 0 && (module.exports = {
   RichTextEditor,
   RichTextViewer,
+  allSelectionMenuItems,
   applyLinkTargetToHtml,
   buildMarkdownTransformers,
   defaultEditorTheme,
+  defaultEnterKeyBindings,
   defaultFeatures,
   defaultLabels,
+  defaultSelectionMenuItems,
   defaultViewerFeatures,
   defaultViewerLabels,
+  describeEnterKeyBindings,
   editorCssVariables,
   editorThemePresets,
+  enterBehaviorToBindings,
   exportEditorHtml,
+  formatEnterKeyBinding,
   formatKeyboardShortcuts,
   getActiveFormatShortcuts,
   getEnterBehaviorDescription,
@@ -1730,12 +2924,15 @@ function RichTextViewer({
   looksLikeMarkdown,
   markdownShortcuts,
   markdownToHtml,
+  matchEnterKeyAction,
   mentionKeyboardShortcuts,
   normalizeHtml,
   plainTextFromHtml,
   prepareViewerContent,
+  resolveEnterKeyBindings,
   sanitizeHtml,
   shortcutById,
+  shouldPluginHandleEnterAction,
   useRichTextEditor
 });
 //# sourceMappingURL=index.cjs.map
