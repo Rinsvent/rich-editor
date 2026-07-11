@@ -67,6 +67,7 @@ export type EditorLabels = {
   toolbar: string;
   mentionMenu: string;
   selectionMenu: string;
+  codeLanguage: string;
 };
 
 export const defaultLabels: EditorLabels = {
@@ -96,6 +97,7 @@ export const defaultLabels: EditorLabels = {
   toolbar: "Formatting",
   mentionMenu: "Mention suggestions",
   selectionMenu: "Selection formatting",
+  codeLanguage: "Code language",
 };
 
 export function resolveLabels(partial?: Partial<EditorLabels>): EditorLabels {
@@ -107,11 +109,15 @@ export type ViewerLabels = {
   content: string;
   /** Accessible name for clickable @mentions, `{label}` is replaced */
   mention: string;
+  copyCode: string;
+  copiedCode: string;
 };
 
 export const defaultViewerLabels: ViewerLabels = {
   content: "Rich text content",
   mention: "Mention {label}",
+  copyCode: "Copy code",
+  copiedCode: "Copied",
 };
 
 export function resolveViewerLabels(

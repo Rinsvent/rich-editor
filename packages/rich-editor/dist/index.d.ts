@@ -48,6 +48,7 @@ type EditorLabels = {
     toolbar: string;
     mentionMenu: string;
     selectionMenu: string;
+    codeLanguage: string;
 };
 declare const defaultLabels: EditorLabels;
 type ViewerLabels = {
@@ -55,6 +56,8 @@ type ViewerLabels = {
     content: string;
     /** Accessible name for clickable @mentions, `{label}` is replaced */
     mention: string;
+    copyCode: string;
+    copiedCode: string;
 };
 declare const defaultViewerLabels: ViewerLabels;
 type EnterBehavior = "submit" | "newline" | "shift-newline";

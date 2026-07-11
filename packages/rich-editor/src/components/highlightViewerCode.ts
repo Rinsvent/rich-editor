@@ -1,3 +1,22 @@
+import {
+  ensureHljsLanguages,
+  getHljs,
+  loadHljsLanguage,
+  resolveHljsLanguage,
+} from "../core/hljsRuntime";
+
+function detectLanguage(element: HTMLElement): string {
+  const dataLanguage = element.getAttribute("data-language");
+  if (dataLanguage) return dataLanguage;
+
+  const languageClass = [...element.classList].find((name) =>
+    name.startsWith("language-"),
+  );
+  if (languageClass) return languageClass.slice("language-".length);
+
+  return "plaintext";
+}
+
 /** Client-only syntax highlighting for viewer code blocks. */
 export async function highlightViewerCodeBlocks(
   root: HTMLElement | null,
@@ -13,36 +32,34 @@ export async function highlightViewerCodeBlocks(
   );
   if (needsHighlight.length === 0) return;
 
-  const [hljsModule, javascript, typescript, json, plaintext] =
-    await Promise.all([
-      import("highlight.js/lib/core"),
-      import("highlight.js/lib/languages/javascript"),
-      import("highlight.js/lib/languages/typescript"),
-      import("highlight.js/lib/languages/json"),
-      import("highlight.js/lib/languages/plaintext"),
-    ]);
+  const languages = needsHighlight.map((el) => detectLanguage(el));
+  await ensureHljsLanguages(languages);
 
-  const hljs = hljsModule.default;
-  hljs.registerLanguage("javascript", javascript.default);
-  hljs.registerLanguage("js", javascript.default);
-  hljs.registerLanguage("typescript", typescript.default);
-  hljs.registerLanguage("ts", typescript.default);
-  hljs.registerLanguage("json", json.default);
-  hljs.registerLanguage("plaintext", plaintext.default);
+  const hljs = await getHljs();
 
   for (const el of needsHighlight) {
     const text = el.textContent ?? "";
     if (!text.trim()) continue;
 
-    const languageClass = [...el.classList].find((name) =>
-      name.startsWith("language-"),
-    );
-    const language = languageClass?.slice("language-".length) ?? "plaintext";
-    const result = hljs.highlight(text, {
-      language: hljs.getLanguage(language) ? language : "plaintext",
-    });
+    el.dataset.code = text;
+    const language = resolveHljsLanguage(hljs, detectLanguage(el));
+    const result = hljs.highlight(text, { language });
 
     el.innerHTML = result.value;
     el.classList.add("hljs");
+    el.setAttribute("data-language", language);
   }
+}
+
+/** Store raw code text on blocks that are already highlighted (e.g. from editor). */
+export function storeViewerCodeText(root: HTMLElement | null): void {
+  if (!root) return;
+
+  root.querySelectorAll<HTMLElement>(
+    "pre code, code.re-block-code, .re-block-code",
+  ).forEach((el) => {
+    if (!el.dataset.code) {
+      el.dataset.code = el.textContent ?? "";
+    }
+  });
 }

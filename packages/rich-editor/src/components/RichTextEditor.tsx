@@ -60,6 +60,7 @@ import {
   BlockBehaviorPlugin,
   ClearPlugin,
   CodeHighlightPlugin,
+  CodeLanguagePlugin,
   EmptyStatePlugin,
   EnterPlugin,
   FocusPlugin,
@@ -436,7 +437,10 @@ function RichTextEditorInner(
             {features.lists && <ListPlugin />}
             {features.links && <LinkPlugin />}
             {features.codeBlock && (
-              <CodeHighlightPlugin enabled={!disabled} />
+              <>
+                <CodeHighlightPlugin enabled={!disabled} />
+                <CodeLanguagePlugin labels={labels} containerRef={bodyRef} />
+              </>
             )}
             {transformers.length > 0 && (
               <MarkdownShortcutPlugin transformers={transformers} />

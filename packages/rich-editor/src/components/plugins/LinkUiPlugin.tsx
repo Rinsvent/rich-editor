@@ -190,6 +190,23 @@ export function LinkUiPlugin({
   if (!enabled) {
     return <>{children}</>;
   }
+
+  return (
+    <LinkUiPluginInner labels={labels} containerRef={containerRef}>
+      {children}
+    </LinkUiPluginInner>
+  );
+}
+
+function LinkUiPluginInner({
+  labels,
+  containerRef,
+  children,
+}: {
+  labels: EditorLabels;
+  containerRef: React.RefObject<HTMLElement | null>;
+  children: React.ReactNode;
+}) {
   const [editor] = useLexicalComposerContext();
   const [modal, setModal] = useState<LinkModalState | null>(null);
   const [toolbar, setToolbar] = useState<FloatingToolbarState | null>(null);

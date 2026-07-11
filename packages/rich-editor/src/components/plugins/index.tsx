@@ -149,6 +149,7 @@ export { KeyboardShortcutsPlugin } from "./KeyboardShortcutsPlugin";
 export { MentionsPlugin } from "./MentionsPlugin";
 export { BlockBehaviorPlugin } from "./BlockBehaviorPlugin";
 export { CodeHighlightPlugin } from "./CodeHighlightPlugin";
+export { CodeLanguagePlugin } from "./CodeLanguagePlugin";
 export { SelectionMenuPlugin } from "./SelectionMenuPlugin";
 export { LineBreakPlugin } from "./LineBreakPlugin";
 export { LinkUiPlugin } from "./LinkUiPlugin";

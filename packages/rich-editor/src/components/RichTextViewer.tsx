@@ -13,7 +13,11 @@ import { MENTION_ID_ATTR, MENTION_LABEL_ATTR } from "../core/mentions";
 import { defaultEditorTheme, type EditorTheme } from "../core/presets";
 import { themeDataAttribute } from "../core/themePresets";
 import { prepareViewerContent } from "../core/viewerHtml";
-import { highlightViewerCodeBlocks } from "./highlightViewerCode";
+import {
+  highlightViewerCodeBlocks,
+  storeViewerCodeText,
+} from "./highlightViewerCode";
+import { enhanceViewerCodeBlocks } from "./enhanceViewerCode";
 
 export type RichTextViewerProps = {
   content: string;
@@ -56,9 +60,24 @@ export function RichTextViewer({
   );
 
   useLayoutEffect(() => {
-    if (prepared.kind !== "html" || !features.codeHighlight) return;
-    void highlightViewerCodeBlocks(ref.current);
-  }, [prepared, features.codeHighlight]);
+    if (prepared.kind !== "html") return;
+
+    const run = async () => {
+      if (features.codeHighlight) {
+        await highlightViewerCodeBlocks(ref.current);
+      } else {
+        storeViewerCodeText(ref.current);
+      }
+      return enhanceViewerCodeBlocks(ref.current, labels);
+    };
+
+    let cleanup: (() => void) | undefined;
+    void run().then((dispose) => {
+      cleanup = dispose;
+    });
+
+    return () => cleanup?.();
+  }, [features.codeHighlight, labels, prepared]);
 
   useEffect(() => {
     if (prepared.kind !== "html") return;

@@ -6,7 +6,7 @@ import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { useLexicalComposerContext as useLexicalComposerContext13 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext14 } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
@@ -18,12 +18,12 @@ import { HeadingNode, QuoteNode as QuoteNode3 } from "@lexical/rich-text";
 import {
   forwardRef,
   useCallback as useCallback4,
-  useEffect as useEffect14,
+  useEffect as useEffect15,
   useId as useId4,
   useImperativeHandle,
-  useMemo as useMemo3,
+  useMemo as useMemo4,
   useRef as useRef4,
-  useState as useState6
+  useState as useState7
 } from "react";
 
 // src/context/EditorContext.tsx
@@ -96,14 +96,17 @@ var defaultLabels = {
   editor: "Rich text editor",
   toolbar: "Formatting",
   mentionMenu: "Mention suggestions",
-  selectionMenu: "Selection formatting"
+  selectionMenu: "Selection formatting",
+  codeLanguage: "Code language"
 };
 function resolveLabels(partial) {
   return { ...defaultLabels, ...partial };
 }
 var defaultViewerLabels = {
   content: "Rich text content",
-  mention: "Mention {label}"
+  mention: "Mention {label}",
+  copyCode: "Copy code",
+  copiedCode: "Copied"
 };
 function resolveViewerLabels(partial) {
   return { ...defaultViewerLabels, ...partial };
@@ -778,9 +781,9 @@ function cn(...parts) {
 }
 
 // src/components/plugins/index.tsx
-import { useEffect as useEffect12, useRef as useRef3 } from "react";
+import { useEffect as useEffect13, useRef as useRef3 } from "react";
 import { $generateNodesFromDOM as $generateNodesFromDOM2 } from "@lexical/html";
-import { useLexicalComposerContext as useLexicalComposerContext12 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext13 } from "@lexical/react/LexicalComposerContext";
 import { $getRoot as $getRoot4 } from "lexical";
 
 // src/components/plugins/EnterPlugin.tsx
@@ -1631,19 +1634,354 @@ function CodeHighlightPlugin({ enabled }) {
   return null;
 }
 
-// src/components/plugins/SelectionMenuPlugin.tsx
-import { useEffect as useEffect8, useState as useState3 } from "react";
+// src/components/plugins/CodeLanguagePlugin.tsx
+import { useEffect as useEffect7, useMemo as useMemo2, useState as useState2 } from "react";
 import { createPortal as createPortal2 } from "react-dom";
-import { useLexicalComposerContext as useLexicalComposerContext8 } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext as useLexicalComposerContext7 } from "@lexical/react/LexicalComposerContext";
+import { $isCodeNode as $isCodeNode3, normalizeCodeLanguage } from "@lexical/code";
+import { $findMatchingParent as $findMatchingParent3 } from "@lexical/utils";
 import {
-  $getSelection as $getSelection6,
-  $isRangeSelection as $isRangeSelection6,
-  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW4,
-  SELECTION_CHANGE_COMMAND as SELECTION_CHANGE_COMMAND2
+  $getNodeByKey as $getNodeByKey2,
+  $getSelection as $getSelection5,
+  $isRangeSelection as $isRangeSelection5,
+  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW3,
+  SELECTION_CHANGE_COMMAND
+} from "lexical";
+
+// src/core/hljsLanguages.ts
+var HLJS_LANGUAGE_LABELS = {
+  "1c": "1C",
+  "abnf": "Abnf",
+  "accesslog": "Accesslog",
+  "actionscript": "Actionscript",
+  "ada": "Ada",
+  "angelscript": "Angelscript",
+  "apache": "Apache",
+  "applescript": "Applescript",
+  "arcade": "Arcade",
+  "arduino": "Arduino",
+  "armasm": "Armasm",
+  "asciidoc": "Asciidoc",
+  "aspectj": "Aspectj",
+  "autohotkey": "Autohotkey",
+  "autoit": "Autoit",
+  "avrasm": "Avrasm",
+  "awk": "Awk",
+  "axapta": "Axapta",
+  "bash": "Bash",
+  "basic": "Basic",
+  "bnf": "Bnf",
+  "brainfuck": "Brainfuck",
+  "c": "C",
+  "cal": "Cal",
+  "capnproto": "Capnproto",
+  "ceylon": "Ceylon",
+  "clean": "Clean",
+  "clojure": "Clojure",
+  "clojure-repl": "Clojure Repl",
+  "cmake": "Cmake",
+  "coffeescript": "Coffeescript",
+  "coq": "Coq",
+  "cos": "Cos",
+  "cpp": "C++",
+  "crmsh": "Crmsh",
+  "crystal": "Crystal",
+  "csharp": "C#",
+  "csp": "Csp",
+  "css": "CSS",
+  "d": "D",
+  "dart": "Dart",
+  "delphi": "Delphi",
+  "diff": "Diff",
+  "django": "Django",
+  "dns": "Dns",
+  "dockerfile": "Dockerfile",
+  "dos": "Dos",
+  "dsconfig": "Dsconfig",
+  "dts": "Dts",
+  "dust": "Dust",
+  "ebnf": "Ebnf",
+  "elixir": "Elixir",
+  "elm": "Elm",
+  "erb": "Erb",
+  "erlang": "Erlang",
+  "erlang-repl": "Erlang Repl",
+  "excel": "Excel",
+  "fix": "Fix",
+  "flix": "Flix",
+  "fortran": "Fortran",
+  "fsharp": "Fsharp",
+  "gams": "Gams",
+  "gauss": "Gauss",
+  "gcode": "Gcode",
+  "gherkin": "Gherkin",
+  "glsl": "Glsl",
+  "gml": "Gml",
+  "go": "Go",
+  "golo": "Golo",
+  "gradle": "Gradle",
+  "graphql": "Graphql",
+  "groovy": "Groovy",
+  "haml": "Haml",
+  "handlebars": "Handlebars",
+  "haskell": "Haskell",
+  "haxe": "Haxe",
+  "hsp": "Hsp",
+  "http": "Http",
+  "hy": "Hy",
+  "inform7": "Inform7",
+  "ini": "Ini",
+  "irpf90": "Irpf90",
+  "isbl": "Isbl",
+  "java": "Java",
+  "javascript": "JavaScript",
+  "jboss-cli": "Jboss Cli",
+  "json": "JSON",
+  "julia": "Julia",
+  "julia-repl": "Julia Repl",
+  "kotlin": "Kotlin",
+  "lasso": "Lasso",
+  "latex": "Latex",
+  "ldif": "Ldif",
+  "leaf": "Leaf",
+  "less": "Less",
+  "lisp": "Lisp",
+  "livecodeserver": "Livecodeserver",
+  "livescript": "Livescript",
+  "llvm": "Llvm",
+  "lsl": "Lsl",
+  "lua": "Lua",
+  "makefile": "Makefile",
+  "markdown": "Markdown",
+  "mathematica": "Mathematica",
+  "matlab": "Matlab",
+  "maxima": "Maxima",
+  "mel": "Mel",
+  "mercury": "Mercury",
+  "mipsasm": "Mipsasm",
+  "mizar": "Mizar",
+  "mojolicious": "Mojolicious",
+  "monkey": "Monkey",
+  "moonscript": "Moonscript",
+  "n1ql": "N1ql",
+  "nestedtext": "Nestedtext",
+  "nginx": "Nginx",
+  "nim": "Nim",
+  "nix": "Nix",
+  "node-repl": "Node Repl",
+  "nsis": "Nsis",
+  "objectivec": "Objectivec",
+  "ocaml": "Ocaml",
+  "openscad": "Openscad",
+  "oxygene": "Oxygene",
+  "parser3": "Parser3",
+  "perl": "Perl",
+  "pf": "Pf",
+  "pgsql": "Pgsql",
+  "php": "PHP",
+  "php-template": "Php Template",
+  "plaintext": "Plain Text",
+  "pony": "Pony",
+  "powershell": "Powershell",
+  "processing": "Processing",
+  "profile": "Profile",
+  "prolog": "Prolog",
+  "properties": "Properties",
+  "protobuf": "Protobuf",
+  "puppet": "Puppet",
+  "purebasic": "Purebasic",
+  "python": "Python",
+  "python-repl": "Python Repl",
+  "q": "Q",
+  "qml": "Qml",
+  "r": "R",
+  "reasonml": "Reasonml",
+  "rib": "Rib",
+  "roboconf": "Roboconf",
+  "routeros": "Routeros",
+  "rsl": "Rsl",
+  "ruby": "Ruby",
+  "ruleslanguage": "Ruleslanguage",
+  "rust": "Rust",
+  "sas": "Sas",
+  "scala": "Scala",
+  "scheme": "Scheme",
+  "scilab": "Scilab",
+  "scss": "Scss",
+  "shell": "Shell",
+  "smali": "Smali",
+  "smalltalk": "Smalltalk",
+  "sml": "Sml",
+  "sqf": "Sqf",
+  "sql": "SQL",
+  "stan": "Stan",
+  "stata": "Stata",
+  "step21": "Step21",
+  "stylus": "Stylus",
+  "subunit": "Subunit",
+  "swift": "Swift",
+  "taggerscript": "Taggerscript",
+  "tap": "Tap",
+  "tcl": "Tcl",
+  "thrift": "Thrift",
+  "tp": "Tp",
+  "twig": "Twig",
+  "typescript": "TypeScript",
+  "vala": "Vala",
+  "vbnet": "Vbnet",
+  "vbscript": "Vbscript",
+  "vbscript-html": "Vbscript Html",
+  "verilog": "Verilog",
+  "vhdl": "Vhdl",
+  "vim": "Vim",
+  "wasm": "Wasm",
+  "wren": "Wren",
+  "x86asm": "X86asm",
+  "xl": "Xl",
+  "xml": "XML",
+  "xquery": "Xquery",
+  "yaml": "YAML",
+  "zephir": "Zephir"
+};
+var HLJS_LANGUAGE_IDS = Object.keys(HLJS_LANGUAGE_LABELS).sort();
+function getHljsLanguageLabel(id) {
+  return HLJS_LANGUAGE_LABELS[id] ?? id;
+}
+
+// src/components/plugins/CodeLanguagePlugin.tsx
+import { jsx as jsx3, jsxs as jsxs2 } from "react/jsx-runtime";
+var PRISM_TO_HLJS_LANGUAGE = {
+  js: "javascript",
+  ts: "typescript",
+  py: "python",
+  plain: "plaintext",
+  md: "markdown"
+};
+function toSelectLanguage(language) {
+  if (!language) return "plaintext";
+  return PRISM_TO_HLJS_LANGUAGE[language] ?? language;
+}
+function CodeLanguagePlugin({
+  labels,
+  containerRef
+}) {
+  const [editor] = useLexicalComposerContext7();
+  const [toolbar, setToolbar] = useState2(null);
+  const languageOptions = useMemo2(
+    () => HLJS_LANGUAGE_IDS.map((id) => ({
+      id,
+      label: getHljsLanguageLabel(id)
+    })).sort((a, b) => a.label.localeCompare(b.label)),
+    []
+  );
+  useEffect7(() => {
+    const update = () => {
+      editor.getEditorState().read(() => {
+        const selection = $getSelection5();
+        if (!$isRangeSelection5(selection)) {
+          setToolbar(null);
+          return;
+        }
+        const code = $findMatchingParent3(selection.anchor.getNode(), $isCodeNode3);
+        if (!code) {
+          setToolbar(null);
+          return;
+        }
+        const element = editor.getElementByKey(code.getKey());
+        const container = containerRef.current;
+        if (!element || !container) {
+          setToolbar(null);
+          return;
+        }
+        const rect = element.getBoundingClientRect();
+        const host = container.getBoundingClientRect();
+        const language = toSelectLanguage(code.getLanguage());
+        setToolbar((prev) => {
+          const next = {
+            codeKey: code.getKey(),
+            language,
+            top: rect.top - host.top + 6,
+            right: host.right - rect.right + 6
+          };
+          if (prev && prev.codeKey === next.codeKey && prev.language === next.language && prev.top === next.top && prev.right === next.right) {
+            return prev;
+          }
+          return next;
+        });
+      });
+    };
+    update();
+    const removeSelection = editor.registerCommand(
+      SELECTION_CHANGE_COMMAND,
+      () => {
+        update();
+        return false;
+      },
+      COMMAND_PRIORITY_LOW3
+    );
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      removeSelection();
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [containerRef, editor]);
+  const onChange = (language) => {
+    if (!toolbar) return;
+    const codeKey = toolbar.codeKey;
+    editor.update(() => {
+      const code = $getNodeByKey2(codeKey);
+      if (!$isCodeNode3(code)) return;
+      code.setLanguage(normalizeCodeLanguage(language));
+    });
+    setToolbar(
+      (current) => current ? { ...current, language } : current
+    );
+  };
+  if (!toolbar || !containerRef.current) return null;
+  return createPortal2(
+    /* @__PURE__ */ jsx3(
+      "div",
+      {
+        className: "re-code-language-toolbar",
+        style: {
+          top: `${toolbar.top}px`,
+          right: `${toolbar.right}px`
+        },
+        children: /* @__PURE__ */ jsxs2("label", { className: "re-code-language-label", children: [
+          /* @__PURE__ */ jsx3("span", { className: "sr-only", children: labels.codeLanguage }),
+          /* @__PURE__ */ jsx3(
+            "select",
+            {
+              className: "re-code-language-select",
+              value: toolbar.language,
+              "aria-label": labels.codeLanguage,
+              onMouseDown: (event) => event.stopPropagation(),
+              onChange: (event) => onChange(event.target.value),
+              children: languageOptions.map((option) => /* @__PURE__ */ jsx3("option", { value: option.id, children: option.label }, option.id))
+            }
+          )
+        ] })
+      }
+    ),
+    containerRef.current
+  );
+}
+
+// src/components/plugins/SelectionMenuPlugin.tsx
+import { useEffect as useEffect9, useState as useState4 } from "react";
+import { createPortal as createPortal3 } from "react-dom";
+import { useLexicalComposerContext as useLexicalComposerContext9 } from "@lexical/react/LexicalComposerContext";
+import {
+  $getSelection as $getSelection7,
+  $isRangeSelection as $isRangeSelection7,
+  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW5,
+  SELECTION_CHANGE_COMMAND as SELECTION_CHANGE_COMMAND3
 } from "lexical";
 
 // src/components/toolbar/ToolbarIcons.tsx
-import { jsx as jsx3, jsxs as jsxs2 } from "react/jsx-runtime";
+import { jsx as jsx4, jsxs as jsxs3 } from "react/jsx-runtime";
 var defaults = {
   width: 18,
   height: 18,
@@ -1656,109 +1994,109 @@ var defaults = {
   "aria-hidden": true
 };
 function IconBold(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("path", { d: "M6 4h8a4 4 0 0 1 0 8H6z" }),
-    /* @__PURE__ */ jsx3("path", { d: "M6 12h9a4 4 0 0 1 0 8H6z" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("path", { d: "M6 4h8a4 4 0 0 1 0 8H6z" }),
+    /* @__PURE__ */ jsx4("path", { d: "M6 12h9a4 4 0 0 1 0 8H6z" })
   ] });
 }
 function IconItalic(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("line", { x1: "19", y1: "4", x2: "10", y2: "4" }),
-    /* @__PURE__ */ jsx3("line", { x1: "14", y1: "20", x2: "5", y2: "20" }),
-    /* @__PURE__ */ jsx3("line", { x1: "15", y1: "4", x2: "9", y2: "20" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("line", { x1: "19", y1: "4", x2: "10", y2: "4" }),
+    /* @__PURE__ */ jsx4("line", { x1: "14", y1: "20", x2: "5", y2: "20" }),
+    /* @__PURE__ */ jsx4("line", { x1: "15", y1: "4", x2: "9", y2: "20" })
   ] });
 }
 function IconStrikethrough(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("path", { d: "M16 4H9a3 3 0 0 0-2.83 4" }),
-    /* @__PURE__ */ jsx3("path", { d: "M14 12a4 4 0 0 1 0 8H6" }),
-    /* @__PURE__ */ jsx3("line", { x1: "4", y1: "12", x2: "20", y2: "12" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("path", { d: "M16 4H9a3 3 0 0 0-2.83 4" }),
+    /* @__PURE__ */ jsx4("path", { d: "M14 12a4 4 0 0 1 0 8H6" }),
+    /* @__PURE__ */ jsx4("line", { x1: "4", y1: "12", x2: "20", y2: "12" })
   ] });
 }
 function IconCode(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("polyline", { points: "16 18 22 12 16 6" }),
-    /* @__PURE__ */ jsx3("polyline", { points: "8 6 2 12 8 18" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("polyline", { points: "16 18 22 12 16 6" }),
+    /* @__PURE__ */ jsx4("polyline", { points: "8 6 2 12 8 18" })
   ] });
 }
 function IconQuote(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("path", { d: "M3 10h4v7H3z" }),
-    /* @__PURE__ */ jsx3("path", { d: "M13 10h4v7h-4z" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("path", { d: "M3 10h4v7H3z" }),
+    /* @__PURE__ */ jsx4("path", { d: "M13 10h4v7h-4z" })
   ] });
 }
 function IconCodeBlock(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("rect", { x: "4", y: "4", width: "16", height: "16", rx: "2" }),
-    /* @__PURE__ */ jsx3("path", { d: "M8 10l2 2-2 2" }),
-    /* @__PURE__ */ jsx3("path", { d: "M13 14h3" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("rect", { x: "4", y: "4", width: "16", height: "16", rx: "2" }),
+    /* @__PURE__ */ jsx4("path", { d: "M8 10l2 2-2 2" }),
+    /* @__PURE__ */ jsx4("path", { d: "M13 14h3" })
   ] });
 }
 function IconBulletList(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("line", { x1: "9", y1: "6", x2: "20", y2: "6" }),
-    /* @__PURE__ */ jsx3("line", { x1: "9", y1: "12", x2: "20", y2: "12" }),
-    /* @__PURE__ */ jsx3("line", { x1: "9", y1: "18", x2: "20", y2: "18" }),
-    /* @__PURE__ */ jsx3("circle", { cx: "5", cy: "6", r: "1.5", fill: "currentColor", stroke: "none" }),
-    /* @__PURE__ */ jsx3("circle", { cx: "5", cy: "12", r: "1.5", fill: "currentColor", stroke: "none" }),
-    /* @__PURE__ */ jsx3("circle", { cx: "5", cy: "18", r: "1.5", fill: "currentColor", stroke: "none" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("line", { x1: "9", y1: "6", x2: "20", y2: "6" }),
+    /* @__PURE__ */ jsx4("line", { x1: "9", y1: "12", x2: "20", y2: "12" }),
+    /* @__PURE__ */ jsx4("line", { x1: "9", y1: "18", x2: "20", y2: "18" }),
+    /* @__PURE__ */ jsx4("circle", { cx: "5", cy: "6", r: "1.5", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ jsx4("circle", { cx: "5", cy: "12", r: "1.5", fill: "currentColor", stroke: "none" }),
+    /* @__PURE__ */ jsx4("circle", { cx: "5", cy: "18", r: "1.5", fill: "currentColor", stroke: "none" })
   ] });
 }
 function IconNumberedList(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("line", { x1: "10", y1: "6", x2: "20", y2: "6" }),
-    /* @__PURE__ */ jsx3("line", { x1: "10", y1: "12", x2: "20", y2: "12" }),
-    /* @__PURE__ */ jsx3("line", { x1: "10", y1: "18", x2: "20", y2: "18" }),
-    /* @__PURE__ */ jsx3("path", { d: "M4 6h1v4H4" }),
-    /* @__PURE__ */ jsx3("path", { d: "M4 16h2" }),
-    /* @__PURE__ */ jsx3("path", { d: "M6 14H4" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("line", { x1: "10", y1: "6", x2: "20", y2: "6" }),
+    /* @__PURE__ */ jsx4("line", { x1: "10", y1: "12", x2: "20", y2: "12" }),
+    /* @__PURE__ */ jsx4("line", { x1: "10", y1: "18", x2: "20", y2: "18" }),
+    /* @__PURE__ */ jsx4("path", { d: "M4 6h1v4H4" }),
+    /* @__PURE__ */ jsx4("path", { d: "M4 16h2" }),
+    /* @__PURE__ */ jsx4("path", { d: "M6 14H4" })
   ] });
 }
 function IconLink(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("path", { d: "M10 13a5 5 0 0 0 7.54.54l2.92-2.92a5 5 0 0 0-7.07-7.07l-1.5 1.5" }),
-    /* @__PURE__ */ jsx3("path", { d: "M14 11a5 5 0 0 0-7.54-.54L3.54 13.4a5 5 0 0 0 7.07 7.07l1.5-1.5" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("path", { d: "M10 13a5 5 0 0 0 7.54.54l2.92-2.92a5 5 0 0 0-7.07-7.07l-1.5 1.5" }),
+    /* @__PURE__ */ jsx4("path", { d: "M14 11a5 5 0 0 0-7.54-.54L3.54 13.4a5 5 0 0 0 7.07 7.07l1.5-1.5" })
   ] });
 }
 function IconHeading(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("path", { d: "M4 12V4h4v16H4v-8" }),
-    /* @__PURE__ */ jsx3("path", { d: "M12 4h8" }),
-    /* @__PURE__ */ jsx3("path", { d: "M16 4v16" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("path", { d: "M4 12V4h4v16H4v-8" }),
+    /* @__PURE__ */ jsx4("path", { d: "M12 4h8" }),
+    /* @__PURE__ */ jsx4("path", { d: "M16 4v16" })
   ] });
 }
 function IconMention(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("circle", { cx: "12", cy: "12", r: "4" }),
-    /* @__PURE__ */ jsx3("path", { d: "M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("circle", { cx: "12", cy: "12", r: "4" }),
+    /* @__PURE__ */ jsx4("path", { d: "M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" })
   ] });
 }
 function IconSpoiler(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("path", { d: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" }),
-    /* @__PURE__ */ jsx3("line", { x1: "3", y1: "3", x2: "21", y2: "21" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("path", { d: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" }),
+    /* @__PURE__ */ jsx4("line", { x1: "3", y1: "3", x2: "21", y2: "21" })
   ] });
 }
 function IconEdit(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("path", { d: "M12 20h9" }),
-    /* @__PURE__ */ jsx3("path", { d: "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("path", { d: "M12 20h9" }),
+    /* @__PURE__ */ jsx4("path", { d: "M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" })
   ] });
 }
 function IconTrash(props) {
-  return /* @__PURE__ */ jsxs2("svg", { ...defaults, ...props, children: [
-    /* @__PURE__ */ jsx3("path", { d: "M3 6h18" }),
-    /* @__PURE__ */ jsx3("path", { d: "M8 6V4h8v2" }),
-    /* @__PURE__ */ jsx3("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" }),
-    /* @__PURE__ */ jsx3("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
-    /* @__PURE__ */ jsx3("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
+  return /* @__PURE__ */ jsxs3("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx4("path", { d: "M3 6h18" }),
+    /* @__PURE__ */ jsx4("path", { d: "M8 6V4h8v2" }),
+    /* @__PURE__ */ jsx4("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" }),
+    /* @__PURE__ */ jsx4("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
+    /* @__PURE__ */ jsx4("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
   ] });
 }
 
 // src/components/toolbar/useFormatState.ts
-import { useEffect as useEffect7, useState as useState2 } from "react";
-import { useLexicalComposerContext as useLexicalComposerContext7 } from "@lexical/react/LexicalComposerContext";
-import { $createCodeNode, $isCodeNode as $isCodeNode3 } from "@lexical/code";
+import { useEffect as useEffect8, useState as useState3 } from "react";
+import { useLexicalComposerContext as useLexicalComposerContext8 } from "@lexical/react/LexicalComposerContext";
+import { $createCodeNode, $isCodeNode as $isCodeNode4 } from "@lexical/code";
 import { $isLinkNode } from "@lexical/link";
 import {
   $isListNode,
@@ -1772,31 +2110,31 @@ import {
   $isQuoteNode as $isQuoteNode5
 } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
-import { $findMatchingParent as $findMatchingParent3 } from "@lexical/utils";
+import { $findMatchingParent as $findMatchingParent4 } from "@lexical/utils";
 import {
   $createParagraphNode as $createParagraphNode4,
   $createTextNode as $createTextNode3,
-  $getSelection as $getSelection5,
-  $isRangeSelection as $isRangeSelection5,
-  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW3,
+  $getSelection as $getSelection6,
+  $isRangeSelection as $isRangeSelection6,
+  COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW4,
   FORMAT_TEXT_COMMAND as FORMAT_TEXT_COMMAND2,
-  SELECTION_CHANGE_COMMAND
+  SELECTION_CHANGE_COMMAND as SELECTION_CHANGE_COMMAND2
 } from "lexical";
 
 // src/context/LinkUiContext.tsx
 import {
   createContext as createContext2,
   useContext as useContext2,
-  useMemo as useMemo2
+  useMemo as useMemo3
 } from "react";
-import { jsx as jsx4 } from "react/jsx-runtime";
+import { jsx as jsx5 } from "react/jsx-runtime";
 var LinkUiContext = createContext2(null);
 function LinkUiProvider({
   openLinkDialog,
   children
 }) {
-  const value = useMemo2(() => ({ openLinkDialog }), [openLinkDialog]);
-  return /* @__PURE__ */ jsx4(LinkUiContext.Provider, { value, children });
+  const value = useMemo3(() => ({ openLinkDialog }), [openLinkDialog]);
+  return /* @__PURE__ */ jsx5(LinkUiContext.Provider, { value, children });
 }
 function useLinkUiOptional() {
   return useContext2(LinkUiContext);
@@ -1817,41 +2155,41 @@ var emptyFormat = {
   spoiler: false
 };
 function useFormatState() {
-  const [editor] = useLexicalComposerContext7();
-  const [state, setState] = useState2(emptyFormat);
-  useEffect7(() => {
+  const [editor] = useLexicalComposerContext8();
+  const [state, setState] = useState3(emptyFormat);
+  useEffect8(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection)) {
+        const selection = $getSelection6();
+        if (!$isRangeSelection6(selection)) {
           setState(emptyFormat);
           return;
         }
         const anchorNode = selection.anchor.getNode();
-        const listNode = $findMatchingParent3(anchorNode, $isListNode);
+        const listNode = $findMatchingParent4(anchorNode, $isListNode);
         setState({
           bold: selection.hasFormat("bold"),
           italic: selection.hasFormat("italic"),
           strikethrough: selection.hasFormat("strikethrough"),
           code: selection.hasFormat("code"),
-          quote: !!$findMatchingParent3(anchorNode, $isQuoteNode5),
-          codeBlock: !!$findMatchingParent3(anchorNode, $isCodeNode3),
+          quote: !!$findMatchingParent4(anchorNode, $isQuoteNode5),
+          codeBlock: !!$findMatchingParent4(anchorNode, $isCodeNode4),
           bulletList: listNode?.getListType() === "bullet",
           numberedList: listNode?.getListType() === "number",
-          link: !!$findMatchingParent3(anchorNode, $isLinkNode),
-          heading: !!$findMatchingParent3(anchorNode, $isHeadingNode),
-          spoiler: !!$findMatchingParent3(anchorNode, $isSpoilerNode)
+          link: !!$findMatchingParent4(anchorNode, $isLinkNode),
+          heading: !!$findMatchingParent4(anchorNode, $isHeadingNode),
+          spoiler: !!$findMatchingParent4(anchorNode, $isSpoilerNode)
         });
       });
     };
     const removeUpdate = editor.registerUpdateListener(() => update());
     const removeSelection = editor.registerCommand(
-      SELECTION_CHANGE_COMMAND,
+      SELECTION_CHANGE_COMMAND2,
       () => {
         update();
         return false;
       },
-      COMMAND_PRIORITY_LOW3
+      COMMAND_PRIORITY_LOW4
     );
     return () => {
       removeUpdate();
@@ -1861,7 +2199,7 @@ function useFormatState() {
   return state;
 }
 function useFormatActions() {
-  const [editor] = useLexicalComposerContext7();
+  const [editor] = useLexicalComposerContext8();
   const linkUi = useLinkUiOptional();
   return {
     bold: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "bold"),
@@ -1870,18 +2208,18 @@ function useFormatActions() {
     code: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "code"),
     quote: () => {
       editor.update(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection)) return;
+        const selection = $getSelection6();
+        if (!$isRangeSelection6(selection)) return;
         $applyQuoteToSelection(selection);
       });
     },
     codeBlock: () => {
       editor.update(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection)) return;
-        const inCode = !!$findMatchingParent3(
+        const selection = $getSelection6();
+        if (!$isRangeSelection6(selection)) return;
+        const inCode = !!$findMatchingParent4(
           selection.anchor.getNode(),
-          $isCodeNode3
+          $isCodeNode4
         );
         if (inCode) {
           $setBlocksType(selection, () => $createParagraphNode4());
@@ -1892,9 +2230,9 @@ function useFormatActions() {
     },
     bulletList: () => {
       editor.update(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection)) return;
-        const listNode = $findMatchingParent3(
+        const selection = $getSelection6();
+        if (!$isRangeSelection6(selection)) return;
+        const listNode = $findMatchingParent4(
           selection.anchor.getNode(),
           $isListNode
         );
@@ -1907,9 +2245,9 @@ function useFormatActions() {
     },
     numberedList: () => {
       editor.update(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection)) return;
-        const listNode = $findMatchingParent3(
+        const selection = $getSelection6();
+        if (!$isRangeSelection6(selection)) return;
+        const listNode = $findMatchingParent4(
           selection.anchor.getNode(),
           $isListNode
         );
@@ -1925,9 +2263,9 @@ function useFormatActions() {
     },
     heading: () => {
       editor.update(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection)) return;
-        const heading = $findMatchingParent3(
+        const selection = $getSelection6();
+        if (!$isRangeSelection6(selection)) return;
+        const heading = $findMatchingParent4(
           selection.anchor.getNode(),
           $isHeadingNode
         );
@@ -1940,8 +2278,8 @@ function useFormatActions() {
     },
     mentionTrigger: () => {
       editor.update(() => {
-        const selection = $getSelection5();
-        if ($isRangeSelection5(selection)) {
+        const selection = $getSelection6();
+        if ($isRangeSelection6(selection)) {
           selection.insertText("@");
         }
       });
@@ -1949,10 +2287,10 @@ function useFormatActions() {
     },
     spoiler: () => {
       editor.update(() => {
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection) || selection.isCollapsed()) return;
+        const selection = $getSelection6();
+        if (!$isRangeSelection6(selection) || selection.isCollapsed()) return;
         const anchorNode = selection.anchor.getNode();
-        const existing = $findMatchingParent3(anchorNode, $isSpoilerNode);
+        const existing = $findMatchingParent4(anchorNode, $isSpoilerNode);
         if (existing) {
           const textNode = $createTextNode3(existing.getTextContent());
           existing.replace(textNode);
@@ -1971,7 +2309,7 @@ function useFormatActions() {
 }
 
 // src/components/plugins/SelectionMenuPlugin.tsx
-import { jsx as jsx5 } from "react/jsx-runtime";
+import { jsx as jsx6 } from "react/jsx-runtime";
 function isItemEnabled(item, features) {
   switch (item) {
     case "bold":
@@ -2004,29 +2342,29 @@ function isItemEnabled(item, features) {
 function MenuIcon({ item }) {
   switch (item) {
     case "bold":
-      return /* @__PURE__ */ jsx5(IconBold, {});
+      return /* @__PURE__ */ jsx6(IconBold, {});
     case "italic":
-      return /* @__PURE__ */ jsx5(IconItalic, {});
+      return /* @__PURE__ */ jsx6(IconItalic, {});
     case "strikethrough":
-      return /* @__PURE__ */ jsx5(IconStrikethrough, {});
+      return /* @__PURE__ */ jsx6(IconStrikethrough, {});
     case "code":
-      return /* @__PURE__ */ jsx5(IconCode, {});
+      return /* @__PURE__ */ jsx6(IconCode, {});
     case "quote":
-      return /* @__PURE__ */ jsx5(IconQuote, {});
+      return /* @__PURE__ */ jsx6(IconQuote, {});
     case "codeBlock":
-      return /* @__PURE__ */ jsx5(IconCodeBlock, {});
+      return /* @__PURE__ */ jsx6(IconCodeBlock, {});
     case "bulletList":
-      return /* @__PURE__ */ jsx5(IconBulletList, {});
+      return /* @__PURE__ */ jsx6(IconBulletList, {});
     case "numberedList":
-      return /* @__PURE__ */ jsx5(IconNumberedList, {});
+      return /* @__PURE__ */ jsx6(IconNumberedList, {});
     case "link":
-      return /* @__PURE__ */ jsx5(IconLink, {});
+      return /* @__PURE__ */ jsx6(IconLink, {});
     case "heading":
-      return /* @__PURE__ */ jsx5(IconHeading, {});
+      return /* @__PURE__ */ jsx6(IconHeading, {});
     case "mention":
-      return /* @__PURE__ */ jsx5(IconMention, {});
+      return /* @__PURE__ */ jsx6(IconMention, {});
     case "spoiler":
-      return /* @__PURE__ */ jsx5(IconSpoiler, {});
+      return /* @__PURE__ */ jsx6(IconSpoiler, {});
     default:
       return null;
   }
@@ -2135,22 +2473,22 @@ function SelectionMenuPlugin({
   items = defaultSelectionMenuItems,
   containerRef
 }) {
-  const [editor] = useLexicalComposerContext8();
+  const [editor] = useLexicalComposerContext9();
   const active = useFormatState();
   const format = useFormatActions();
-  const [position, setPosition] = useState3(
+  const [position, setPosition] = useState4(
     null
   );
   const visibleItems = items.filter((item) => isItemEnabled(item, features));
-  useEffect8(() => {
+  useEffect9(() => {
     if (!features.selectionMenu || visibleItems.length === 0) {
       setPosition(null);
       return;
     }
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = $getSelection6();
-        if (!$isRangeSelection6(selection) || selection.isCollapsed()) {
+        const selection = $getSelection7();
+        if (!$isRangeSelection7(selection) || selection.isCollapsed()) {
           setPosition(null);
           return;
         }
@@ -2179,12 +2517,12 @@ function SelectionMenuPlugin({
     };
     update();
     const removeSelection = editor.registerCommand(
-      SELECTION_CHANGE_COMMAND2,
+      SELECTION_CHANGE_COMMAND3,
       () => {
         update();
         return false;
       },
-      COMMAND_PRIORITY_LOW4
+      COMMAND_PRIORITY_LOW5
     );
     const removeUpdate = editor.registerUpdateListener(update);
     window.addEventListener("scroll", update, true);
@@ -2199,7 +2537,7 @@ function SelectionMenuPlugin({
   if (!features.selectionMenu || !position || visibleItems.length === 0) {
     return null;
   }
-  const menu = /* @__PURE__ */ jsx5(
+  const menu = /* @__PURE__ */ jsx6(
     "div",
     {
       className: "re-selection-menu",
@@ -2209,7 +2547,7 @@ function SelectionMenuPlugin({
       },
       role: "toolbar",
       "aria-label": labels.selectionMenu,
-      children: visibleItems.map((item) => /* @__PURE__ */ jsx5(
+      children: visibleItems.map((item) => /* @__PURE__ */ jsx6(
         "button",
         {
           type: "button",
@@ -2223,32 +2561,32 @@ function SelectionMenuPlugin({
             event.preventDefault();
             runItemAction(item, format);
           },
-          children: /* @__PURE__ */ jsx5(MenuIcon, { item })
+          children: /* @__PURE__ */ jsx6(MenuIcon, { item })
         },
         item
       ))
     }
   );
-  return createPortal2(menu, containerRef.current ?? document.body);
+  return createPortal3(menu, containerRef.current ?? document.body);
 }
 
 // src/components/plugins/LineBreakPlugin.tsx
-import { useEffect as useEffect9 } from "react";
-import { useLexicalComposerContext as useLexicalComposerContext9 } from "@lexical/react/LexicalComposerContext";
+import { useEffect as useEffect10 } from "react";
+import { useLexicalComposerContext as useLexicalComposerContext10 } from "@lexical/react/LexicalComposerContext";
 import {
-  $getSelection as $getSelection7,
-  $isRangeSelection as $isRangeSelection7,
+  $getSelection as $getSelection8,
+  $isRangeSelection as $isRangeSelection8,
   COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH3,
   INSERT_LINE_BREAK_COMMAND
 } from "lexical";
 function LineBreakPlugin() {
-  const [editor] = useLexicalComposerContext9();
-  useEffect9(() => {
+  const [editor] = useLexicalComposerContext10();
+  useEffect10(() => {
     return editor.registerCommand(
       INSERT_LINE_BREAK_COMMAND,
       () => {
-        const selection = $getSelection7();
-        if (!$isRangeSelection7(selection)) return false;
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection)) return false;
         if ($getBlockCode(selection.anchor.getNode())) return false;
         selection.insertParagraph();
         return true;
@@ -2260,16 +2598,16 @@ function LineBreakPlugin() {
 }
 
 // src/components/plugins/LinkUiPlugin.tsx
-import { useCallback as useCallback3, useEffect as useEffect10, useId as useId2, useRef, useState as useState4 } from "react";
-import { createPortal as createPortal3 } from "react-dom";
-import { useLexicalComposerContext as useLexicalComposerContext10 } from "@lexical/react/LexicalComposerContext";
+import { useCallback as useCallback3, useEffect as useEffect11, useId as useId2, useRef, useState as useState5 } from "react";
+import { createPortal as createPortal4 } from "react-dom";
+import { useLexicalComposerContext as useLexicalComposerContext11 } from "@lexical/react/LexicalComposerContext";
 import { $isLinkNode as $isLinkNode3 } from "@lexical/link";
-import { $findMatchingParent as $findMatchingParent4 } from "@lexical/utils";
+import { $findMatchingParent as $findMatchingParent5 } from "@lexical/utils";
 import {
   $getNearestNodeFromDOMNode,
-  $getNodeByKey as $getNodeByKey3,
-  $getSelection as $getSelection9,
-  $isRangeSelection as $isRangeSelection9,
+  $getNodeByKey as $getNodeByKey4,
+  $getSelection as $getSelection10,
+  $isRangeSelection as $isRangeSelection10,
   CLICK_COMMAND,
   COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH4
 } from "lexical";
@@ -2278,16 +2616,16 @@ import {
 import { $createLinkNode, $isLinkNode as $isLinkNode2 } from "@lexical/link";
 import {
   $createTextNode as $createTextNode4,
-  $getNodeByKey as $getNodeByKey2,
-  $getSelection as $getSelection8,
-  $isRangeSelection as $isRangeSelection8
+  $getNodeByKey as $getNodeByKey3,
+  $getSelection as $getSelection9,
+  $isRangeSelection as $isRangeSelection9
 } from "lexical";
 function $applyLinkForm(values, linkKey) {
   const text = values.text.trim();
   const url = values.url.trim();
   if (!text || !url) return;
   if (linkKey) {
-    const link2 = $getNodeByKey2(linkKey);
+    const link2 = $getNodeByKey3(linkKey);
     if (!$isLinkNode2(link2)) return;
     const nextLink = $createLinkNode(url, {
       rel: link2.getRel(),
@@ -2299,8 +2637,8 @@ function $applyLinkForm(values, linkKey) {
     nextLink.selectEnd();
     return;
   }
-  const selection = $getSelection8();
-  if (!$isRangeSelection8(selection)) return;
+  const selection = $getSelection9();
+  if (!$isRangeSelection9(selection)) return;
   if (!selection.isCollapsed()) {
     selection.removeText();
   }
@@ -2309,7 +2647,7 @@ function $applyLinkForm(values, linkKey) {
   selection.insertNodes([link]);
 }
 function $removeLinkByKey(linkKey) {
-  const link = $getNodeByKey2(linkKey);
+  const link = $getNodeByKey3(linkKey);
   if (!$isLinkNode2(link)) return;
   const textNode = $createTextNode4(link.getTextContent());
   link.replace(textNode);
@@ -2317,7 +2655,7 @@ function $removeLinkByKey(linkKey) {
 }
 
 // src/components/plugins/LinkUiPlugin.tsx
-import { Fragment, jsx as jsx6, jsxs as jsxs3 } from "react/jsx-runtime";
+import { Fragment, jsx as jsx7, jsxs as jsxs4 } from "react/jsx-runtime";
 function LinkModal({
   state,
   labels,
@@ -2327,16 +2665,16 @@ function LinkModal({
   const titleId = useId2();
   const textId = useId2();
   const urlId = useId2();
-  const [text, setText] = useState4(state.text);
-  const [url, setUrl] = useState4(state.url);
+  const [text, setText] = useState5(state.text);
+  const [url, setUrl] = useState5(state.url);
   const textRef = useRef(null);
-  useEffect10(() => {
+  useEffect11(() => {
     setText(state.text);
     setUrl(state.url || "https://");
     const timer = window.setTimeout(() => textRef.current?.focus(), 0);
     return () => window.clearTimeout(timer);
   }, [state]);
-  useEffect10(() => {
+  useEffect11(() => {
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -2347,8 +2685,8 @@ function LinkModal({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
   const title = state.mode === "edit" ? labels.linkEdit : labels.linkAdd;
-  return createPortal3(
-    /* @__PURE__ */ jsx6("div", { className: "re-link-modal-backdrop", onMouseDown: onClose, children: /* @__PURE__ */ jsxs3(
+  return createPortal4(
+    /* @__PURE__ */ jsx7("div", { className: "re-link-modal-backdrop", onMouseDown: onClose, children: /* @__PURE__ */ jsxs4(
       "div",
       {
         className: "re-link-modal",
@@ -2357,10 +2695,10 @@ function LinkModal({
         "aria-labelledby": titleId,
         onMouseDown: (event) => event.stopPropagation(),
         children: [
-          /* @__PURE__ */ jsx6("h3", { id: titleId, className: "re-link-modal-title", children: title }),
-          /* @__PURE__ */ jsxs3("label", { className: "re-link-field", htmlFor: textId, children: [
-            /* @__PURE__ */ jsx6("span", { className: "re-link-field-label", children: labels.linkText }),
-            /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsx7("h3", { id: titleId, className: "re-link-modal-title", children: title }),
+          /* @__PURE__ */ jsxs4("label", { className: "re-link-field", htmlFor: textId, children: [
+            /* @__PURE__ */ jsx7("span", { className: "re-link-field-label", children: labels.linkText }),
+            /* @__PURE__ */ jsx7(
               "input",
               {
                 ref: textRef,
@@ -2373,9 +2711,9 @@ function LinkModal({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs3("label", { className: "re-link-field", htmlFor: urlId, children: [
-            /* @__PURE__ */ jsx6("span", { className: "re-link-field-label", children: labels.linkUrl }),
-            /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsxs4("label", { className: "re-link-field", htmlFor: urlId, children: [
+            /* @__PURE__ */ jsx7("span", { className: "re-link-field-label", children: labels.linkUrl }),
+            /* @__PURE__ */ jsx7(
               "input",
               {
                 id: urlId,
@@ -2387,8 +2725,8 @@ function LinkModal({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs3("div", { className: "re-link-modal-actions", children: [
-            /* @__PURE__ */ jsx6(
+          /* @__PURE__ */ jsxs4("div", { className: "re-link-modal-actions", children: [
+            /* @__PURE__ */ jsx7(
               "button",
               {
                 type: "button",
@@ -2397,7 +2735,7 @@ function LinkModal({
                 children: labels.linkCancel
               }
             ),
-            /* @__PURE__ */ jsx6(
+            /* @__PURE__ */ jsx7(
               "button",
               {
                 type: "button",
@@ -2420,7 +2758,7 @@ function LinkFloatingToolbar({
   onEdit,
   onRemove
 }) {
-  return /* @__PURE__ */ jsxs3(
+  return /* @__PURE__ */ jsxs4(
     "div",
     {
       className: "re-link-floating-toolbar",
@@ -2431,7 +2769,7 @@ function LinkFloatingToolbar({
       role: "toolbar",
       "aria-label": labels.linkToolbar,
       children: [
-        /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx7(
           "button",
           {
             type: "button",
@@ -2442,10 +2780,10 @@ function LinkFloatingToolbar({
               event.preventDefault();
               onEdit();
             },
-            children: /* @__PURE__ */ jsx6(IconEdit, {})
+            children: /* @__PURE__ */ jsx7(IconEdit, {})
           }
         ),
-        /* @__PURE__ */ jsx6(
+        /* @__PURE__ */ jsx7(
           "button",
           {
             type: "button",
@@ -2456,7 +2794,7 @@ function LinkFloatingToolbar({
               event.preventDefault();
               onRemove();
             },
-            children: /* @__PURE__ */ jsx6(IconTrash, {})
+            children: /* @__PURE__ */ jsx7(IconTrash, {})
           }
         )
       ]
@@ -2470,18 +2808,25 @@ function LinkUiPlugin({
   children
 }) {
   if (!enabled) {
-    return /* @__PURE__ */ jsx6(Fragment, { children });
+    return /* @__PURE__ */ jsx7(Fragment, { children });
   }
-  const [editor] = useLexicalComposerContext10();
-  const [modal, setModal] = useState4(null);
-  const [toolbar, setToolbar] = useState4(null);
+  return /* @__PURE__ */ jsx7(LinkUiPluginInner, { labels, containerRef, children });
+}
+function LinkUiPluginInner({
+  labels,
+  containerRef,
+  children
+}) {
+  const [editor] = useLexicalComposerContext11();
+  const [modal, setModal] = useState5(null);
+  const [toolbar, setToolbar] = useState5(null);
   const closeModal = useCallback3(() => setModal(null), []);
   const hideToolbar = useCallback3(() => setToolbar(null), []);
   const openLinkDialog = useCallback3(() => {
     editor.getEditorState().read(() => {
-      const selection = $getSelection9();
-      if (!$isRangeSelection9(selection)) return;
-      const existing = $findMatchingParent4(selection.anchor.getNode(), $isLinkNode3);
+      const selection = $getSelection10();
+      if (!$isRangeSelection10(selection)) return;
+      const existing = $findMatchingParent5(selection.anchor.getNode(), $isLinkNode3);
       if (existing) {
         setModal({
           mode: "edit",
@@ -2503,7 +2848,7 @@ function LinkUiPlugin({
   const openEditForLinkKey = useCallback3(
     (linkKey) => {
       editor.getEditorState().read(() => {
-        const link = $getNodeByKey3(linkKey);
+        const link = $getNodeByKey4(linkKey);
         if (!$isLinkNode3(link)) return;
         setModal({
           mode: "edit",
@@ -2535,7 +2880,7 @@ function LinkUiPlugin({
     },
     [editor, hideToolbar]
   );
-  useEffect10(() => {
+  useEffect11(() => {
     const removeClick = editor.registerCommand(
       CLICK_COMMAND,
       (event) => {
@@ -2545,7 +2890,7 @@ function LinkUiPlugin({
         if (!anchor || !containerRef.current?.contains(anchor)) return false;
         event.preventDefault();
         const node = $getNearestNodeFromDOMNode(anchor);
-        const link = node ? $findMatchingParent4(node, $isLinkNode3) : null;
+        const link = node ? $findMatchingParent5(node, $isLinkNode3) : null;
         if (!link) return true;
         const rect = anchor.getBoundingClientRect();
         const host = containerRef.current.getBoundingClientRect();
@@ -2577,11 +2922,11 @@ function LinkUiPlugin({
       document.removeEventListener("mousedown", onDocumentMouseDown);
     };
   }, [containerRef, editor, hideToolbar]);
-  useEffect10(() => {
+  useEffect11(() => {
     if (!toolbar) return;
     const update = () => {
       editor.getEditorState().read(() => {
-        const link = $getNodeByKey3(toolbar.linkKey);
+        const link = $getNodeByKey4(toolbar.linkKey);
         if (!$isLinkNode3(link)) {
           hideToolbar();
           return;
@@ -2612,10 +2957,10 @@ function LinkUiPlugin({
       window.removeEventListener("resize", update);
     };
   }, [containerRef, editor, hideToolbar, toolbar]);
-  return /* @__PURE__ */ jsxs3(LinkUiProvider, { openLinkDialog, children: [
+  return /* @__PURE__ */ jsxs4(LinkUiProvider, { openLinkDialog, children: [
     children,
-    toolbar && containerRef.current && createPortal3(
-      /* @__PURE__ */ jsx6(
+    toolbar && containerRef.current && createPortal4(
+      /* @__PURE__ */ jsx7(
         LinkFloatingToolbar,
         {
           position: toolbar,
@@ -2626,7 +2971,7 @@ function LinkUiPlugin({
       ),
       containerRef.current
     ),
-    modal && /* @__PURE__ */ jsx6(
+    modal && /* @__PURE__ */ jsx7(
       LinkModal,
       {
         state: modal,
@@ -2639,14 +2984,14 @@ function LinkUiPlugin({
 }
 
 // src/components/plugins/SpoilerPlugin.tsx
-import { useEffect as useEffect11, useRef as useRef2 } from "react";
-import { useLexicalComposerContext as useLexicalComposerContext11 } from "@lexical/react/LexicalComposerContext";
-import { $findMatchingParent as $findMatchingParent5 } from "@lexical/utils";
-import { $getSelection as $getSelection10, $isRangeSelection as $isRangeSelection10 } from "lexical";
+import { useEffect as useEffect12, useRef as useRef2 } from "react";
+import { useLexicalComposerContext as useLexicalComposerContext12 } from "@lexical/react/LexicalComposerContext";
+import { $findMatchingParent as $findMatchingParent6 } from "@lexical/utils";
+import { $getSelection as $getSelection11, $isRangeSelection as $isRangeSelection11 } from "lexical";
 function SpoilerPlugin() {
-  const [editor] = useLexicalComposerContext11();
+  const [editor] = useLexicalComposerContext12();
   const editingRef = useRef2(null);
-  useEffect11(() => {
+  useEffect12(() => {
     const root = editor.getRootElement();
     if (!root) return;
     const clearEditing = () => {
@@ -2671,9 +3016,9 @@ function SpoilerPlugin() {
     };
     const removeUpdate = editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const selection = $getSelection10();
-        if (!$isRangeSelection10(selection)) return;
-        const spoiler = $findMatchingParent5(
+        const selection = $getSelection11();
+        if (!$isRangeSelection11(selection)) return;
+        const spoiler = $findMatchingParent6(
           selection.anchor.getNode(),
           $isSpoilerNode
         );
@@ -2693,9 +3038,9 @@ function SpoilerPlugin() {
 
 // src/components/plugins/index.tsx
 function InitialHtmlPlugin({ html }) {
-  const [editor] = useLexicalComposerContext12();
+  const [editor] = useLexicalComposerContext13();
   const lastApplied = useRef3(void 0);
-  useEffect12(() => {
+  useEffect13(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
       const root = $getRoot4();
@@ -2718,8 +3063,8 @@ function BlurCapturePlugin({
   onBlur,
   getHtml
 }) {
-  const [editor] = useLexicalComposerContext12();
-  useEffect12(() => {
+  const [editor] = useLexicalComposerContext13();
+  useEffect13(() => {
     if (!onBlur) return;
     const root = rootRef.current;
     if (!root) return;
@@ -2736,8 +3081,8 @@ function BlurCapturePlugin({
 function FocusPlugin({
   focusRef
 }) {
-  const [editor] = useLexicalComposerContext12();
-  useEffect12(() => {
+  const [editor] = useLexicalComposerContext13();
+  useEffect13(() => {
     focusRef.current = () => editor.focus();
     return () => {
       focusRef.current = null;
@@ -2748,8 +3093,8 @@ function FocusPlugin({
 function SetHtmlPlugin({
   setHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext12();
-  useEffect12(() => {
+  const [editor] = useLexicalComposerContext13();
+  useEffect13(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
         const root = $getRoot4();
@@ -2770,8 +3115,8 @@ function SetHtmlPlugin({
 function ClearPlugin({
   clearRef
 }) {
-  const [editor] = useLexicalComposerContext12();
-  useEffect12(() => {
+  const [editor] = useLexicalComposerContext13();
+  useEffect13(() => {
     clearRef.current = () => {
       editor.update(() => {
         $getRoot4().clear();
@@ -2786,8 +3131,8 @@ function ClearPlugin({
 function EmptyStatePlugin({
   onEmptyChange
 }) {
-  const [editor] = useLexicalComposerContext12();
-  useEffect12(() => {
+  const [editor] = useLexicalComposerContext13();
+  useEffect13(() => {
     const update = () => {
       editor.getEditorState().read(() => {
         onEmptyChange($getRoot4().getTextContent().trim() === "");
@@ -2800,7 +3145,7 @@ function EmptyStatePlugin({
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-import { useState as useState5, useId as useId3, useEffect as useEffect13 } from "react";
+import { useState as useState6, useId as useId3, useEffect as useEffect14 } from "react";
 
 // src/core/shortcuts.ts
 var formatKeyboardShortcuts = [
@@ -2920,7 +3265,7 @@ function shortcutById(id) {
 }
 
 // src/components/toolbar/EditorToolbar.tsx
-import { Fragment as Fragment2, jsx as jsx7, jsxs as jsxs4 } from "react/jsx-runtime";
+import { Fragment as Fragment2, jsx as jsx8, jsxs as jsxs5 } from "react/jsx-runtime";
 function ToolbarButton({
   label,
   active,
@@ -2929,7 +3274,7 @@ function ToolbarButton({
   children
 }) {
   const shortcut = shortcutId ? shortcutById(shortcutId) : void 0;
-  return /* @__PURE__ */ jsx7(
+  return /* @__PURE__ */ jsx8(
     "button",
     {
       type: "button",
@@ -2952,10 +3297,10 @@ function EditorToolbar({
 }) {
   const active = useFormatState();
   const format = useFormatActions();
-  const [menuOpen, setMenuOpen] = useState5(false);
+  const [menuOpen, setMenuOpen] = useState6(false);
   const menuId = useId3();
   const hasMenu = !!slots.toolbarMenu;
-  useEffect13(() => {
+  useEffect14(() => {
     if (!menuOpen) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape") setMenuOpen(false);
@@ -2963,7 +3308,7 @@ function EditorToolbar({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [menuOpen]);
-  return /* @__PURE__ */ jsxs4(
+  return /* @__PURE__ */ jsxs5(
     "div",
     {
       className: "re-toolbar",
@@ -2971,119 +3316,119 @@ function EditorToolbar({
       "aria-label": labels.toolbar,
       "aria-controls": editorInputId,
       children: [
-        /* @__PURE__ */ jsxs4("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
+        /* @__PURE__ */ jsxs5("div", { className: "re-toolbar-group re-toolbar-group-main", children: [
           slots.toolbarStart,
-          features.bold && /* @__PURE__ */ jsx7(
+          features.bold && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.bold,
               active: active.bold,
               onClick: format.bold,
               shortcutId: "format.bold",
-              children: /* @__PURE__ */ jsx7(IconBold, {})
+              children: /* @__PURE__ */ jsx8(IconBold, {})
             }
           ),
-          features.italic && /* @__PURE__ */ jsx7(
+          features.italic && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.italic,
               active: active.italic,
               onClick: format.italic,
               shortcutId: "format.italic",
-              children: /* @__PURE__ */ jsx7(IconItalic, {})
+              children: /* @__PURE__ */ jsx8(IconItalic, {})
             }
           ),
-          features.strikethrough && /* @__PURE__ */ jsx7(
+          features.strikethrough && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.strikethrough,
               active: active.strikethrough,
               onClick: format.strikethrough,
               shortcutId: "format.strikethrough",
-              children: /* @__PURE__ */ jsx7(IconStrikethrough, {})
+              children: /* @__PURE__ */ jsx8(IconStrikethrough, {})
             }
           ),
-          features.code && /* @__PURE__ */ jsx7(
+          features.code && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.code,
               active: active.code,
               onClick: format.code,
               shortcutId: "format.code",
-              children: /* @__PURE__ */ jsx7(IconCode, {})
+              children: /* @__PURE__ */ jsx8(IconCode, {})
             }
           ),
-          features.spoiler && /* @__PURE__ */ jsx7(
+          features.spoiler && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.spoiler,
               active: active.spoiler,
               onClick: format.spoiler,
-              children: /* @__PURE__ */ jsx7(IconSpoiler, {})
+              children: /* @__PURE__ */ jsx8(IconSpoiler, {})
             }
           ),
-          features.quote && /* @__PURE__ */ jsx7(
+          features.quote && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.quote,
               active: active.quote,
               onClick: format.quote,
-              children: /* @__PURE__ */ jsx7(IconQuote, {})
+              children: /* @__PURE__ */ jsx8(IconQuote, {})
             }
           ),
-          features.codeBlock && /* @__PURE__ */ jsx7(
+          features.codeBlock && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.codeBlock,
               active: active.codeBlock,
               onClick: format.codeBlock,
-              children: /* @__PURE__ */ jsx7(IconCodeBlock, {})
+              children: /* @__PURE__ */ jsx8(IconCodeBlock, {})
             }
           ),
-          features.lists && /* @__PURE__ */ jsxs4(Fragment2, { children: [
-            /* @__PURE__ */ jsx7(
+          features.lists && /* @__PURE__ */ jsxs5(Fragment2, { children: [
+            /* @__PURE__ */ jsx8(
               ToolbarButton,
               {
                 label: labels.bulletList,
                 active: active.bulletList,
                 onClick: format.bulletList,
-                children: /* @__PURE__ */ jsx7(IconBulletList, {})
+                children: /* @__PURE__ */ jsx8(IconBulletList, {})
               }
             ),
-            /* @__PURE__ */ jsx7(
+            /* @__PURE__ */ jsx8(
               ToolbarButton,
               {
                 label: labels.numberedList,
                 active: active.numberedList,
                 onClick: format.numberedList,
-                children: /* @__PURE__ */ jsx7(IconNumberedList, {})
+                children: /* @__PURE__ */ jsx8(IconNumberedList, {})
               }
             )
           ] }),
-          features.links && /* @__PURE__ */ jsx7(
+          features.links && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.link,
               active: active.link,
               onClick: format.link,
-              children: /* @__PURE__ */ jsx7(IconLink, {})
+              children: /* @__PURE__ */ jsx8(IconLink, {})
             }
           ),
-          features.headings && /* @__PURE__ */ jsx7(
+          features.headings && /* @__PURE__ */ jsx8(
             ToolbarButton,
             {
               label: labels.heading,
               active: active.heading,
               onClick: format.heading,
-              children: /* @__PURE__ */ jsx7(IconHeading, {})
+              children: /* @__PURE__ */ jsx8(IconHeading, {})
             }
           ),
-          showMentionButton && /* @__PURE__ */ jsx7(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ jsx7(IconMention, {}) })
+          showMentionButton && /* @__PURE__ */ jsx8(ToolbarButton, { label: labels.mention, onClick: format.mentionTrigger, children: /* @__PURE__ */ jsx8(IconMention, {}) })
         ] }),
-        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ jsxs4("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
+        (slots.toolbarEnd || hasMenu) && /* @__PURE__ */ jsxs5("div", { className: "re-toolbar-group", style: { position: "relative" }, children: [
           slots.toolbarEnd,
-          hasMenu && /* @__PURE__ */ jsxs4(Fragment2, { children: [
-            /* @__PURE__ */ jsx7(
+          hasMenu && /* @__PURE__ */ jsxs5(Fragment2, { children: [
+            /* @__PURE__ */ jsx8(
               "button",
               {
                 type: "button",
@@ -3097,8 +3442,8 @@ function EditorToolbar({
                 children: "\u22EE"
               }
             ),
-            menuOpen && /* @__PURE__ */ jsxs4(Fragment2, { children: [
-              /* @__PURE__ */ jsx7(
+            menuOpen && /* @__PURE__ */ jsxs5(Fragment2, { children: [
+              /* @__PURE__ */ jsx8(
                 "div",
                 {
                   className: "re-toolbar-menu-backdrop",
@@ -3106,7 +3451,7 @@ function EditorToolbar({
                   "aria-hidden": "true"
                 }
               ),
-              /* @__PURE__ */ jsx7(
+              /* @__PURE__ */ jsx8(
                 "div",
                 {
                   id: menuId,
@@ -3152,7 +3497,7 @@ function hasToolbar(features, slots) {
 }
 
 // src/components/RichTextEditor.tsx
-import { Fragment as Fragment3, jsx as jsx8, jsxs as jsxs5 } from "react/jsx-runtime";
+import { Fragment as Fragment3, jsx as jsx9, jsxs as jsxs6 } from "react/jsx-runtime";
 function onError(error) {
   console.error(error);
 }
@@ -3166,8 +3511,8 @@ function exportEditorHtml(editor) {
 function EditorRefPlugin({
   getHtmlRef
 }) {
-  const [editor] = useLexicalComposerContext13();
-  useEffect14(() => {
+  const [editor] = useLexicalComposerContext14();
+  useEffect15(() => {
     getHtmlRef.current = () => exportEditorHtml(editor);
     return () => {
       getHtmlRef.current = null;
@@ -3182,7 +3527,7 @@ function DefaultSubmitButton({
 }) {
   const { isEmpty } = useRichTextEditor();
   if (isEmpty) return null;
-  return /* @__PURE__ */ jsx8(
+  return /* @__PURE__ */ jsx9(
     "button",
     {
       type: "button",
@@ -3191,7 +3536,7 @@ function DefaultSubmitButton({
       className: "re-submit-btn",
       "aria-label": label,
       title: label,
-      children: /* @__PURE__ */ jsx8("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ jsx8("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
+      children: /* @__PURE__ */ jsx9("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ jsx9("path", { d: "M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" }) })
     }
   );
 }
@@ -3204,10 +3549,10 @@ function SubmitArea({
   showDefault
 }) {
   if (slots.submitButton !== void 0) {
-    return /* @__PURE__ */ jsx8(Fragment3, { children: slots.submitButton });
+    return /* @__PURE__ */ jsx9(Fragment3, { children: slots.submitButton });
   }
   if (!showDefault) return null;
-  return /* @__PURE__ */ jsx8(
+  return /* @__PURE__ */ jsx9(
     DefaultSubmitButton,
     {
       disabled: disabled || sending,
@@ -3230,7 +3575,7 @@ function ContextBridge({
 }) {
   const formatState = useFormatState();
   const format = useFormatActions();
-  const ctx = useMemo3(
+  const ctx = useMemo4(
     () => ({
       getHtml: () => getHtmlRef.current?.() ?? "",
       setHtml: (html) => setHtmlRef.current?.(html),
@@ -3258,7 +3603,7 @@ function ContextBridge({
       onSubmit
     ]
   );
-  return /* @__PURE__ */ jsx8(RichTextEditorProvider, { value: ctx, children });
+  return /* @__PURE__ */ jsx9(RichTextEditorProvider, { value: ctx, children });
 }
 function RichTextEditorInner({
   value,
@@ -3279,9 +3624,9 @@ function RichTextEditorInner({
   mentionSearch,
   children
 }, ref) {
-  const features = useMemo3(() => resolveFeatures(featuresProp), [featuresProp]);
-  const labels = useMemo3(() => resolveLabels(labelsProp), [labelsProp]);
-  const slots = useMemo3(() => collectSlots(children), [children]);
+  const features = useMemo4(() => resolveFeatures(featuresProp), [featuresProp]);
+  const labels = useMemo4(() => resolveLabels(labelsProp), [labelsProp]);
+  const slots = useMemo4(() => collectSlots(children), [children]);
   const rootId = useId4();
   const editorInputId = `${rootId}-input`;
   const placeholderId = `${rootId}-placeholder`;
@@ -3291,20 +3636,20 @@ function RichTextEditorInner({
   const setHtmlRef = useRef4(null);
   const clearRef = useRef4(null);
   const focusRef = useRef4(null);
-  const [isEmpty, setIsEmpty] = useState6(true);
-  const [sending, setSending] = useState6(false);
-  const inputStyle = useMemo3(
+  const [isEmpty, setIsEmpty] = useState7(true);
+  const [sending, setSending] = useState7(false);
+  const inputStyle = useMemo4(
     () => ({
       minHeight: `${minRows * EDITOR_LINE_HEIGHT_PX}px`,
       maxHeight: `${maxRows * EDITOR_LINE_HEIGHT_PX}px`
     }),
     [minRows, maxRows]
   );
-  const enterBindings = useMemo3(
+  const enterBindings = useMemo4(
     () => resolveEnterKeyBindings({ enterBehavior, enterKeyBindings }),
     [enterBehavior, enterKeyBindings]
   );
-  const initialConfig = useMemo3(
+  const initialConfig = useMemo4(
     () => ({
       namespace: "RichTextEditor",
       theme: editorTheme,
@@ -3325,7 +3670,7 @@ function RichTextEditorInner({
     }),
     [disabled, features.mentions, features.quote, features.spoiler]
   );
-  const transformers = useMemo3(
+  const transformers = useMemo4(
     () => features.markdownShortcuts ? buildMarkdownTransformers(features) : [],
     [features]
   );
@@ -3357,13 +3702,13 @@ function RichTextEditorInner({
   );
   const showToolbar = hasToolbar(features, slots);
   const showDefaultSubmit = !!onSubmit && slots.submitButton === void 0;
-  return /* @__PURE__ */ jsxs5(LexicalComposer, { initialConfig, children: [
-    /* @__PURE__ */ jsx8(EditorRefPlugin, { getHtmlRef }),
-    /* @__PURE__ */ jsx8(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ jsx8(ClearPlugin, { clearRef }),
-    /* @__PURE__ */ jsx8(FocusPlugin, { focusRef }),
-    /* @__PURE__ */ jsx8(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
-    /* @__PURE__ */ jsx8(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ jsx8(
+  return /* @__PURE__ */ jsxs6(LexicalComposer, { initialConfig, children: [
+    /* @__PURE__ */ jsx9(EditorRefPlugin, { getHtmlRef }),
+    /* @__PURE__ */ jsx9(SetHtmlPlugin, { setHtmlRef }),
+    /* @__PURE__ */ jsx9(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ jsx9(FocusPlugin, { focusRef }),
+    /* @__PURE__ */ jsx9(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
+    /* @__PURE__ */ jsx9(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ jsx9(
       ContextBridge,
       {
         disabled,
@@ -3375,7 +3720,7 @@ function RichTextEditorInner({
         setHtmlRef,
         clearRef,
         onSubmit: () => void submit(),
-        children: /* @__PURE__ */ jsxs5(
+        children: /* @__PURE__ */ jsxs6(
           "div",
           {
             ref: rootRef,
@@ -3383,7 +3728,7 @@ function RichTextEditorInner({
             ...themeDataAttribute(theme),
             className: cn("re-editor-root", className),
             children: [
-              showToolbar && /* @__PURE__ */ jsx8(
+              showToolbar && /* @__PURE__ */ jsx9(
                 EditorToolbar,
                 {
                   features,
@@ -3393,7 +3738,7 @@ function RichTextEditorInner({
                   showMentionButton: features.mentions && !!mentionSearch
                 }
               ),
-              /* @__PURE__ */ jsx8(
+              /* @__PURE__ */ jsx9(
                 BlurCapturePlugin,
                 {
                   rootRef,
@@ -3401,15 +3746,15 @@ function RichTextEditorInner({
                   getHtml
                 }
               ),
-              /* @__PURE__ */ jsxs5("div", { ref: bodyRef, className: "re-editor-body", children: [
-                /* @__PURE__ */ jsx8(BlockBehaviorPlugin, {}),
-                /* @__PURE__ */ jsx8(LineBreakPlugin, {}),
-                features.spoiler && /* @__PURE__ */ jsx8(SpoilerPlugin, {}),
-                /* @__PURE__ */ jsx8(InitialHtmlPlugin, { html: value }),
-                /* @__PURE__ */ jsx8(
+              /* @__PURE__ */ jsxs6("div", { ref: bodyRef, className: "re-editor-body", children: [
+                /* @__PURE__ */ jsx9(BlockBehaviorPlugin, {}),
+                /* @__PURE__ */ jsx9(LineBreakPlugin, {}),
+                features.spoiler && /* @__PURE__ */ jsx9(SpoilerPlugin, {}),
+                /* @__PURE__ */ jsx9(InitialHtmlPlugin, { html: value }),
+                /* @__PURE__ */ jsx9(
                   RichTextPlugin,
                   {
-                    contentEditable: /* @__PURE__ */ jsx8(
+                    contentEditable: /* @__PURE__ */ jsx9(
                       ContentEditable,
                       {
                         id: editorInputId,
@@ -3422,26 +3767,29 @@ function RichTextEditorInner({
                         "aria-describedby": placeholder ? placeholderId : void 0
                       }
                     ),
-                    placeholder: placeholder ? /* @__PURE__ */ jsx8("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
+                    placeholder: placeholder ? /* @__PURE__ */ jsx9("div", { id: placeholderId, className: "re-editor-placeholder", "aria-hidden": "true", children: placeholder }) : null,
                     ErrorBoundary: LexicalErrorBoundary
                   }
                 ),
-                /* @__PURE__ */ jsx8(HistoryPlugin, {}),
-                features.lists && /* @__PURE__ */ jsx8(ListPlugin, {}),
-                features.links && /* @__PURE__ */ jsx8(LinkPlugin, {}),
-                features.codeBlock && /* @__PURE__ */ jsx8(CodeHighlightPlugin, { enabled: !disabled }),
-                transformers.length > 0 && /* @__PURE__ */ jsx8(MarkdownShortcutPlugin, { transformers }),
-                /* @__PURE__ */ jsx8(MarkdownPastePlugin, { features }),
-                /* @__PURE__ */ jsx8(KeyboardShortcutsPlugin, { features, disabled }),
-                features.mentions && mentionSearch && /* @__PURE__ */ jsx8(MentionsPlugin, { searchMentions: mentionSearch }),
-                /* @__PURE__ */ jsx8(
+                /* @__PURE__ */ jsx9(HistoryPlugin, {}),
+                features.lists && /* @__PURE__ */ jsx9(ListPlugin, {}),
+                features.links && /* @__PURE__ */ jsx9(LinkPlugin, {}),
+                features.codeBlock && /* @__PURE__ */ jsxs6(Fragment3, { children: [
+                  /* @__PURE__ */ jsx9(CodeHighlightPlugin, { enabled: !disabled }),
+                  /* @__PURE__ */ jsx9(CodeLanguagePlugin, { labels, containerRef: bodyRef })
+                ] }),
+                transformers.length > 0 && /* @__PURE__ */ jsx9(MarkdownShortcutPlugin, { transformers }),
+                /* @__PURE__ */ jsx9(MarkdownPastePlugin, { features }),
+                /* @__PURE__ */ jsx9(KeyboardShortcutsPlugin, { features, disabled }),
+                features.mentions && mentionSearch && /* @__PURE__ */ jsx9(MentionsPlugin, { searchMentions: mentionSearch }),
+                /* @__PURE__ */ jsx9(
                   EnterPlugin,
                   {
                     bindings: enterBindings,
                     onSubmit: onSubmit ? () => void submit() : void 0
                   }
                 ),
-                features.selectionMenu && /* @__PURE__ */ jsx8(
+                features.selectionMenu && /* @__PURE__ */ jsx9(
                   SelectionMenuPlugin,
                   {
                     features,
@@ -3450,7 +3798,7 @@ function RichTextEditorInner({
                     containerRef: bodyRef
                   }
                 ),
-                /* @__PURE__ */ jsx8(
+                /* @__PURE__ */ jsx9(
                   SubmitArea,
                   {
                     slots,
@@ -3462,7 +3810,7 @@ function RichTextEditorInner({
                   }
                 )
               ] }),
-              slots.footer && /* @__PURE__ */ jsx8("div", { className: "re-footer", children: slots.footer })
+              slots.footer && /* @__PURE__ */ jsx9("div", { className: "re-footer", children: slots.footer })
             ]
           }
         )
@@ -3485,7 +3833,7 @@ var RichTextEditor = Object.assign(RichTextEditorBase, {
 });
 
 // src/components/RichTextViewer.tsx
-import { useEffect as useEffect15, useLayoutEffect, useMemo as useMemo4, useRef as useRef5 } from "react";
+import { useEffect as useEffect16, useLayoutEffect, useMemo as useMemo5, useRef as useRef5 } from "react";
 
 // src/core/viewerHtml.ts
 function prepareViewerContent(content, features) {
@@ -3499,7 +3847,81 @@ function prepareViewerContent(content, features) {
   return { kind: "html", html };
 }
 
+// src/core/hljsRuntime.ts
+var HLJS_LANGUAGE_ALIASES = {
+  js: "javascript",
+  ts: "typescript",
+  py: "python",
+  md: "markdown",
+  sh: "bash",
+  shell: "bash",
+  text: "plaintext",
+  plain: "plaintext"
+};
+var hljsInstance = null;
+var hljsInit = null;
+var loadingLanguages = /* @__PURE__ */ new Map();
+function normalizeHljsLanguage(language) {
+  if (!language) return "plaintext";
+  const normalized = language.trim().toLowerCase();
+  return HLJS_LANGUAGE_ALIASES[normalized] ?? normalized;
+}
+async function getHljs() {
+  if (hljsInstance) return hljsInstance;
+  if (!hljsInit) {
+    hljsInit = import("highlight.js/lib/core").then(async (mod) => {
+      hljsInstance = mod.default;
+      await loadHljsLanguage("plaintext");
+      return hljsInstance;
+    });
+  }
+  return hljsInit;
+}
+async function loadHljsLanguage(language) {
+  const hljs = await getHljs();
+  const id = normalizeHljsLanguage(language);
+  if (hljs.getLanguage(id)) return id;
+  const pending = loadingLanguages.get(id);
+  if (pending) return pending;
+  const loadPromise = (async () => {
+    try {
+      const mod = await import(
+        /* @vite-ignore */
+        `highlight.js/lib/languages/${id}`
+      );
+      hljs.registerLanguage(id, mod.default);
+      return id;
+    } catch {
+      if (!hljs.getLanguage("plaintext")) {
+        const plain = await import("highlight.js/lib/languages/plaintext");
+        hljs.registerLanguage("plaintext", plain.default);
+      }
+      return "plaintext";
+    } finally {
+      loadingLanguages.delete(id);
+    }
+  })();
+  loadingLanguages.set(id, loadPromise);
+  return loadPromise;
+}
+async function ensureHljsLanguages(languages) {
+  await Promise.all([...new Set(languages)].map((lang) => loadHljsLanguage(lang)));
+}
+function resolveHljsLanguage(hljs, language) {
+  const id = normalizeHljsLanguage(language);
+  return hljs.getLanguage(id) ? id : "plaintext";
+}
+
 // src/components/highlightViewerCode.ts
+function detectLanguage(element) {
+  const dataLanguage = element.getAttribute("data-language");
+  if (dataLanguage) return dataLanguage;
+  const languageClass = [...element.classList].find(
+    (name) => name.startsWith("language-")
+  );
+  if (languageClass) return languageClass.slice("language-".length);
+  return "plaintext";
+}
 async function highlightViewerCodeBlocks(root) {
   if (!root) return;
   const blocks = root.querySelectorAll(
@@ -3509,37 +3931,141 @@ async function highlightViewerCodeBlocks(root) {
     (el) => el.querySelector(".token, .hljs") === null
   );
   if (needsHighlight.length === 0) return;
-  const [hljsModule, javascript, typescript, json, plaintext] = await Promise.all([
-    import("highlight.js/lib/core"),
-    import("highlight.js/lib/languages/javascript"),
-    import("highlight.js/lib/languages/typescript"),
-    import("highlight.js/lib/languages/json"),
-    import("highlight.js/lib/languages/plaintext")
-  ]);
-  const hljs = hljsModule.default;
-  hljs.registerLanguage("javascript", javascript.default);
-  hljs.registerLanguage("js", javascript.default);
-  hljs.registerLanguage("typescript", typescript.default);
-  hljs.registerLanguage("ts", typescript.default);
-  hljs.registerLanguage("json", json.default);
-  hljs.registerLanguage("plaintext", plaintext.default);
+  const languages = needsHighlight.map((el) => detectLanguage(el));
+  await ensureHljsLanguages(languages);
+  const hljs = await getHljs();
   for (const el of needsHighlight) {
     const text = el.textContent ?? "";
     if (!text.trim()) continue;
-    const languageClass = [...el.classList].find(
-      (name) => name.startsWith("language-")
-    );
-    const language = languageClass?.slice("language-".length) ?? "plaintext";
-    const result = hljs.highlight(text, {
-      language: hljs.getLanguage(language) ? language : "plaintext"
-    });
+    el.dataset.code = text;
+    const language = resolveHljsLanguage(hljs, detectLanguage(el));
+    const result = hljs.highlight(text, { language });
     el.innerHTML = result.value;
     el.classList.add("hljs");
+    el.setAttribute("data-language", language);
+  }
+}
+function storeViewerCodeText(root) {
+  if (!root) return;
+  root.querySelectorAll(
+    "pre code, code.re-block-code, .re-block-code"
+  ).forEach((el) => {
+    if (!el.dataset.code) {
+      el.dataset.code = el.textContent ?? "";
+    }
+  });
+}
+
+// src/core/clipboard.ts
+async function copyTextToClipboard(text) {
+  if (!text) return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      textarea.remove();
+      return copied;
+    } catch {
+      return false;
+    }
   }
 }
 
+// src/components/enhanceViewerCode.ts
+function collectCodeBlocks(root) {
+  const blocks = [];
+  root.querySelectorAll("pre").forEach((pre) => blocks.push(pre));
+  root.querySelectorAll("code.re-block-code, .re-block-code").forEach((code) => {
+    if (!code.closest("pre")) blocks.push(code);
+  });
+  return blocks;
+}
+function getCodeElement(block) {
+  if (block instanceof HTMLPreElement) {
+    return block.querySelector("code") ?? block;
+  }
+  return block;
+}
+function getCodeText(element) {
+  return element.dataset.code ?? element.textContent ?? "";
+}
+function ensureWrapped(block) {
+  const existing = block.closest(".re-code-block-wrap");
+  if (existing instanceof HTMLElement) return existing;
+  const wrap = document.createElement("div");
+  wrap.className = "re-code-block-wrap";
+  block.parentNode?.insertBefore(wrap, block);
+  wrap.appendChild(block);
+  return wrap;
+}
+function createCopyButton(labels) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "re-code-copy-btn";
+  button.setAttribute("aria-label", labels.copyCode);
+  button.title = labels.copyCode;
+  button.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  return button;
+}
+function flashCopied(button, labels) {
+  const previous = button.title;
+  button.classList.add("re-code-copy-btn-copied");
+  button.title = labels.copiedCode;
+  window.setTimeout(() => {
+    button.classList.remove("re-code-copy-btn-copied");
+    button.title = previous;
+  }, 1500);
+}
+function enhanceViewerCodeBlocks(root, labels) {
+  if (!root) return () => {
+  };
+  const cleanups = [];
+  collectCodeBlocks(root).forEach((block) => {
+    const codeElement = getCodeElement(block);
+    const wrap = ensureWrapped(block);
+    let button = wrap.querySelector(".re-code-copy-btn");
+    if (!button) {
+      button = createCopyButton(labels);
+      wrap.appendChild(button);
+    }
+    const copy = async () => {
+      const copied = await copyTextToClipboard(getCodeText(codeElement));
+      if (copied) flashCopied(button, labels);
+    };
+    const onButtonClick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      void copy();
+    };
+    const onCodeClick = (event) => {
+      event.preventDefault();
+      void copy();
+    };
+    button.addEventListener("click", onButtonClick);
+    codeElement.addEventListener("click", onCodeClick);
+    codeElement.classList.add("re-code-copyable");
+    cleanups.push(() => {
+      button?.removeEventListener("click", onButtonClick);
+      codeElement.removeEventListener("click", onCodeClick);
+      codeElement.classList.remove("re-code-copyable");
+    });
+  });
+  return () => {
+    for (const cleanup of cleanups) cleanup();
+  };
+}
+
 // src/components/RichTextViewer.tsx
-import { jsx as jsx9 } from "react/jsx-runtime";
+import { jsx as jsx10 } from "react/jsx-runtime";
 function mentionAriaLabel(template, label) {
   return template.replace("{label}", label);
 }
@@ -3560,15 +4086,27 @@ function RichTextViewer({
   const features = resolveViewerFeatures(featuresProp);
   const labels = resolveViewerLabels(labelsProp);
   const ref = useRef5(null);
-  const prepared = useMemo4(
+  const prepared = useMemo5(
     () => prepareViewerContent(content, features),
     [content, features]
   );
   useLayoutEffect(() => {
-    if (prepared.kind !== "html" || !features.codeHighlight) return;
-    void highlightViewerCodeBlocks(ref.current);
-  }, [prepared, features.codeHighlight]);
-  useEffect15(() => {
+    if (prepared.kind !== "html") return;
+    const run = async () => {
+      if (features.codeHighlight) {
+        await highlightViewerCodeBlocks(ref.current);
+      } else {
+        storeViewerCodeText(ref.current);
+      }
+      return enhanceViewerCodeBlocks(ref.current, labels);
+    };
+    let cleanup;
+    void run().then((dispose) => {
+      cleanup = dispose;
+    });
+    return () => cleanup?.();
+  }, [features.codeHighlight, labels, prepared]);
+  useEffect16(() => {
     if (prepared.kind !== "html") return;
     const root = ref.current;
     if (!root) return;
@@ -3580,7 +4118,7 @@ function RichTextViewer({
     root.addEventListener("click", onSpoilerClick);
     return () => root.removeEventListener("click", onSpoilerClick);
   }, [prepared]);
-  useEffect15(() => {
+  useEffect16(() => {
     if (prepared.kind !== "html" || !onMentionClick) return;
     const root = ref.current;
     if (!root) return;
@@ -3623,7 +4161,7 @@ function RichTextViewer({
     };
   }, [labels.mention, onMentionClick, prepared]);
   if (prepared.kind === "plain") {
-    return /* @__PURE__ */ jsx9(
+    return /* @__PURE__ */ jsx10(
       "p",
       {
         ...themeDataAttribute(theme),
@@ -3633,7 +4171,7 @@ function RichTextViewer({
       }
     );
   }
-  return /* @__PURE__ */ jsx9(
+  return /* @__PURE__ */ jsx10(
     "div",
     {
       ref,
