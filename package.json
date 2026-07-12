@@ -9,7 +9,7 @@
     "dev": "npm run dev --prefix apps/demo",
     "build": "npm run build --prefix packages/rich-editor && npm run build --prefix apps/demo",
     "build:pages": "npm run build --prefix packages/rich-editor && npm run build:pages --prefix apps/demo",
-    "publish:lib": "npm publish --workspace=@rinsvent/rich-editor",
+    "publish:lib": "npm run test --workspace=@rinsvent/rich-editor && npm run build --workspace=@rinsvent/rich-editor && npm publish --workspace=@rinsvent/rich-editor --ignore-scripts",
     "build:lib": "npm run build --prefix packages/rich-editor",
     "lint": "npm run lint --prefix packages/rich-editor",
     "test": "npm run test --prefix packages/rich-editor"

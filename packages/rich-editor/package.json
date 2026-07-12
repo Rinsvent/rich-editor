@@ -46,11 +46,11 @@
     "**/*.css"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "lint": "tsc --noEmit",
-    "test": "vitest run",
-    "prepublishOnly": "npm run test && npm run build"
+    "build": "npx tsup",
+    "dev": "npx tsup --watch",
+    "lint": "npx tsc --noEmit",
+    "test": "npx vitest run",
+    "prepublishOnly": "node --input-type=commonjs -e \"require('node:fs').accessSync('dist/index.js')\""
   },
   "peerDependencies": {
     "react": ">=18",

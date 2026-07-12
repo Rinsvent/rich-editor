@@ -44,6 +44,6 @@ jobs:
           npm run build --workspace=@rinsvent/rich-editor
 
       - name: Publish to npm
-        run: npm publish --workspace=@rinsvent/rich-editor
+        run: npm publish --workspace=@rinsvent/rich-editor --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
