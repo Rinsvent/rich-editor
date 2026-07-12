@@ -2,6 +2,31 @@
   "name": "@rinsvent/rich-editor",
   "version": "0.1.0",
   "description": "Rich text editor and viewer for React (Lexical-based)",
+  "license": "MIT",
+  "author": "Rinsvent",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rinsvent/rich-editor.git",
+    "directory": "packages/rich-editor"
+  },
+  "homepage": "https://rinsvent.github.io/rich-editor/",
+  "bugs": {
+    "url": "https://github.com/Rinsvent/rich-editor/issues"
+  },
+  "keywords": [
+    "react",
+    "lexical",
+    "rich-text",
+    "rich-text-editor",
+    "wysiwyg",
+    "editor",
+    "viewer",
+    "markdown"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -24,7 +49,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run test && npm run build"
   },
   "peerDependencies": {
     "react": ">=18",

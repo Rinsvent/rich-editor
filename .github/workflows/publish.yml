@@ -1,0 +1,49 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify release tag matches package version
+        if: github.event_name == 'release'
+        run: |
+          PKG_VERSION=$(node -p "require('./packages/rich-editor/package.json').version")
+          TAG="${{ github.event.release.tag_name }}"
+          EXPECTED="v${PKG_VERSION}"
+          if [ "$TAG" != "$EXPECTED" ]; then
+            echo "Release tag $TAG does not match package.json version $PKG_VERSION (expected $EXPECTED)"
+            exit 1
+          fi
+
+      - name: Test and build
+        run: |
+          npm run test --workspace=@rinsvent/rich-editor
+          npm run build --workspace=@rinsvent/rich-editor
+
+      - name: Publish to npm
+        run: npm publish --workspace=@rinsvent/rich-editor
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
