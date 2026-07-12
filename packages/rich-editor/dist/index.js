@@ -1507,12 +1507,21 @@ import { $generateNodesFromDOM as $generateNodesFromDOM2 } from "@lexical/html";
 import { useLexicalComposerContext as useLexicalComposerContext15 } from "@lexical/react/LexicalComposerContext";
 import { $createParagraphNode as $createParagraphNode6, $getRoot as $getRoot5 } from "lexical";
 
+// src/core/selectionFormat.ts
+import { $getSelection as $getSelection2, $isRangeSelection as $isRangeSelection2 } from "lexical";
+function $clearStickyTextFormats() {
+  const selection = $getSelection2();
+  if ($isRangeSelection2(selection)) {
+    selection.setFormat(0);
+  }
+}
+
 // src/components/plugins/EnterPlugin.tsx
 import { useEffect as useEffect2 } from "react";
 import { useLexicalComposerContext as useLexicalComposerContext2 } from "@lexical/react/LexicalComposerContext";
 import {
-  $getSelection as $getSelection2,
-  $isRangeSelection as $isRangeSelection2,
+  $getSelection as $getSelection3,
+  $isRangeSelection as $isRangeSelection3,
   COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW2,
   KEY_ENTER_COMMAND
 } from "lexical";
@@ -1535,8 +1544,8 @@ function EnterPlugin({
         if (action === "newline") {
           event.preventDefault();
           editor.update(() => {
-            const selection = $getSelection2();
-            if ($isRangeSelection2(selection)) {
+            const selection = $getSelection3();
+            if ($isRangeSelection3(selection)) {
               selection.insertParagraph();
             }
           });
@@ -1559,9 +1568,9 @@ function EnterPlugin({
 import { $generateNodesFromDOM } from "@lexical/html";
 import { useLexicalComposerContext as useLexicalComposerContext3 } from "@lexical/react/LexicalComposerContext";
 import {
-  $getSelection as $getSelection3,
+  $getSelection as $getSelection4,
   $insertNodes as $insertNodes2,
-  $isRangeSelection as $isRangeSelection3,
+  $isRangeSelection as $isRangeSelection4,
   COMMAND_PRIORITY_HIGH,
   PASTE_COMMAND
 } from "lexical";
@@ -1588,8 +1597,8 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = markdownToHtml(text);
           editor.update(() => {
-            const selection = $getSelection3();
-            if (!$isRangeSelection3(selection)) return;
+            const selection = $getSelection4();
+            if (!$isRangeSelection4(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
@@ -1604,8 +1613,8 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = sanitizeHtml(htmlRaw);
           editor.update(() => {
-            const selection = $getSelection3();
-            if (!$isRangeSelection3(selection)) return;
+            const selection = $getSelection4();
+            if (!$isRangeSelection4(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
@@ -1837,9 +1846,9 @@ import { $isCodeNode as $isCodeNode2 } from "@lexical/code";
 import { $isQuoteNode as $isQuoteNode4 } from "@lexical/rich-text";
 import {
   $getRoot as $getRoot4,
-  $getSelection as $getSelection5,
+  $getSelection as $getSelection6,
   $isParagraphNode as $isParagraphNode4,
-  $isRangeSelection as $isRangeSelection5,
+  $isRangeSelection as $isRangeSelection6,
   COMMAND_PRIORITY_CRITICAL,
   DELETE_CHARACTER_COMMAND,
   KEY_ENTER_COMMAND as KEY_ENTER_COMMAND2
@@ -1854,11 +1863,11 @@ import {
   $createParagraphNode as $createParagraphNode4,
   $createTextNode as $createTextNode2,
   $getRoot as $getRoot3,
-  $getSelection as $getSelection4,
+  $getSelection as $getSelection5,
   $getNodeByKey as $getNodeByKey2,
   $isElementNode as $isElementNode2,
   $isParagraphNode as $isParagraphNode3,
-  $isRangeSelection as $isRangeSelection4,
+  $isRangeSelection as $isRangeSelection5,
   $isTextNode
 } from "lexical";
 
@@ -2222,8 +2231,8 @@ function $exitCodeBlock(codeNode) {
   exitParagraph.selectStart();
 }
 function $shouldSkipBlockBehavior() {
-  const selection = $getSelection4();
-  if (!$isRangeSelection4(selection)) return true;
+  const selection = $getSelection5();
+  if (!$isRangeSelection5(selection)) return true;
   const node = selection.anchor.getNode();
   if ($findMatchingParent2(node, $isListItemNode)) return true;
   return false;
@@ -2272,8 +2281,8 @@ function BlockBehaviorPlugin() {
       (event) => {
         if ($shouldSkipBlockBehavior()) return false;
         const quoteContext = editor.getEditorState().read(() => {
-          const selection = $getSelection5();
-          if (!$isRangeSelection5(selection)) return null;
+          const selection = $getSelection6();
+          if (!$isRangeSelection6(selection)) return null;
           const quote = $getBlockQuote(selection.anchor.getNode());
           if (!quote || !$isQuoteNode4(quote)) return null;
           const paragraph = $getQuoteParagraph(selection.anchor.getNode());
@@ -2283,8 +2292,8 @@ function BlockBehaviorPlugin() {
         if (quoteContext) {
           event?.preventDefault();
           editor.update(() => {
-            const selection = $getSelection5();
-            if (!$isRangeSelection5(selection)) return;
+            const selection = $getSelection6();
+            if (!$isRangeSelection6(selection)) return;
             $handleQuoteEnter(
               quoteContext.quote,
               quoteContext.paragraph,
@@ -2294,8 +2303,8 @@ function BlockBehaviorPlugin() {
           return true;
         }
         const shouldExitCode = editor.getEditorState().read(() => {
-          const selection = $getSelection5();
-          if (!$isRangeSelection5(selection)) return false;
+          const selection = $getSelection6();
+          if (!$isRangeSelection6(selection)) return false;
           const code = $getBlockCode(selection.anchor.getNode());
           if (!code || !$isCodeNode2(code) || !$isAtEndOfCodeBlock(selection)) {
             return false;
@@ -2308,8 +2317,8 @@ function BlockBehaviorPlugin() {
         if (shouldExitCode) {
           event?.preventDefault();
           editor.update(() => {
-            const selection = $getSelection5();
-            if (!$isRangeSelection5(selection)) return;
+            const selection = $getSelection6();
+            if (!$isRangeSelection6(selection)) return;
             const code = $getBlockCode(selection.anchor.getNode());
             if (code && $isCodeNode2(code)) {
               $exitCodeBlock(code);
@@ -2326,8 +2335,8 @@ function BlockBehaviorPlugin() {
       (isBackward) => {
         if (!isBackward) return false;
         if ($shouldSkipBlockBehavior()) return false;
-        const selection = $getSelection5();
-        if (!$isRangeSelection5(selection) || !selection.isCollapsed()) return false;
+        const selection = $getSelection6();
+        if (!$isRangeSelection6(selection) || !selection.isCollapsed()) return false;
         if (!$isAtStartOfBlock(selection)) return false;
         const quote = $getBlockQuote(selection.anchor.getNode());
         if (!quote || !$isQuoteNode4(quote)) return false;
@@ -2368,8 +2377,8 @@ import { $isCodeNode as $isCodeNode3, normalizeCodeLanguage } from "@lexical/cod
 import { $findMatchingParent as $findMatchingParent3 } from "@lexical/utils";
 import {
   $getNodeByKey as $getNodeByKey3,
-  $getSelection as $getSelection6,
-  $isRangeSelection as $isRangeSelection6,
+  $getSelection as $getSelection7,
+  $isRangeSelection as $isRangeSelection7,
   COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW4,
   SELECTION_CHANGE_COMMAND
 } from "lexical";
@@ -2614,8 +2623,8 @@ function CodeLanguagePlugin({
   );
   const update = useCallback3(() => {
     editor.getEditorState().read(() => {
-      const selection = $getSelection6();
-      if (!$isRangeSelection6(selection)) {
+      const selection = $getSelection7();
+      if (!$isRangeSelection7(selection)) {
         setToolbar(null);
         setMenuOpen(false);
         return;
@@ -2777,8 +2786,8 @@ import { useEffect as useEffect10, useState as useState5 } from "react";
 import { createPortal as createPortal3 } from "react-dom";
 import { useLexicalComposerContext as useLexicalComposerContext10 } from "@lexical/react/LexicalComposerContext";
 import {
-  $getSelection as $getSelection8,
-  $isRangeSelection as $isRangeSelection8,
+  $getSelection as $getSelection9,
+  $isRangeSelection as $isRangeSelection9,
   COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW6,
   SELECTION_CHANGE_COMMAND as SELECTION_CHANGE_COMMAND3
 } from "lexical";
@@ -2923,8 +2932,8 @@ import { $findMatchingParent as $findMatchingParent4 } from "@lexical/utils";
 import {
   $createParagraphNode as $createParagraphNode5,
   $createTextNode as $createTextNode3,
-  $getSelection as $getSelection7,
-  $isRangeSelection as $isRangeSelection7,
+  $getSelection as $getSelection8,
+  $isRangeSelection as $isRangeSelection8,
   COMMAND_PRIORITY_LOW as COMMAND_PRIORITY_LOW5,
   FORMAT_TEXT_COMMAND as FORMAT_TEXT_COMMAND2,
   SELECTION_CHANGE_COMMAND as SELECTION_CHANGE_COMMAND2
@@ -2970,8 +2979,8 @@ function useFormatState() {
   useEffect9(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = $getSelection7();
-        if (!$isRangeSelection7(selection)) {
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection)) {
           setState(emptyFormat);
           return;
         }
@@ -3020,15 +3029,15 @@ function useFormatActions() {
     code: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "code"),
     quote: () => {
       editor.update(() => {
-        const selection = $getSelection7();
-        if (!$isRangeSelection7(selection)) return;
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection)) return;
         $applyQuoteToSelection(selection);
       });
     },
     codeBlock: () => {
       editor.update(() => {
-        const selection = $getSelection7();
-        if (!$isRangeSelection7(selection)) return;
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection)) return;
         const inCode = !!$findMatchingParent4(
           selection.anchor.getNode(),
           $isCodeNode4
@@ -3042,8 +3051,8 @@ function useFormatActions() {
     },
     bulletList: () => {
       editor.update(() => {
-        const selection = $getSelection7();
-        if (!$isRangeSelection7(selection)) return;
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection)) return;
         const listNode = $findMatchingParent4(
           selection.anchor.getNode(),
           $isListNode
@@ -3057,8 +3066,8 @@ function useFormatActions() {
     },
     numberedList: () => {
       editor.update(() => {
-        const selection = $getSelection7();
-        if (!$isRangeSelection7(selection)) return;
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection)) return;
         const listNode = $findMatchingParent4(
           selection.anchor.getNode(),
           $isListNode
@@ -3075,8 +3084,8 @@ function useFormatActions() {
     },
     heading: () => {
       editor.update(() => {
-        const selection = $getSelection7();
-        if (!$isRangeSelection7(selection)) return;
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection)) return;
         const heading = $findMatchingParent4(
           selection.anchor.getNode(),
           $isHeadingNode
@@ -3090,8 +3099,8 @@ function useFormatActions() {
     },
     mentionTrigger: () => {
       editor.update(() => {
-        const selection = $getSelection7();
-        if ($isRangeSelection7(selection)) {
+        const selection = $getSelection8();
+        if ($isRangeSelection8(selection)) {
           selection.insertText("@");
         }
       });
@@ -3099,8 +3108,8 @@ function useFormatActions() {
     },
     spoiler: () => {
       editor.update(() => {
-        const selection = $getSelection7();
-        if (!$isRangeSelection7(selection) || selection.isCollapsed()) return;
+        const selection = $getSelection8();
+        if (!$isRangeSelection8(selection) || selection.isCollapsed()) return;
         const anchorNode = selection.anchor.getNode();
         const existing = $findMatchingParent4(anchorNode, $isSpoilerNode);
         if (existing) {
@@ -3310,8 +3319,8 @@ function SelectionMenuPlugin({
     }
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = $getSelection8();
-        if (!$isRangeSelection8(selection) || selection.isCollapsed()) {
+        const selection = $getSelection9();
+        if (!$isRangeSelection9(selection) || selection.isCollapsed()) {
           setPosition(null);
           return;
         }
@@ -3397,8 +3406,8 @@ function SelectionMenuPlugin({
 import { useEffect as useEffect11 } from "react";
 import { useLexicalComposerContext as useLexicalComposerContext11 } from "@lexical/react/LexicalComposerContext";
 import {
-  $getSelection as $getSelection9,
-  $isRangeSelection as $isRangeSelection9,
+  $getSelection as $getSelection10,
+  $isRangeSelection as $isRangeSelection10,
   COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH3,
   INSERT_LINE_BREAK_COMMAND
 } from "lexical";
@@ -3408,8 +3417,8 @@ function LineBreakPlugin() {
     return editor.registerCommand(
       INSERT_LINE_BREAK_COMMAND,
       () => {
-        const selection = $getSelection9();
-        if (!$isRangeSelection9(selection)) return false;
+        const selection = $getSelection10();
+        if (!$isRangeSelection10(selection)) return false;
         if ($getBlockCode(selection.anchor.getNode())) return false;
         selection.insertParagraph();
         return true;
@@ -3429,8 +3438,8 @@ import { $findMatchingParent as $findMatchingParent5 } from "@lexical/utils";
 import {
   $getNearestNodeFromDOMNode,
   $getNodeByKey as $getNodeByKey5,
-  $getSelection as $getSelection11,
-  $isRangeSelection as $isRangeSelection11,
+  $getSelection as $getSelection12,
+  $isRangeSelection as $isRangeSelection12,
   CLICK_COMMAND as CLICK_COMMAND2,
   COMMAND_PRIORITY_HIGH as COMMAND_PRIORITY_HIGH4
 } from "lexical";
@@ -3440,8 +3449,8 @@ import { $createLinkNode, $isLinkNode as $isLinkNode2 } from "@lexical/link";
 import {
   $createTextNode as $createTextNode4,
   $getNodeByKey as $getNodeByKey4,
-  $getSelection as $getSelection10,
-  $isRangeSelection as $isRangeSelection10
+  $getSelection as $getSelection11,
+  $isRangeSelection as $isRangeSelection11
 } from "lexical";
 function $applyLinkForm(values, linkKey) {
   const text = values.text.trim();
@@ -3460,8 +3469,8 @@ function $applyLinkForm(values, linkKey) {
     nextLink.selectEnd();
     return;
   }
-  const selection = $getSelection10();
-  if (!$isRangeSelection10(selection)) return;
+  const selection = $getSelection11();
+  if (!$isRangeSelection11(selection)) return;
   if (!selection.isCollapsed()) {
     selection.removeText();
   }
@@ -3647,8 +3656,8 @@ function LinkUiPluginInner({
   const hideToolbar = useCallback5(() => setToolbar(null), []);
   const openLinkDialog = useCallback5(() => {
     editor.getEditorState().read(() => {
-      const selection = $getSelection11();
-      if (!$isRangeSelection11(selection)) return;
+      const selection = $getSelection12();
+      if (!$isRangeSelection12(selection)) return;
       const existing = $findMatchingParent5(selection.anchor.getNode(), $isLinkNode3);
       if (existing) {
         setModal({
@@ -3810,7 +3819,7 @@ function LinkUiPluginInner({
 import { useEffect as useEffect13, useRef as useRef4 } from "react";
 import { useLexicalComposerContext as useLexicalComposerContext13 } from "@lexical/react/LexicalComposerContext";
 import { $findMatchingParent as $findMatchingParent6 } from "@lexical/utils";
-import { $getSelection as $getSelection12, $isRangeSelection as $isRangeSelection12 } from "lexical";
+import { $getSelection as $getSelection13, $isRangeSelection as $isRangeSelection13 } from "lexical";
 function SpoilerPlugin() {
   const [editor] = useLexicalComposerContext13();
   const editingRef = useRef4(null);
@@ -3839,8 +3848,8 @@ function SpoilerPlugin() {
     };
     const removeUpdate = editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const selection = $getSelection12();
-        if (!$isRangeSelection12(selection)) return;
+        const selection = $getSelection13();
+        if (!$isRangeSelection13(selection)) return;
         const spoiler = $findMatchingParent6(
           selection.anchor.getNode(),
           $isSpoilerNode
@@ -3984,6 +3993,7 @@ function InitialHtmlPlugin({ html }) {
         const paragraph = $createParagraphNode6();
         root.append(paragraph);
         paragraph.select();
+        $clearStickyTextFormats();
         lastApplied.current = html;
         return;
       }
@@ -4041,6 +4051,7 @@ function SetHtmlPlugin({
           const paragraph = $createParagraphNode6();
           root.append(paragraph);
           paragraph.select();
+          $clearStickyTextFormats();
           return;
         }
         const parser = new DOMParser();
@@ -4056,10 +4067,16 @@ function SetHtmlPlugin({
   return null;
 }
 function ClearPlugin({
-  clearRef
+  clearRef,
+  resetFormatsRef
 }) {
   const [editor] = useLexicalComposerContext15();
   useEffect15(() => {
+    const resetFormats = () => {
+      editor.update(() => {
+        $clearStickyTextFormats();
+      });
+    };
     clearRef.current = () => {
       editor.update(() => {
         const root = $getRoot5();
@@ -4067,13 +4084,20 @@ function ClearPlugin({
         const paragraph = $createParagraphNode6();
         root.append(paragraph);
         paragraph.select();
+        $clearStickyTextFormats();
       });
       editor.focus();
     };
+    if (resetFormatsRef) {
+      resetFormatsRef.current = resetFormats;
+    }
     return () => {
       clearRef.current = null;
+      if (resetFormatsRef) {
+        resetFormatsRef.current = null;
+      }
     };
-  }, [editor, clearRef]);
+  }, [editor, clearRef, resetFormatsRef]);
   return null;
 }
 function EmptyStatePlugin({
@@ -4929,6 +4953,7 @@ function RichTextEditorInner({
   const getHtmlRef = useRef8(null);
   const setHtmlRef = useRef8(null);
   const clearRef = useRef8(null);
+  const resetFormatsRef = useRef8(null);
   const focusRef = useRef8(null);
   const [isEmpty, setIsEmpty] = useState9(true);
   const [sending, setSending] = useState9(false);
@@ -4989,6 +5014,8 @@ function RichTextEditorInner({
       if (clearOnSubmit) {
         clearRef.current?.();
         uploads.clearAttachments();
+      } else {
+        resetFormatsRef.current?.();
       }
     } finally {
       setSending(false);
@@ -5023,7 +5050,7 @@ function RichTextEditorInner({
   return /* @__PURE__ */ jsxs8(LexicalComposer, { initialConfig, children: [
     /* @__PURE__ */ jsx14(EditorRefPlugin, { getHtmlRef, useTrim }),
     /* @__PURE__ */ jsx14(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ jsx14(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ jsx14(ClearPlugin, { clearRef, resetFormatsRef }),
     /* @__PURE__ */ jsx14(FocusPlugin, { focusRef }),
     /* @__PURE__ */ jsx14(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
     /* @__PURE__ */ jsx14(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ jsx14(

@@ -1532,12 +1532,21 @@ function cn(...parts) {
 var import_react17 = require("react");
 var import_html4 = require("@lexical/html");
 var import_LexicalComposerContext15 = require("@lexical/react/LexicalComposerContext");
-var import_lexical23 = require("lexical");
+var import_lexical24 = require("lexical");
+
+// src/core/selectionFormat.ts
+var import_lexical8 = require("lexical");
+function $clearStickyTextFormats() {
+  const selection = (0, import_lexical8.$getSelection)();
+  if ((0, import_lexical8.$isRangeSelection)(selection)) {
+    selection.setFormat(0);
+  }
+}
 
 // src/components/plugins/EnterPlugin.tsx
 var import_react3 = require("react");
 var import_LexicalComposerContext2 = require("@lexical/react/LexicalComposerContext");
-var import_lexical8 = require("lexical");
+var import_lexical9 = require("lexical");
 function EnterPlugin({
   bindings,
   onSubmit
@@ -1546,7 +1555,7 @@ function EnterPlugin({
   (0, import_react3.useEffect)(() => {
     if (!bindings.length) return;
     return editor.registerCommand(
-      import_lexical8.KEY_ENTER_COMMAND,
+      import_lexical9.KEY_ENTER_COMMAND,
       (event) => {
         if (!(event instanceof KeyboardEvent)) return false;
         const action = matchEnterKeyAction(event, bindings);
@@ -1557,8 +1566,8 @@ function EnterPlugin({
         if (action === "newline") {
           event.preventDefault();
           editor.update(() => {
-            const selection = (0, import_lexical8.$getSelection)();
-            if ((0, import_lexical8.$isRangeSelection)(selection)) {
+            const selection = (0, import_lexical9.$getSelection)();
+            if ((0, import_lexical9.$isRangeSelection)(selection)) {
               selection.insertParagraph();
             }
           });
@@ -1571,7 +1580,7 @@ function EnterPlugin({
         }
         return false;
       },
-      import_lexical8.COMMAND_PRIORITY_LOW
+      import_lexical9.COMMAND_PRIORITY_LOW
     );
   }, [bindings, editor, onSubmit]);
   return null;
@@ -1580,7 +1589,7 @@ function EnterPlugin({
 // src/components/plugins/MarkdownPastePlugin.tsx
 var import_html2 = require("@lexical/html");
 var import_LexicalComposerContext3 = require("@lexical/react/LexicalComposerContext");
-var import_lexical9 = require("lexical");
+var import_lexical10 = require("lexical");
 var import_react4 = require("react");
 function htmlToNodes(editor, html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -1593,7 +1602,7 @@ function MarkdownPastePlugin({
   (0, import_react4.useEffect)(() => {
     if (!features.markdownPaste) return;
     return editor.registerCommand(
-      import_lexical9.PASTE_COMMAND,
+      import_lexical10.PASTE_COMMAND,
       (event) => {
         if (!(event instanceof ClipboardEvent)) return false;
         const clipboard = event.clipboardData;
@@ -1604,14 +1613,14 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = markdownToHtml(text);
           editor.update(() => {
-            const selection = (0, import_lexical9.$getSelection)();
-            if (!(0, import_lexical9.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical10.$getSelection)();
+            if (!(0, import_lexical10.$isRangeSelection)(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
             const nodes = htmlToNodes(editor, html);
             if (nodes.length > 0) {
-              (0, import_lexical9.$insertNodes)(nodes);
+              (0, import_lexical10.$insertNodes)(nodes);
             }
           });
           return true;
@@ -1620,21 +1629,21 @@ function MarkdownPastePlugin({
           event.preventDefault();
           const html = sanitizeHtml(htmlRaw);
           editor.update(() => {
-            const selection = (0, import_lexical9.$getSelection)();
-            if (!(0, import_lexical9.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical10.$getSelection)();
+            if (!(0, import_lexical10.$isRangeSelection)(selection)) return;
             if (!selection.isCollapsed()) {
               selection.removeText();
             }
             const nodes = htmlToNodes(editor, html);
             if (nodes.length > 0) {
-              (0, import_lexical9.$insertNodes)(nodes);
+              (0, import_lexical10.$insertNodes)(nodes);
             }
           });
           return true;
         }
         return false;
       },
-      import_lexical9.COMMAND_PRIORITY_HIGH
+      import_lexical10.COMMAND_PRIORITY_HIGH
     );
   }, [editor, features.markdownPaste]);
   return null;
@@ -1643,7 +1652,7 @@ function MarkdownPastePlugin({
 // src/components/plugins/KeyboardShortcutsPlugin.tsx
 var import_react5 = require("react");
 var import_LexicalComposerContext4 = require("@lexical/react/LexicalComposerContext");
-var import_lexical10 = require("lexical");
+var import_lexical11 = require("lexical");
 function isModKey(event) {
   return event.metaKey || event.ctrlKey;
 }
@@ -1655,7 +1664,7 @@ function KeyboardShortcutsPlugin({
   (0, import_react5.useEffect)(() => {
     if (!features.keyboardShortcuts || disabled) return;
     return editor.registerCommand(
-      import_lexical10.KEY_DOWN_COMMAND,
+      import_lexical11.KEY_DOWN_COMMAND,
       (event) => {
         if (!(event instanceof KeyboardEvent) || !isModKey(event)) {
           return false;
@@ -1663,32 +1672,32 @@ function KeyboardShortcutsPlugin({
         const key = event.key.toLowerCase();
         if (key === "b" && features.bold) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "bold");
+          editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "bold");
           return true;
         }
         if (key === "i" && features.italic) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "italic");
+          editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "italic");
           return true;
         }
         if (key === "u" && features.underline && !event.shiftKey) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "underline");
+          editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "underline");
           return true;
         }
         if (key === "e" && features.code && !event.shiftKey) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "code");
+          editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "code");
           return true;
         }
         if (event.shiftKey && key === "x" && features.strikethrough) {
           event.preventDefault();
-          editor.dispatchCommand(import_lexical10.FORMAT_TEXT_COMMAND, "strikethrough");
+          editor.dispatchCommand(import_lexical11.FORMAT_TEXT_COMMAND, "strikethrough");
           return true;
         }
         return false;
       },
-      import_lexical10.COMMAND_PRIORITY_LOW
+      import_lexical11.COMMAND_PRIORITY_LOW
     );
   }, [disabled, editor, features]);
   return null;
@@ -1699,7 +1708,7 @@ var import_LexicalTypeaheadMenuPlugin = require("@lexical/react/LexicalTypeahead
 var import_LexicalComposerContext5 = require("@lexical/react/LexicalComposerContext");
 var import_react6 = require("react");
 var import_react_dom = require("react-dom");
-var import_lexical11 = require("lexical");
+var import_lexical12 = require("lexical");
 var import_jsx_runtime4 = require("react/jsx-runtime");
 var MentionMenuOption = class extends import_LexicalTypeaheadMenuPlugin.MenuOption {
   constructor(option) {
@@ -1827,7 +1836,7 @@ function MentionsPlugin({
       triggerFn,
       options,
       menuRenderFn,
-      commandPriority: import_lexical11.COMMAND_PRIORITY_HIGH
+      commandPriority: import_lexical12.COMMAND_PRIORITY_HIGH
     }
   );
 }
@@ -1837,25 +1846,25 @@ var import_react7 = require("react");
 var import_LexicalComposerContext6 = require("@lexical/react/LexicalComposerContext");
 var import_code2 = require("@lexical/code");
 var import_rich_text4 = require("@lexical/rich-text");
-var import_lexical14 = require("lexical");
+var import_lexical15 = require("lexical");
 
 // src/core/blockBehavior.ts
 var import_code = require("@lexical/code");
 var import_list = require("@lexical/list");
 var import_rich_text3 = require("@lexical/rich-text");
 var import_utils3 = require("@lexical/utils");
-var import_lexical13 = require("lexical");
+var import_lexical14 = require("lexical");
 
 // src/core/quoteBlocks.ts
 var import_rich_text2 = require("@lexical/rich-text");
 var import_utils2 = require("@lexical/utils");
-var import_lexical12 = require("lexical");
+var import_lexical13 = require("lexical");
 function $getTopLevelBlock(node) {
   let current = node;
-  while (current !== null && !(0, import_lexical12.$isRootOrShadowRoot)(current.getParent())) {
+  while (current !== null && !(0, import_lexical13.$isRootOrShadowRoot)(current.getParent())) {
     current = current.getParent();
   }
-  return (0, import_lexical12.$isElementNode)(current) ? current : null;
+  return (0, import_lexical13.$isElementNode)(current) ? current : null;
 }
 function $getSelectedTopLevelBlocks(selection) {
   const blocks = /* @__PURE__ */ new Map();
@@ -1871,23 +1880,23 @@ function $getSelectedTopLevelBlocks(selection) {
 }
 function $ensureQuoteParagraphStructure(quote) {
   const children = [...quote.getChildren()];
-  if (children.length > 0 && children.every(import_lexical12.$isParagraphNode)) return;
+  if (children.length > 0 && children.every(import_lexical13.$isParagraphNode)) return;
   const normalized = [];
   let pending = null;
   for (const child of children) {
-    if ((0, import_lexical12.$isParagraphNode)(child)) {
+    if ((0, import_lexical13.$isParagraphNode)(child)) {
       normalized.push(child);
       pending = null;
       continue;
     }
     if (!pending) {
-      pending = (0, import_lexical12.$createParagraphNode)();
+      pending = (0, import_lexical13.$createParagraphNode)();
       normalized.push(pending);
     }
     pending.append(child);
   }
   if (normalized.length === 0) {
-    normalized.push((0, import_lexical12.$createParagraphNode)());
+    normalized.push((0, import_lexical13.$createParagraphNode)());
   }
   quote.clear();
   quote.append(...normalized);
@@ -1897,7 +1906,7 @@ function $getQuoteParagraph(node) {
   if (!quote) return null;
   let current = node;
   while (current !== null && current !== quote) {
-    if ((0, import_lexical12.$isParagraphNode)(current) && current.getParent() === quote) {
+    if ((0, import_lexical13.$isParagraphNode)(current) && current.getParent() === quote) {
       return current;
     }
     current = current.getParent();
@@ -1905,19 +1914,19 @@ function $getQuoteParagraph(node) {
   $ensureQuoteParagraphStructure(quote);
   current = node;
   while (current !== null && current !== quote) {
-    if ((0, import_lexical12.$isParagraphNode)(current) && current.getParent() === quote) {
+    if ((0, import_lexical13.$isParagraphNode)(current) && current.getParent() === quote) {
       return current;
     }
     current = current.getParent();
   }
   const first = quote.getFirstChild();
-  return (0, import_lexical12.$isParagraphNode)(first) ? first : null;
+  return (0, import_lexical13.$isParagraphNode)(first) ? first : null;
 }
 function $unwrapQuote(quote) {
   $ensureQuoteParagraphStructure(quote);
-  const paragraphs = quote.getChildren().filter(import_lexical12.$isParagraphNode);
+  const paragraphs = quote.getChildren().filter(import_lexical13.$isParagraphNode);
   if (paragraphs.length === 0) {
-    quote.replace((0, import_lexical12.$createParagraphNode)());
+    quote.replace((0, import_lexical13.$createParagraphNode)());
     return;
   }
   const [first, ...rest] = paragraphs;
@@ -1931,7 +1940,7 @@ function $unwrapQuote(quote) {
 }
 function $wrapParagraphInQuote(paragraph) {
   const quote = (0, import_rich_text2.$createQuoteNode)();
-  const inner = (0, import_lexical12.$createParagraphNode)();
+  const inner = (0, import_lexical13.$createParagraphNode)();
   inner.append(...paragraph.getChildren());
   quote.append(inner);
   paragraph.replace(quote);
@@ -1944,7 +1953,7 @@ function $applyQuoteToSelection(selection) {
     return;
   }
   const blocks = $getSelectedTopLevelBlocks(selection);
-  const paragraphs = blocks.filter(import_lexical12.$isParagraphNode);
+  const paragraphs = blocks.filter(import_lexical13.$isParagraphNode);
   if (paragraphs.length === 0) return;
   if (paragraphs.length === 1) {
     $wrapParagraphInQuote(paragraphs[0]);
@@ -1952,7 +1961,7 @@ function $applyQuoteToSelection(selection) {
   }
   const quote = (0, import_rich_text2.$createQuoteNode)();
   for (const block of paragraphs) {
-    const inner = (0, import_lexical12.$createParagraphNode)();
+    const inner = (0, import_lexical13.$createParagraphNode)();
     inner.append(...block.getChildren());
     quote.append(inner);
   }
@@ -1963,7 +1972,7 @@ function $applyQuoteToSelection(selection) {
   quote.selectEnd();
 }
 function $normalizeAllQuotes() {
-  for (const child of (0, import_lexical12.$getRoot)().getChildren()) {
+  for (const child of (0, import_lexical13.$getRoot)().getChildren()) {
     if ((0, import_rich_text2.$isQuoteNode)(child)) {
       $ensureQuoteParagraphStructure(child);
     }
@@ -1978,7 +1987,7 @@ function $getBlockCode(node) {
   return (0, import_utils3.$findMatchingParent)(node, import_code.$isCodeNode);
 }
 function $isParagraphEmpty(node) {
-  return (0, import_lexical13.$isParagraphNode)(node) && node.getTextContent().trim() === "";
+  return (0, import_lexical14.$isParagraphNode)(node) && node.getTextContent().trim() === "";
 }
 function $countTrailingEmptyParagraphs(quote) {
   const children = quote.getChildren();
@@ -1993,7 +2002,7 @@ function $isAtStartOfBlock(selection) {
   const anchor = selection.anchor;
   if (anchor.offset !== 0) return false;
   const node = anchor.getNode();
-  const paragraph = (0, import_utils3.$findMatchingParent)(node, import_lexical13.$isParagraphNode);
+  const paragraph = (0, import_utils3.$findMatchingParent)(node, import_lexical14.$isParagraphNode);
   if (paragraph) {
     let current = node;
     while (current !== null && current !== paragraph) {
@@ -2004,10 +2013,10 @@ function $isAtStartOfBlock(selection) {
     }
     return true;
   }
-  if ((0, import_lexical13.$isParagraphNode)(node)) return true;
-  if ((0, import_lexical13.$isTextNode)(node)) {
+  if ((0, import_lexical14.$isParagraphNode)(node)) return true;
+  if ((0, import_lexical14.$isTextNode)(node)) {
     const parent = node.getParent();
-    if ((0, import_lexical13.$isElementNode)(parent)) {
+    if ((0, import_lexical14.$isElementNode)(parent)) {
       return parent.getFirstChild() === node;
     }
   }
@@ -2016,13 +2025,13 @@ function $isAtStartOfBlock(selection) {
 function $isAtEndOfBlock(selection) {
   const focus = selection.focus;
   const node = focus.getNode();
-  if ((0, import_lexical13.$isTextNode)(node)) {
+  if ((0, import_lexical14.$isTextNode)(node)) {
     return focus.offset === node.getTextContentSize();
   }
-  if ((0, import_lexical13.$isParagraphNode)(node)) {
+  if ((0, import_lexical14.$isParagraphNode)(node)) {
     const lastDescendant = node.getLastDescendant();
     if (!lastDescendant) return true;
-    if ((0, import_lexical13.$isTextNode)(lastDescendant)) {
+    if ((0, import_lexical14.$isTextNode)(lastDescendant)) {
       return focus.offset === lastDescendant.getTextContentSize();
     }
   }
@@ -2031,11 +2040,11 @@ function $isAtEndOfBlock(selection) {
 function $unwrapParagraphFromQuote(paragraph) {
   const quote = paragraph.getParent();
   if (!(0, import_rich_text3.$isQuoteNode)(quote)) return;
-  const paragraphs = quote.getChildren().filter(import_lexical13.$isParagraphNode);
+  const paragraphs = quote.getChildren().filter(import_lexical14.$isParagraphNode);
   const index = paragraphs.findIndex((p) => p.getKey() === paragraph.getKey());
   if (index === -1) return;
   const total = paragraphs.length;
-  const newParagraph = (0, import_lexical13.$createParagraphNode)();
+  const newParagraph = (0, import_lexical14.$createParagraphNode)();
   newParagraph.append(...paragraph.getChildren());
   paragraph.remove();
   if (total === 1) {
@@ -2064,7 +2073,7 @@ function $unwrapParagraphFromQuote(paragraph) {
   newParagraph.selectStart();
 }
 function $pruneEmptyQuotes() {
-  for (const child of [...(0, import_lexical13.$getRoot)().getChildren()]) {
+  for (const child of [...(0, import_lexical14.$getRoot)().getChildren()]) {
     if (!(0, import_rich_text3.$isQuoteNode)(child)) continue;
     if (child.getTextContent().trim() === "") {
       child.remove();
@@ -2072,7 +2081,7 @@ function $pruneEmptyQuotes() {
   }
 }
 function $insertParagraphBeforeBlock(block) {
-  const paragraph = (0, import_lexical13.$createParagraphNode)();
+  const paragraph = (0, import_lexical14.$createParagraphNode)();
   block.insertBefore(paragraph);
   paragraph.selectEnd();
 }
@@ -2080,7 +2089,7 @@ function $exitQuoteWithEmptyLines(quote) {
   while (quote.getLastChild() && $isParagraphEmpty(quote.getLastChild())) {
     quote.getLastChild().remove();
   }
-  const exitParagraph = (0, import_lexical13.$createParagraphNode)();
+  const exitParagraph = (0, import_lexical14.$createParagraphNode)();
   quote.insertAfter(exitParagraph);
   exitParagraph.selectStart();
   if (quote.getChildrenSize() === 0) {
@@ -2089,8 +2098,8 @@ function $exitQuoteWithEmptyLines(quote) {
 }
 function $handleQuoteEnter(quote, paragraph, selection) {
   $ensureQuoteParagraphStructure(quote);
-  if (!(0, import_lexical13.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) {
-    const resolved = quote.getChildren().find(import_lexical13.$isParagraphNode);
+  if (!(0, import_lexical14.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) {
+    const resolved = quote.getChildren().find(import_lexical14.$isParagraphNode);
     if (!resolved) {
       selection.insertParagraph();
       return;
@@ -2111,24 +2120,24 @@ function $handleQuoteEnter(quote, paragraph, selection) {
   selection.insertParagraph();
 }
 function $handleQuoteBackspace(quote, paragraph, selection) {
-  const liveQuote = (0, import_lexical13.$getNodeByKey)(quote.getKey());
+  const liveQuote = (0, import_lexical14.$getNodeByKey)(quote.getKey());
   if (!liveQuote || !(0, import_rich_text3.$isQuoteNode)(liveQuote)) return;
   quote = liveQuote;
   const liveParagraph = $getQuoteParagraph(selection.anchor.getNode());
   if (!liveParagraph || liveParagraph.getParent() !== quote) return;
   paragraph = liveParagraph;
-  if (!(0, import_lexical13.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) return;
+  if (!(0, import_lexical14.$isParagraphNode)(paragraph) || paragraph.getParent() !== quote) return;
   if (!$isAtStartOfBlock(selection)) return;
   if ($isParagraphEmpty(paragraph)) {
     if (quote.getChildrenSize() <= 1) {
-      const replacement = (0, import_lexical13.$createParagraphNode)();
+      const replacement = (0, import_lexical14.$createParagraphNode)();
       quote.replace(replacement);
       replacement.selectStart();
       return;
     }
     const prev = paragraph.getPreviousSibling();
     paragraph.remove();
-    if (prev && (0, import_lexical13.$isParagraphNode)(prev)) {
+    if (prev && (0, import_lexical14.$isParagraphNode)(prev)) {
       prev.selectEnd();
     } else {
       quote.getFirstChild()?.selectStart();
@@ -2139,7 +2148,7 @@ function $handleQuoteBackspace(quote, paragraph, selection) {
   $pruneEmptyQuotes();
 }
 function $mergeAdjacentQuoteBlocks() {
-  const root = (0, import_lexical13.$getRoot)();
+  const root = (0, import_lexical14.$getRoot)();
   const children = [...root.getChildren()];
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
@@ -2157,7 +2166,7 @@ function $mergeAdjacentQuoteBlocks() {
   }
 }
 function $mergeAdjacentCodeBlocks() {
-  const root = (0, import_lexical13.$getRoot)();
+  const root = (0, import_lexical14.$getRoot)();
   const children = [...root.getChildren()];
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
@@ -2167,7 +2176,7 @@ function $mergeAdjacentCodeBlocks() {
       const nextText = next.getTextContent();
       const join = merged.endsWith("\n") || nextText.startsWith("\n") ? "" : "\n";
       current.clear();
-      current.append((0, import_lexical13.$createTextNode)(merged + join + nextText));
+      current.append((0, import_lexical14.$createTextNode)(merged + join + nextText));
       next.remove();
       children.splice(i + 1, 1);
       i -= 1;
@@ -2193,15 +2202,15 @@ function $exitCodeBlock(codeNode) {
   const text = codeNode.getTextContent().replace(/\n{1,2}$/, "");
   codeNode.clear();
   if (text) {
-    codeNode.append((0, import_lexical13.$createTextNode)(text));
+    codeNode.append((0, import_lexical14.$createTextNode)(text));
   }
-  const exitParagraph = (0, import_lexical13.$createParagraphNode)();
+  const exitParagraph = (0, import_lexical14.$createParagraphNode)();
   codeNode.insertAfter(exitParagraph);
   exitParagraph.selectStart();
 }
 function $shouldSkipBlockBehavior() {
-  const selection = (0, import_lexical13.$getSelection)();
-  if (!(0, import_lexical13.$isRangeSelection)(selection)) return true;
+  const selection = (0, import_lexical14.$getSelection)();
+  if (!(0, import_lexical14.$isRangeSelection)(selection)) return true;
   const node = selection.anchor.getNode();
   if ((0, import_utils3.$findMatchingParent)(node, import_list.$isListItemNode)) return true;
   return false;
@@ -2209,17 +2218,17 @@ function $shouldSkipBlockBehavior() {
 
 // src/components/plugins/BlockBehaviorPlugin.tsx
 function $needsQuoteNormalization() {
-  for (const child of (0, import_lexical14.$getRoot)().getChildren()) {
+  for (const child of (0, import_lexical15.$getRoot)().getChildren()) {
     if (!(0, import_rich_text4.$isQuoteNode)(child)) continue;
     const children = child.getChildren();
-    if (children.length === 0 || children.some((node) => !(0, import_lexical14.$isParagraphNode)(node))) {
+    if (children.length === 0 || children.some((node) => !(0, import_lexical15.$isParagraphNode)(node))) {
       return true;
     }
   }
   return false;
 }
 function $needsBlockMerge() {
-  const children = (0, import_lexical14.$getRoot)().getChildren();
+  const children = (0, import_lexical15.$getRoot)().getChildren();
   for (let i = 0; i < children.length - 1; i++) {
     const current = children[i];
     const next = children[i + 1];
@@ -2246,12 +2255,12 @@ function BlockBehaviorPlugin() {
       );
     });
     const removeEnter = editor.registerCommand(
-      import_lexical14.KEY_ENTER_COMMAND,
+      import_lexical15.KEY_ENTER_COMMAND,
       (event) => {
         if ($shouldSkipBlockBehavior()) return false;
         const quoteContext = editor.getEditorState().read(() => {
-          const selection = (0, import_lexical14.$getSelection)();
-          if (!(0, import_lexical14.$isRangeSelection)(selection)) return null;
+          const selection = (0, import_lexical15.$getSelection)();
+          if (!(0, import_lexical15.$isRangeSelection)(selection)) return null;
           const quote = $getBlockQuote(selection.anchor.getNode());
           if (!quote || !(0, import_rich_text4.$isQuoteNode)(quote)) return null;
           const paragraph = $getQuoteParagraph(selection.anchor.getNode());
@@ -2261,8 +2270,8 @@ function BlockBehaviorPlugin() {
         if (quoteContext) {
           event?.preventDefault();
           editor.update(() => {
-            const selection = (0, import_lexical14.$getSelection)();
-            if (!(0, import_lexical14.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical15.$getSelection)();
+            if (!(0, import_lexical15.$isRangeSelection)(selection)) return;
             $handleQuoteEnter(
               quoteContext.quote,
               quoteContext.paragraph,
@@ -2272,8 +2281,8 @@ function BlockBehaviorPlugin() {
           return true;
         }
         const shouldExitCode = editor.getEditorState().read(() => {
-          const selection = (0, import_lexical14.$getSelection)();
-          if (!(0, import_lexical14.$isRangeSelection)(selection)) return false;
+          const selection = (0, import_lexical15.$getSelection)();
+          if (!(0, import_lexical15.$isRangeSelection)(selection)) return false;
           const code = $getBlockCode(selection.anchor.getNode());
           if (!code || !(0, import_code2.$isCodeNode)(code) || !$isAtEndOfCodeBlock(selection)) {
             return false;
@@ -2286,8 +2295,8 @@ function BlockBehaviorPlugin() {
         if (shouldExitCode) {
           event?.preventDefault();
           editor.update(() => {
-            const selection = (0, import_lexical14.$getSelection)();
-            if (!(0, import_lexical14.$isRangeSelection)(selection)) return;
+            const selection = (0, import_lexical15.$getSelection)();
+            if (!(0, import_lexical15.$isRangeSelection)(selection)) return;
             const code = $getBlockCode(selection.anchor.getNode());
             if (code && (0, import_code2.$isCodeNode)(code)) {
               $exitCodeBlock(code);
@@ -2297,15 +2306,15 @@ function BlockBehaviorPlugin() {
         }
         return false;
       },
-      import_lexical14.COMMAND_PRIORITY_CRITICAL
+      import_lexical15.COMMAND_PRIORITY_CRITICAL
     );
     const removeBackspace = editor.registerCommand(
-      import_lexical14.DELETE_CHARACTER_COMMAND,
+      import_lexical15.DELETE_CHARACTER_COMMAND,
       (isBackward) => {
         if (!isBackward) return false;
         if ($shouldSkipBlockBehavior()) return false;
-        const selection = (0, import_lexical14.$getSelection)();
-        if (!(0, import_lexical14.$isRangeSelection)(selection) || !selection.isCollapsed()) return false;
+        const selection = (0, import_lexical15.$getSelection)();
+        if (!(0, import_lexical15.$isRangeSelection)(selection) || !selection.isCollapsed()) return false;
         if (!$isAtStartOfBlock(selection)) return false;
         const quote = $getBlockQuote(selection.anchor.getNode());
         if (!quote || !(0, import_rich_text4.$isQuoteNode)(quote)) return false;
@@ -2314,7 +2323,7 @@ function BlockBehaviorPlugin() {
         $handleQuoteBackspace(quote, paragraph, selection);
         return true;
       },
-      import_lexical14.COMMAND_PRIORITY_CRITICAL
+      import_lexical15.COMMAND_PRIORITY_CRITICAL
     );
     return () => {
       removeMerge();
@@ -2344,7 +2353,7 @@ var import_react_dom2 = require("react-dom");
 var import_LexicalComposerContext8 = require("@lexical/react/LexicalComposerContext");
 var import_code4 = require("@lexical/code");
 var import_utils4 = require("@lexical/utils");
-var import_lexical15 = require("lexical");
+var import_lexical16 = require("lexical");
 
 // src/core/hljsLanguages.ts
 var HLJS_LANGUAGE_LABELS = {
@@ -2586,8 +2595,8 @@ function CodeLanguagePlugin({
   );
   const update = (0, import_react9.useCallback)(() => {
     editor.getEditorState().read(() => {
-      const selection = (0, import_lexical15.$getSelection)();
-      if (!(0, import_lexical15.$isRangeSelection)(selection)) {
+      const selection = (0, import_lexical16.$getSelection)();
+      if (!(0, import_lexical16.$isRangeSelection)(selection)) {
         setToolbar(null);
         setMenuOpen(false);
         return;
@@ -2625,12 +2634,12 @@ function CodeLanguagePlugin({
   (0, import_react9.useEffect)(() => {
     update();
     const removeSelection = editor.registerCommand(
-      import_lexical15.SELECTION_CHANGE_COMMAND,
+      import_lexical16.SELECTION_CHANGE_COMMAND,
       () => {
         update();
         return false;
       },
-      import_lexical15.COMMAND_PRIORITY_LOW
+      import_lexical16.COMMAND_PRIORITY_LOW
     );
     const removeUpdate = editor.registerUpdateListener(() => {
       update();
@@ -2658,7 +2667,7 @@ function CodeLanguagePlugin({
     if (!toolbar) return;
     const codeKey = toolbar.codeKey;
     editor.update(() => {
-      const code = (0, import_lexical15.$getNodeByKey)(codeKey);
+      const code = (0, import_lexical16.$getNodeByKey)(codeKey);
       if (!(0, import_code4.$isCodeNode)(code)) return;
       code.setLanguage((0, import_code4.normalizeCodeLanguage)(language));
     });
@@ -2748,7 +2757,7 @@ function CodeLanguagePlugin({
 var import_react12 = require("react");
 var import_react_dom3 = require("react-dom");
 var import_LexicalComposerContext10 = require("@lexical/react/LexicalComposerContext");
-var import_lexical17 = require("lexical");
+var import_lexical18 = require("lexical");
 
 // src/components/toolbar/ToolbarIcons.tsx
 var import_jsx_runtime6 = require("react/jsx-runtime");
@@ -2878,7 +2887,7 @@ var import_list2 = require("@lexical/list");
 var import_rich_text5 = require("@lexical/rich-text");
 var import_selection = require("@lexical/selection");
 var import_utils5 = require("@lexical/utils");
-var import_lexical16 = require("lexical");
+var import_lexical17 = require("lexical");
 
 // src/context/LinkUiContext.tsx
 var import_react10 = require("react");
@@ -2916,8 +2925,8 @@ function useFormatState() {
   (0, import_react11.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = (0, import_lexical16.$getSelection)();
-        if (!(0, import_lexical16.$isRangeSelection)(selection)) {
+        const selection = (0, import_lexical17.$getSelection)();
+        if (!(0, import_lexical17.$isRangeSelection)(selection)) {
           setState(emptyFormat);
           return;
         }
@@ -2941,12 +2950,12 @@ function useFormatState() {
     };
     const removeUpdate = editor.registerUpdateListener(() => update());
     const removeSelection = editor.registerCommand(
-      import_lexical16.SELECTION_CHANGE_COMMAND,
+      import_lexical17.SELECTION_CHANGE_COMMAND,
       () => {
         update();
         return false;
       },
-      import_lexical16.COMMAND_PRIORITY_LOW
+      import_lexical17.COMMAND_PRIORITY_LOW
     );
     return () => {
       removeUpdate();
@@ -2959,28 +2968,28 @@ function useFormatActions() {
   const [editor] = (0, import_LexicalComposerContext9.useLexicalComposerContext)();
   const linkUi = useLinkUiOptional();
   return {
-    bold: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "bold"),
-    italic: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "italic"),
-    underline: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "underline"),
-    strikethrough: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "strikethrough"),
-    code: () => editor.dispatchCommand(import_lexical16.FORMAT_TEXT_COMMAND, "code"),
+    bold: () => editor.dispatchCommand(import_lexical17.FORMAT_TEXT_COMMAND, "bold"),
+    italic: () => editor.dispatchCommand(import_lexical17.FORMAT_TEXT_COMMAND, "italic"),
+    underline: () => editor.dispatchCommand(import_lexical17.FORMAT_TEXT_COMMAND, "underline"),
+    strikethrough: () => editor.dispatchCommand(import_lexical17.FORMAT_TEXT_COMMAND, "strikethrough"),
+    code: () => editor.dispatchCommand(import_lexical17.FORMAT_TEXT_COMMAND, "code"),
     quote: () => {
       editor.update(() => {
-        const selection = (0, import_lexical16.$getSelection)();
-        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical17.$getSelection)();
+        if (!(0, import_lexical17.$isRangeSelection)(selection)) return;
         $applyQuoteToSelection(selection);
       });
     },
     codeBlock: () => {
       editor.update(() => {
-        const selection = (0, import_lexical16.$getSelection)();
-        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical17.$getSelection)();
+        if (!(0, import_lexical17.$isRangeSelection)(selection)) return;
         const inCode = !!(0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           import_code5.$isCodeNode
         );
         if (inCode) {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical16.$createParagraphNode)());
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical17.$createParagraphNode)());
         } else {
           (0, import_selection.$setBlocksType)(selection, () => (0, import_code5.$createCodeNode)());
         }
@@ -2988,8 +2997,8 @@ function useFormatActions() {
     },
     bulletList: () => {
       editor.update(() => {
-        const selection = (0, import_lexical16.$getSelection)();
-        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical17.$getSelection)();
+        if (!(0, import_lexical17.$isRangeSelection)(selection)) return;
         const listNode = (0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           import_list2.$isListNode
@@ -3003,8 +3012,8 @@ function useFormatActions() {
     },
     numberedList: () => {
       editor.update(() => {
-        const selection = (0, import_lexical16.$getSelection)();
-        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical17.$getSelection)();
+        if (!(0, import_lexical17.$isRangeSelection)(selection)) return;
         const listNode = (0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           import_list2.$isListNode
@@ -3021,14 +3030,14 @@ function useFormatActions() {
     },
     heading: () => {
       editor.update(() => {
-        const selection = (0, import_lexical16.$getSelection)();
-        if (!(0, import_lexical16.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical17.$getSelection)();
+        if (!(0, import_lexical17.$isRangeSelection)(selection)) return;
         const heading = (0, import_utils5.$findMatchingParent)(
           selection.anchor.getNode(),
           import_rich_text5.$isHeadingNode
         );
         if (heading) {
-          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical16.$createParagraphNode)());
+          (0, import_selection.$setBlocksType)(selection, () => (0, import_lexical17.$createParagraphNode)());
         } else {
           (0, import_selection.$setBlocksType)(selection, () => (0, import_rich_text5.$createHeadingNode)("h2"));
         }
@@ -3036,8 +3045,8 @@ function useFormatActions() {
     },
     mentionTrigger: () => {
       editor.update(() => {
-        const selection = (0, import_lexical16.$getSelection)();
-        if ((0, import_lexical16.$isRangeSelection)(selection)) {
+        const selection = (0, import_lexical17.$getSelection)();
+        if ((0, import_lexical17.$isRangeSelection)(selection)) {
           selection.insertText("@");
         }
       });
@@ -3045,12 +3054,12 @@ function useFormatActions() {
     },
     spoiler: () => {
       editor.update(() => {
-        const selection = (0, import_lexical16.$getSelection)();
-        if (!(0, import_lexical16.$isRangeSelection)(selection) || selection.isCollapsed()) return;
+        const selection = (0, import_lexical17.$getSelection)();
+        if (!(0, import_lexical17.$isRangeSelection)(selection) || selection.isCollapsed()) return;
         const anchorNode = selection.anchor.getNode();
         const existing = (0, import_utils5.$findMatchingParent)(anchorNode, $isSpoilerNode);
         if (existing) {
-          const textNode = (0, import_lexical16.$createTextNode)(existing.getTextContent());
+          const textNode = (0, import_lexical17.$createTextNode)(existing.getTextContent());
           existing.replace(textNode);
           textNode.select();
           return;
@@ -3059,7 +3068,7 @@ function useFormatActions() {
         if (!text) return;
         selection.removeText();
         const spoiler = $createSpoilerNode();
-        spoiler.append((0, import_lexical16.$createTextNode)(text));
+        spoiler.append((0, import_lexical17.$createTextNode)(text));
         selection.insertNodes([spoiler]);
       });
     }
@@ -3256,8 +3265,8 @@ function SelectionMenuPlugin({
     }
     const update = () => {
       editor.getEditorState().read(() => {
-        const selection = (0, import_lexical17.$getSelection)();
-        if (!(0, import_lexical17.$isRangeSelection)(selection) || selection.isCollapsed()) {
+        const selection = (0, import_lexical18.$getSelection)();
+        if (!(0, import_lexical18.$isRangeSelection)(selection) || selection.isCollapsed()) {
           setPosition(null);
           return;
         }
@@ -3286,12 +3295,12 @@ function SelectionMenuPlugin({
     };
     update();
     const removeSelection = editor.registerCommand(
-      import_lexical17.SELECTION_CHANGE_COMMAND,
+      import_lexical18.SELECTION_CHANGE_COMMAND,
       () => {
         update();
         return false;
       },
-      import_lexical17.COMMAND_PRIORITY_LOW
+      import_lexical18.COMMAND_PRIORITY_LOW
     );
     const removeUpdate = editor.registerUpdateListener(update);
     window.addEventListener("scroll", update, true);
@@ -3342,20 +3351,20 @@ function SelectionMenuPlugin({
 // src/components/plugins/LineBreakPlugin.tsx
 var import_react13 = require("react");
 var import_LexicalComposerContext11 = require("@lexical/react/LexicalComposerContext");
-var import_lexical18 = require("lexical");
+var import_lexical19 = require("lexical");
 function LineBreakPlugin() {
   const [editor] = (0, import_LexicalComposerContext11.useLexicalComposerContext)();
   (0, import_react13.useEffect)(() => {
     return editor.registerCommand(
-      import_lexical18.INSERT_LINE_BREAK_COMMAND,
+      import_lexical19.INSERT_LINE_BREAK_COMMAND,
       () => {
-        const selection = (0, import_lexical18.$getSelection)();
-        if (!(0, import_lexical18.$isRangeSelection)(selection)) return false;
+        const selection = (0, import_lexical19.$getSelection)();
+        if (!(0, import_lexical19.$isRangeSelection)(selection)) return false;
         if ($getBlockCode(selection.anchor.getNode())) return false;
         selection.insertParagraph();
         return true;
       },
-      import_lexical18.COMMAND_PRIORITY_HIGH
+      import_lexical19.COMMAND_PRIORITY_HIGH
     );
   }, [editor]);
   return null;
@@ -3367,41 +3376,41 @@ var import_react_dom4 = require("react-dom");
 var import_LexicalComposerContext12 = require("@lexical/react/LexicalComposerContext");
 var import_link3 = require("@lexical/link");
 var import_utils6 = require("@lexical/utils");
-var import_lexical20 = require("lexical");
+var import_lexical21 = require("lexical");
 
 // src/core/links.ts
 var import_link2 = require("@lexical/link");
-var import_lexical19 = require("lexical");
+var import_lexical20 = require("lexical");
 function $applyLinkForm(values, linkKey) {
   const text = values.text.trim();
   const url = values.url.trim();
   if (!text || !url) return;
   if (linkKey) {
-    const link2 = (0, import_lexical19.$getNodeByKey)(linkKey);
+    const link2 = (0, import_lexical20.$getNodeByKey)(linkKey);
     if (!(0, import_link2.$isLinkNode)(link2)) return;
     const nextLink = (0, import_link2.$createLinkNode)(url, {
       rel: link2.getRel(),
       target: link2.getTarget(),
       title: link2.getTitle()
     });
-    nextLink.append((0, import_lexical19.$createTextNode)(text));
+    nextLink.append((0, import_lexical20.$createTextNode)(text));
     link2.replace(nextLink);
     nextLink.selectEnd();
     return;
   }
-  const selection = (0, import_lexical19.$getSelection)();
-  if (!(0, import_lexical19.$isRangeSelection)(selection)) return;
+  const selection = (0, import_lexical20.$getSelection)();
+  if (!(0, import_lexical20.$isRangeSelection)(selection)) return;
   if (!selection.isCollapsed()) {
     selection.removeText();
   }
   const link = (0, import_link2.$createLinkNode)(url);
-  link.append((0, import_lexical19.$createTextNode)(text));
+  link.append((0, import_lexical20.$createTextNode)(text));
   selection.insertNodes([link]);
 }
 function $removeLinkByKey(linkKey) {
-  const link = (0, import_lexical19.$getNodeByKey)(linkKey);
+  const link = (0, import_lexical20.$getNodeByKey)(linkKey);
   if (!(0, import_link2.$isLinkNode)(link)) return;
-  const textNode = (0, import_lexical19.$createTextNode)(link.getTextContent());
+  const textNode = (0, import_lexical20.$createTextNode)(link.getTextContent());
   link.replace(textNode);
   textNode.select();
 }
@@ -3576,8 +3585,8 @@ function LinkUiPluginInner({
   const hideToolbar = (0, import_react14.useCallback)(() => setToolbar(null), []);
   const openLinkDialog = (0, import_react14.useCallback)(() => {
     editor.getEditorState().read(() => {
-      const selection = (0, import_lexical20.$getSelection)();
-      if (!(0, import_lexical20.$isRangeSelection)(selection)) return;
+      const selection = (0, import_lexical21.$getSelection)();
+      if (!(0, import_lexical21.$isRangeSelection)(selection)) return;
       const existing = (0, import_utils6.$findMatchingParent)(selection.anchor.getNode(), import_link3.$isLinkNode);
       if (existing) {
         setModal({
@@ -3600,7 +3609,7 @@ function LinkUiPluginInner({
   const openEditForLinkKey = (0, import_react14.useCallback)(
     (linkKey) => {
       editor.getEditorState().read(() => {
-        const link = (0, import_lexical20.$getNodeByKey)(linkKey);
+        const link = (0, import_lexical21.$getNodeByKey)(linkKey);
         if (!(0, import_link3.$isLinkNode)(link)) return;
         setModal({
           mode: "edit",
@@ -3634,14 +3643,14 @@ function LinkUiPluginInner({
   );
   (0, import_react14.useEffect)(() => {
     const removeClick = editor.registerCommand(
-      import_lexical20.CLICK_COMMAND,
+      import_lexical21.CLICK_COMMAND,
       (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return false;
         const anchor = target.closest("a.re-link");
         if (!anchor || !containerRef.current?.contains(anchor)) return false;
         event.preventDefault();
-        const node = (0, import_lexical20.$getNearestNodeFromDOMNode)(anchor);
+        const node = (0, import_lexical21.$getNearestNodeFromDOMNode)(anchor);
         const link = node ? (0, import_utils6.$findMatchingParent)(node, import_link3.$isLinkNode) : null;
         if (!link) return true;
         const rect = anchor.getBoundingClientRect();
@@ -3658,7 +3667,7 @@ function LinkUiPluginInner({
         setModal(null);
         return true;
       },
-      import_lexical20.COMMAND_PRIORITY_HIGH
+      import_lexical21.COMMAND_PRIORITY_HIGH
     );
     const onDocumentMouseDown = (event) => {
       const target = event.target;
@@ -3678,7 +3687,7 @@ function LinkUiPluginInner({
     if (!toolbar) return;
     const update = () => {
       editor.getEditorState().read(() => {
-        const link = (0, import_lexical20.$getNodeByKey)(toolbar.linkKey);
+        const link = (0, import_lexical21.$getNodeByKey)(toolbar.linkKey);
         if (!(0, import_link3.$isLinkNode)(link)) {
           hideToolbar();
           return;
@@ -3739,7 +3748,7 @@ function LinkUiPluginInner({
 var import_react15 = require("react");
 var import_LexicalComposerContext13 = require("@lexical/react/LexicalComposerContext");
 var import_utils7 = require("@lexical/utils");
-var import_lexical21 = require("lexical");
+var import_lexical22 = require("lexical");
 function SpoilerPlugin() {
   const [editor] = (0, import_LexicalComposerContext13.useLexicalComposerContext)();
   const editingRef = (0, import_react15.useRef)(null);
@@ -3768,8 +3777,8 @@ function SpoilerPlugin() {
     };
     const removeUpdate = editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const selection = (0, import_lexical21.$getSelection)();
-        if (!(0, import_lexical21.$isRangeSelection)(selection)) return;
+        const selection = (0, import_lexical22.$getSelection)();
+        if (!(0, import_lexical22.$isRangeSelection)(selection)) return;
         const spoiler = (0, import_utils7.$findMatchingParent)(
           selection.anchor.getNode(),
           $isSpoilerNode
@@ -3790,11 +3799,11 @@ function SpoilerPlugin() {
 
 // src/components/plugins/AttachmentsPlugin.tsx
 var import_LexicalComposerContext14 = require("@lexical/react/LexicalComposerContext");
-var import_lexical22 = require("lexical");
+var import_lexical23 = require("lexical");
 var import_react16 = require("react");
 function syncUploadedImages(editor, attachments) {
   editor.update(() => {
-    const imageNodes = (0, import_lexical22.$nodesOfType)(ImageNode);
+    const imageNodes = (0, import_lexical23.$nodesOfType)(ImageNode);
     for (const attachment of attachments) {
       if (attachment.status !== "ready" || !attachment.id || !attachment.url) {
         continue;
@@ -3823,7 +3832,7 @@ function AttachmentsPlugin({
   (0, import_react16.useEffect)(() => {
     if (disabled) return;
     return editor.registerCommand(
-      import_lexical22.PASTE_COMMAND,
+      import_lexical23.PASTE_COMMAND,
       (event) => {
         if (!(event instanceof ClipboardEvent)) return false;
         const files = collectFilesFromClipboard(event.clipboardData);
@@ -3836,7 +3845,7 @@ function AttachmentsPlugin({
         }
         return true;
       },
-      import_lexical22.COMMAND_PRIORITY_HIGH
+      import_lexical23.COMMAND_PRIORITY_HIGH
     );
   }, [addFiles, disabled, editor]);
   (0, import_react16.useEffect)(() => {
@@ -3903,12 +3912,13 @@ function InitialHtmlPlugin({ html }) {
   (0, import_react17.useEffect)(() => {
     if (html === lastApplied.current) return;
     editor.update(() => {
-      const root = (0, import_lexical23.$getRoot)();
+      const root = (0, import_lexical24.$getRoot)();
       root.clear();
       if (!html?.trim()) {
-        const paragraph = (0, import_lexical23.$createParagraphNode)();
+        const paragraph = (0, import_lexical24.$createParagraphNode)();
         root.append(paragraph);
         paragraph.select();
+        $clearStickyTextFormats();
         lastApplied.current = html;
         return;
       }
@@ -3960,12 +3970,13 @@ function SetHtmlPlugin({
   (0, import_react17.useEffect)(() => {
     setHtmlRef.current = (html) => {
       editor.update(() => {
-        const root = (0, import_lexical23.$getRoot)();
+        const root = (0, import_lexical24.$getRoot)();
         root.clear();
         if (!html.trim()) {
-          const paragraph = (0, import_lexical23.$createParagraphNode)();
+          const paragraph = (0, import_lexical24.$createParagraphNode)();
           root.append(paragraph);
           paragraph.select();
+          $clearStickyTextFormats();
           return;
         }
         const parser = new DOMParser();
@@ -3981,24 +3992,37 @@ function SetHtmlPlugin({
   return null;
 }
 function ClearPlugin({
-  clearRef
+  clearRef,
+  resetFormatsRef
 }) {
   const [editor] = (0, import_LexicalComposerContext15.useLexicalComposerContext)();
   (0, import_react17.useEffect)(() => {
+    const resetFormats = () => {
+      editor.update(() => {
+        $clearStickyTextFormats();
+      });
+    };
     clearRef.current = () => {
       editor.update(() => {
-        const root = (0, import_lexical23.$getRoot)();
+        const root = (0, import_lexical24.$getRoot)();
         root.clear();
-        const paragraph = (0, import_lexical23.$createParagraphNode)();
+        const paragraph = (0, import_lexical24.$createParagraphNode)();
         root.append(paragraph);
         paragraph.select();
+        $clearStickyTextFormats();
       });
       editor.focus();
     };
+    if (resetFormatsRef) {
+      resetFormatsRef.current = resetFormats;
+    }
     return () => {
       clearRef.current = null;
+      if (resetFormatsRef) {
+        resetFormatsRef.current = null;
+      }
     };
-  }, [editor, clearRef]);
+  }, [editor, clearRef, resetFormatsRef]);
   return null;
 }
 function EmptyStatePlugin({
@@ -4008,7 +4032,7 @@ function EmptyStatePlugin({
   (0, import_react17.useEffect)(() => {
     const update = () => {
       editor.getEditorState().read(() => {
-        onEmptyChange((0, import_lexical23.$getRoot)().getTextContent().trim() === "");
+        onEmptyChange((0, import_lexical24.$getRoot)().getTextContent().trim() === "");
       });
     };
     update();
@@ -4851,6 +4875,7 @@ function RichTextEditorInner({
   const getHtmlRef = (0, import_react21.useRef)(null);
   const setHtmlRef = (0, import_react21.useRef)(null);
   const clearRef = (0, import_react21.useRef)(null);
+  const resetFormatsRef = (0, import_react21.useRef)(null);
   const focusRef = (0, import_react21.useRef)(null);
   const [isEmpty, setIsEmpty] = (0, import_react21.useState)(true);
   const [sending, setSending] = (0, import_react21.useState)(false);
@@ -4911,6 +4936,8 @@ function RichTextEditorInner({
       if (clearOnSubmit) {
         clearRef.current?.();
         uploads.clearAttachments();
+      } else {
+        resetFormatsRef.current?.();
       }
     } finally {
       setSending(false);
@@ -4945,7 +4972,7 @@ function RichTextEditorInner({
   return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(import_LexicalComposer.LexicalComposer, { initialConfig, children: [
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(EditorRefPlugin, { getHtmlRef, useTrim }),
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(SetHtmlPlugin, { setHtmlRef }),
-    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(ClearPlugin, { clearRef }),
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(ClearPlugin, { clearRef, resetFormatsRef }),
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(FocusPlugin, { focusRef }),
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(EmptyStatePlugin, { onEmptyChange: setIsEmpty }),
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(LinkUiPlugin, { labels, containerRef: bodyRef, enabled: features.links, children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
