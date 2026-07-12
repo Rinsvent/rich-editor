@@ -41,10 +41,6 @@ JS-библиотека React-компонентов для **набора** и 
 - `src/lib/api.ts`, `syncEngine.ts`, `localDb.ts`, `realtime.ts`, …
 - `src/lib/types.ts` (доменные типы messenger)
 
-### Go
-
-`main.go`, `go.mod` — заглушка GoLand, **удаляем** при старте реализации. Проект полностью на React + TypeScript.
-
 ---
 
 ## Принятые решения
