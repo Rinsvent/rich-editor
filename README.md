@@ -64,12 +64,23 @@ npm run publish:lib
 
 You need to be logged in (`npm login`) as [rinsvent](https://www.npmjs.com/settings/rinsvent/packages).
 
-### Automated publish on GitHub Release
+### Automated publish (CI)
 
-1. Create an npm **Access Token** (type **Automation**) at [npmjs.com/settings/rinsvent/tokens](https://www.npmjs.com/settings/rinsvent/tokens).
-2. Add it to the repo as secret **`NPM_TOKEN`**: [Settings → Secrets → Actions](https://github.com/Rinsvent/rich-editor/settings/secrets/actions).
-3. Bump `version` in `packages/rich-editor/package.json`, commit, and create a GitHub Release with tag **`v0.1.0`** (must match the version in `package.json`).
-4. Workflow [`.github/workflows/publish.yml`](.github/workflows/publish.yml) runs lint, tests, build, and `npm publish`.
+1. Create an npm **Granular Access Token** at [npmjs.com/settings/rinsvent/tokens](https://www.npmjs.com/settings/rinsvent/tokens):
+   - **Packages and scopes:** read/write for `@rinsvent/rich-editor` (or all packages)
+   - Enable **Bypass 2FA** if your account uses 2FA
+2. Add the token to the repo as secret **`NPM_TOKEN`**: [Settings → Secrets → Actions](https://github.com/Rinsvent/rich-editor/settings/secrets/actions).
+3. Bump `version` in `packages/rich-editor/package.json`, commit, and **push to `master`**.
+
+Workflow [`.github/workflows/publish.yml`](.github/workflows/publish.yml) will test, build, publish to npm (if that version is not published yet), and create a GitHub Release automatically.
+
+Other triggers (optional):
+
+- Push tag **`v0.1.1`** (must match `package.json`)
+- Publish a GitHub Release manually
+- Run **Publish to npm** from [Actions](https://github.com/Rinsvent/rich-editor/actions/workflows/publish.yml)
+
+If CI fails with `ENEEDAUTH`, the **`NPM_TOKEN` secret is missing or invalid** — repeat step 1–2.
 
 ## Docs
 
