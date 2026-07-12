@@ -1,6 +1,7 @@
 export type EditorFeatures = {
   bold: boolean;
   italic: boolean;
+  underline: boolean;
   strikethrough: boolean;
   code: boolean;
   quote: boolean;
@@ -20,6 +21,7 @@ export type EditorFeatures = {
 export const defaultFeatures: EditorFeatures = {
   bold: true,
   italic: true,
+  underline: false,
   strikethrough: false,
   code: true,
   quote: true,
@@ -45,6 +47,7 @@ export function resolveFeatures(
 export type EditorLabels = {
   bold: string;
   italic: string;
+  underline: string;
   strikethrough: string;
   code: string;
   codeBlock: string;
@@ -81,6 +84,7 @@ export type EditorLabels = {
 export const defaultLabels: EditorLabels = {
   bold: "Bold",
   italic: "Italic",
+  underline: "Underline",
   strikethrough: "Strikethrough",
   code: "Inline code",
   codeBlock: "Code block",

@@ -58,6 +58,7 @@ export function hasToolbar(
   return (
     features.bold ||
     features.italic ||
+    features.underline ||
     features.strikethrough ||
     features.code ||
     features.quote ||

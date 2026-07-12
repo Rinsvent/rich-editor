@@ -7,6 +7,7 @@ const ALLOWED_TAGS = [
   "b",
   "em",
   "i",
+  "u",
   "s",
   "del",
   "strike",
@@ -129,6 +130,15 @@ export function normalizeHtml(html: string): string {
     node.replaceWith(s);
   });
 
+  container.querySelectorAll('[style*="underline"]').forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    if (node.style.textDecorationLine?.includes("line-through")) return;
+    if (node.style.textDecoration?.includes("line-through")) return;
+    const u = document.createElement("u");
+    u.innerHTML = node.innerHTML;
+    node.replaceWith(u);
+  });
+
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
@@ -141,6 +151,7 @@ export function normalizeHtml(html: string): string {
 
   flattenTag(container, "b");
   flattenTag(container, "i");
+  flattenTag(container, "u");
   flattenTag(container, "s");
 
   mergeAdjacentBlockquotes(container);

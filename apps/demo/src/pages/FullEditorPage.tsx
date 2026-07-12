@@ -27,6 +27,7 @@ export function FullEditorPage() {
           features={{
             headings: true,
             strikethrough: true,
+            underline: true,
             mentions: true,
             spoiler: true,
             selectionMenu: true,
@@ -42,6 +43,7 @@ export function FullEditorPage() {
           labels={{
             bold: "Жирный",
             italic: "Курсив",
+            underline: "Подчёркнутый",
             strikethrough: "Зачёркнутый",
             code: "Код",
             codeBlock: "Блок кода",

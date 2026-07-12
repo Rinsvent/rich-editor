@@ -6,6 +6,7 @@ import { Transformer } from '@lexical/markdown';
 type EditorFeatures = {
     bold: boolean;
     italic: boolean;
+    underline: boolean;
     strikethrough: boolean;
     code: boolean;
     quote: boolean;
@@ -25,6 +26,7 @@ declare const defaultFeatures: EditorFeatures;
 type EditorLabels = {
     bold: string;
     italic: string;
+    underline: string;
     strikethrough: string;
     code: string;
     codeBlock: string;
@@ -111,7 +113,7 @@ type MentionOption = {
 };
 type MentionSearchFn = (query: string) => MentionOption[] | Promise<MentionOption[]>;
 
-type SelectionMenuItem = "bold" | "italic" | "strikethrough" | "code" | "quote" | "codeBlock" | "bulletList" | "numberedList" | "link" | "heading" | "mention" | "spoiler";
+type SelectionMenuItem = "bold" | "italic" | "underline" | "strikethrough" | "code" | "quote" | "codeBlock" | "bulletList" | "numberedList" | "link" | "heading" | "mention" | "spoiler";
 declare const defaultSelectionMenuItems: SelectionMenuItem[];
 declare const allSelectionMenuItems: SelectionMenuItem[];
 
@@ -248,6 +250,7 @@ declare function RichTextViewer({ content, features: featuresProp, labels: label
 declare function useFormatActions(): {
     bold: () => boolean;
     italic: () => boolean;
+    underline: () => boolean;
     strikethrough: () => boolean;
     code: () => boolean;
     quote: () => void;
@@ -264,6 +267,7 @@ type FormatActions = ReturnType<typeof useFormatActions>;
 type FormatState = {
     bold: boolean;
     italic: boolean;
+    underline: boolean;
     strikethrough: boolean;
     code: boolean;
     quote: boolean;
@@ -331,7 +335,7 @@ type MarkdownShortcut = {
 declare const formatKeyboardShortcuts: KeyboardShortcut[];
 declare const mentionKeyboardShortcuts: KeyboardShortcut[];
 declare const markdownShortcuts: MarkdownShortcut[];
-declare function getActiveFormatShortcuts(features: Pick<EditorFeatures, "bold" | "italic" | "code" | "strikethrough" | "keyboardShortcuts">): KeyboardShortcut[];
+declare function getActiveFormatShortcuts(features: Pick<EditorFeatures, "bold" | "italic" | "underline" | "code" | "strikethrough" | "keyboardShortcuts">): KeyboardShortcut[];
 declare function getEnterBehaviorDescription(behavior?: EnterBehavior): {
     enter: string;
     shiftEnter: string;

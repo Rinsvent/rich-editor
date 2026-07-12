@@ -26,6 +26,7 @@ import {
   IconQuote,
   IconSpoiler,
   IconStrikethrough,
+  IconUnderline,
 } from "../toolbar/ToolbarIcons";
 import { useFormatActions, useFormatState } from "../toolbar/useFormatState";
 
@@ -35,6 +36,8 @@ function isItemEnabled(item: SelectionMenuItem, features: EditorFeatures): boole
       return features.bold;
     case "italic":
       return features.italic;
+    case "underline":
+      return features.underline;
     case "strikethrough":
       return features.strikethrough;
     case "code":
@@ -65,6 +68,8 @@ function MenuIcon({ item }: { item: SelectionMenuItem }) {
       return <IconBold />;
     case "italic":
       return <IconItalic />;
+    case "underline":
+      return <IconUnderline />;
     case "strikethrough":
       return <IconStrikethrough />;
     case "code":
@@ -96,6 +101,8 @@ function itemLabel(item: SelectionMenuItem, labels: EditorLabels): string {
       return labels.bold;
     case "italic":
       return labels.italic;
+    case "underline":
+      return labels.underline;
     case "strikethrough":
       return labels.strikethrough;
     case "code":
@@ -131,6 +138,9 @@ function runItemAction(
       break;
     case "italic":
       format.italic();
+      break;
+    case "underline":
+      format.underline();
       break;
     case "strikethrough":
       format.strikethrough();
@@ -174,6 +184,8 @@ function isItemActive(
       return active.bold;
     case "italic":
       return active.italic;
+    case "underline":
+      return active.underline;
     case "strikethrough":
       return active.strikethrough;
     case "code":

@@ -12,6 +12,7 @@ import type { FormatActions } from "../components/toolbar/useFormatState";
 export type FormatState = {
   bold: boolean;
   italic: boolean;
+  underline: boolean;
   strikethrough: boolean;
   code: boolean;
   quote: boolean;

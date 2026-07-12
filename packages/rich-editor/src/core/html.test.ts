@@ -18,6 +18,10 @@ describe("sanitizeHtml", () => {
     expect(sanitizeHtml(html)).toBe(html);
   });
 
+  it("keeps u tags for underline", () => {
+    expect(sanitizeHtml("<p><u>text</u></p>")).toBe("<p><u>text</u></p>");
+  });
+
   it("keeps inline images with blob src and width style", () => {
     const html =
       '<p>text<img class="re-image" src="blob:http://localhost/abc" alt="shot" width="240" style="width: 240px; max-width: 100%; height: auto;" data-file-id="1"></p>';

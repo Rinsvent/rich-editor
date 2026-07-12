@@ -46,6 +46,12 @@ export function KeyboardShortcutsPlugin({
           return true;
         }
 
+        if (key === "u" && features.underline && !event.shiftKey) {
+          event.preventDefault();
+          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
+          return true;
+        }
+
         if (key === "e" && features.code && !event.shiftKey) {
           event.preventDefault();
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code");

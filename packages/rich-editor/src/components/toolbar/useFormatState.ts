@@ -34,6 +34,7 @@ import { $createSpoilerNode, $isSpoilerNode } from "../../nodes/SpoilerNode";
 const emptyFormat: FormatState = {
   bold: false,
   italic: false,
+  underline: false,
   strikethrough: false,
   code: false,
   quote: false,
@@ -64,6 +65,7 @@ export function useFormatState(): FormatState {
         setState({
           bold: selection.hasFormat("bold"),
           italic: selection.hasFormat("italic"),
+          underline: selection.hasFormat("underline"),
           strikethrough: selection.hasFormat("strikethrough"),
           code: selection.hasFormat("code"),
           quote: !!$findMatchingParent(anchorNode, $isQuoteNode),
@@ -102,6 +104,7 @@ export function useFormatActions() {
   return {
     bold: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold"),
     italic: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic"),
+    underline: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline"),
     strikethrough: () =>
       editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough"),
     code: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code"),

@@ -20,6 +20,7 @@ import {
   IconQuote,
   IconSpoiler,
   IconStrikethrough,
+  IconUnderline,
 } from "./ToolbarIcons";
 
 function ToolbarButton({
@@ -113,6 +114,16 @@ export function EditorToolbar({
             shortcutId="format.italic"
           >
             <IconItalic />
+          </ToolbarButton>
+        )}
+        {features.underline && (
+          <ToolbarButton
+            label={labels.underline}
+            active={active.underline}
+            onClick={format.underline}
+            shortcutId="format.underline"
+          >
+            <IconUnderline />
           </ToolbarButton>
         )}
         {features.strikethrough && (

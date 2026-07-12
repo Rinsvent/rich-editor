@@ -53,6 +53,7 @@ function useRichTextEditor() {
 var defaultFeatures = {
   bold: true,
   italic: true,
+  underline: false,
   strikethrough: false,
   code: true,
   quote: true,
@@ -74,6 +75,7 @@ function resolveFeatures(partial) {
 var defaultLabels = {
   bold: "Bold",
   italic: "Italic",
+  underline: "Underline",
   strikethrough: "Strikethrough",
   code: "Inline code",
   codeBlock: "Code block",
@@ -215,6 +217,7 @@ function describeEnterKeyBindings(bindings) {
 var defaultSelectionMenuItems = [
   "bold",
   "italic",
+  "underline",
   "strikethrough",
   "code",
   "link",
@@ -223,6 +226,7 @@ var defaultSelectionMenuItems = [
 var allSelectionMenuItems = [
   "bold",
   "italic",
+  "underline",
   "strikethrough",
   "code",
   "quote",
@@ -1035,6 +1039,7 @@ var ALLOWED_TAGS = [
   "b",
   "em",
   "i",
+  "u",
   "s",
   "del",
   "strike",
@@ -1142,6 +1147,14 @@ function normalizeHtml(html) {
     s.innerHTML = node.innerHTML;
     node.replaceWith(s);
   });
+  container.querySelectorAll('[style*="underline"]').forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    if (node.style.textDecorationLine?.includes("line-through")) return;
+    if (node.style.textDecoration?.includes("line-through")) return;
+    const u = document.createElement("u");
+    u.innerHTML = node.innerHTML;
+    node.replaceWith(u);
+  });
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
@@ -1153,6 +1166,7 @@ function normalizeHtml(html) {
   });
   flattenTag(container, "b");
   flattenTag(container, "i");
+  flattenTag(container, "u");
   flattenTag(container, "s");
   mergeAdjacentBlockquotes(container);
   return container.innerHTML.trim();
@@ -1346,6 +1360,11 @@ var SPOILER = {
   trigger: "|",
   type: "text-match"
 };
+var UNDERLINE = {
+  format: ["underline"],
+  tag: "++",
+  type: "text-format"
+};
 var QUOTE_REGEX = /^>\s/;
 var QUOTE = {
   dependencies: [QuoteNode],
@@ -1392,6 +1411,7 @@ function buildMarkdownTransformers(features) {
   if (features.italic) {
     transformers.push(ITALIC_STAR, ITALIC_UNDERSCORE);
   }
+  if (features.underline) transformers.push(UNDERLINE);
   if (features.strikethrough) transformers.push(STRIKETHROUGH);
   if (features.links) transformers.push(LINK);
   if (features.spoiler) transformers.push(SPOILER);
@@ -1400,7 +1420,7 @@ function buildMarkdownTransformers(features) {
 function looksLikeMarkdown(text) {
   const t = text.trim();
   if (t.length < 2) return false;
-  return /^#{1,6}\s/m.test(t) || /^>\s/m.test(t) || /^[-*+]\s/m.test(t) || /^\d+\.\s/m.test(t) || /```[\s\S]*?```/.test(t) || /\*\*[^*\n]+\*\*/.test(t) || /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) || /`[^`\n]+`/.test(t) || /~~[^~\n]+~~/.test(t) || /\|\|[^|\n]+\|\|/.test(t) || /\[[^\]]+\]\([^)]+\)/.test(t);
+  return /^#{1,6}\s/m.test(t) || /^>\s/m.test(t) || /^[-*+]\s/m.test(t) || /^\d+\.\s/m.test(t) || /```[\s\S]*?```/.test(t) || /\*\*[^*\n]+\*\*/.test(t) || /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) || /`[^`\n]+`/.test(t) || /\+\+[^+\n]+\+\+/.test(t) || /~~[^~\n]+~~/.test(t) || /\|\|[^|\n]+\|\|/.test(t) || /\[[^\]]+\]\([^)]+\)/.test(t);
 }
 function markdownToHtml(markdown) {
   const raw = marked.parse(markdown, { async: false });
@@ -1459,6 +1479,7 @@ var editorTheme = {
     bold: "re-text-bold",
     italic: "re-text-italic",
     strikethrough: "re-text-strike",
+    underline: "re-text-underline",
     code: "re-text-code"
   },
   code: "re-block-code",
@@ -1636,6 +1657,11 @@ function KeyboardShortcutsPlugin({
         if (key === "i" && features.italic) {
           event.preventDefault();
           editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
+          return true;
+        }
+        if (key === "u" && features.underline && !event.shiftKey) {
+          event.preventDefault();
+          editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
           return true;
         }
         if (key === "e" && features.code && !event.shiftKey) {
@@ -2783,6 +2809,12 @@ function IconItalic(props) {
     /* @__PURE__ */ jsx6("line", { x1: "15", y1: "4", x2: "9", y2: "20" })
   ] });
 }
+function IconUnderline(props) {
+  return /* @__PURE__ */ jsxs4("svg", { ...defaults, ...props, children: [
+    /* @__PURE__ */ jsx6("path", { d: "M6 4v6a6 6 0 0 0 12 0V4" }),
+    /* @__PURE__ */ jsx6("line", { x1: "4", y1: "20", x2: "20", y2: "20" })
+  ] });
+}
 function IconStrikethrough(props) {
   return /* @__PURE__ */ jsxs4("svg", { ...defaults, ...props, children: [
     /* @__PURE__ */ jsx6("path", { d: "M16 4H9a3 3 0 0 0-2.83 4" }),
@@ -2921,6 +2953,7 @@ function useLinkUiOptional() {
 var emptyFormat = {
   bold: false,
   italic: false,
+  underline: false,
   strikethrough: false,
   code: false,
   quote: false,
@@ -2947,6 +2980,7 @@ function useFormatState() {
         setState({
           bold: selection.hasFormat("bold"),
           italic: selection.hasFormat("italic"),
+          underline: selection.hasFormat("underline"),
           strikethrough: selection.hasFormat("strikethrough"),
           code: selection.hasFormat("code"),
           quote: !!$findMatchingParent4(anchorNode, $isQuoteNode5),
@@ -2981,6 +3015,7 @@ function useFormatActions() {
   return {
     bold: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "bold"),
     italic: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "italic"),
+    underline: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "underline"),
     strikethrough: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "strikethrough"),
     code: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND2, "code"),
     quote: () => {
@@ -3093,6 +3128,8 @@ function isItemEnabled(item, features) {
       return features.bold;
     case "italic":
       return features.italic;
+    case "underline":
+      return features.underline;
     case "strikethrough":
       return features.strikethrough;
     case "code":
@@ -3122,6 +3159,8 @@ function MenuIcon({ item }) {
       return /* @__PURE__ */ jsx8(IconBold, {});
     case "italic":
       return /* @__PURE__ */ jsx8(IconItalic, {});
+    case "underline":
+      return /* @__PURE__ */ jsx8(IconUnderline, {});
     case "strikethrough":
       return /* @__PURE__ */ jsx8(IconStrikethrough, {});
     case "code":
@@ -3152,6 +3191,8 @@ function itemLabel(item, labels) {
       return labels.bold;
     case "italic":
       return labels.italic;
+    case "underline":
+      return labels.underline;
     case "strikethrough":
       return labels.strikethrough;
     case "code":
@@ -3183,6 +3224,9 @@ function runItemAction(item, format) {
       break;
     case "italic":
       format.italic();
+      break;
+    case "underline":
+      format.underline();
       break;
     case "strikethrough":
       format.strikethrough();
@@ -3222,6 +3266,8 @@ function isItemActive(item, active) {
       return active.bold;
     case "italic":
       return active.italic;
+    case "underline":
+      return active.underline;
     case "strikethrough":
       return active.strikethrough;
     case "code":
@@ -4369,6 +4415,12 @@ var formatKeyboardShortcuts = [
     action: "Inline code"
   },
   {
+    id: "format.underline",
+    keys: "Ctrl+U",
+    ariaKeyshortcuts: "Control+u",
+    action: "Underline"
+  },
+  {
     id: "format.strikethrough",
     keys: "Ctrl+Shift+X",
     ariaKeyshortcuts: "Control+Shift+x",
@@ -4404,6 +4456,7 @@ var mentionKeyboardShortcuts = [
 var markdownShortcuts = [
   { pattern: "**text** or __text__", action: "Bold" },
   { pattern: "*text* or _text_", action: "Italic" },
+  { pattern: "++text++", action: "Underline" },
   { pattern: "~~text~~", action: "Strikethrough" },
   { pattern: "`code`", action: "Inline code" },
   { pattern: "> quote", action: "Block quote" },
@@ -4440,6 +4493,8 @@ function getActiveFormatShortcuts(features) {
         return features.bold;
       case "format.italic":
         return features.italic;
+      case "format.underline":
+        return features.underline;
       case "format.code":
         return features.code;
       case "format.strikethrough":
@@ -4540,6 +4595,16 @@ function EditorToolbar({
               onClick: format.italic,
               shortcutId: "format.italic",
               children: /* @__PURE__ */ jsx13(IconItalic, {})
+            }
+          ),
+          features.underline && /* @__PURE__ */ jsx13(
+            ToolbarButton,
+            {
+              label: labels.underline,
+              active: active.underline,
+              onClick: format.underline,
+              shortcutId: "format.underline",
+              children: /* @__PURE__ */ jsx13(IconUnderline, {})
             }
           ),
           features.strikethrough && /* @__PURE__ */ jsx13(
@@ -4705,7 +4770,7 @@ function collectSlots(children) {
   return slots;
 }
 function hasToolbar(features, slots) {
-  return features.bold || features.italic || features.strikethrough || features.code || features.quote || features.codeBlock || features.lists || features.links || features.headings || features.spoiler || features.mentions || features.attachments || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
+  return features.bold || features.italic || features.underline || features.strikethrough || features.code || features.quote || features.codeBlock || features.lists || features.links || features.headings || features.spoiler || features.mentions || features.attachments || !!slots.toolbarStart || !!slots.toolbarEnd || !!slots.toolbarMenu;
 }
 
 // src/components/RichTextEditor.tsx

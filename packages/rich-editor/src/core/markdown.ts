@@ -11,6 +11,7 @@ import {
   STRIKETHROUGH,
   UNORDERED_LIST,
   type ElementTransformer,
+  type TextFormatTransformer,
   type TextMatchTransformer,
   type Transformer,
 } from "@lexical/markdown";
@@ -59,6 +60,12 @@ const SPOILER: TextMatchTransformer = {
   },
   trigger: "|",
   type: "text-match",
+};
+
+const UNDERLINE: TextFormatTransformer = {
+  format: ["underline"],
+  tag: "++",
+  type: "text-format",
 };
 
 const QUOTE_REGEX = /^>\s/;
@@ -113,6 +120,7 @@ export function buildMarkdownTransformers(
   if (features.italic) {
     transformers.push(ITALIC_STAR, ITALIC_UNDERSCORE);
   }
+  if (features.underline) transformers.push(UNDERLINE);
   if (features.strikethrough) transformers.push(STRIKETHROUGH);
   if (features.links) transformers.push(LINK);
   if (features.spoiler) transformers.push(SPOILER);
@@ -132,6 +140,7 @@ export function looksLikeMarkdown(text: string): boolean {
     /\*\*[^*\n]+\*\*/.test(t) ||
     /(?:^|[^*])\*[^*\s][^*\n]*\*(?:[^*]|$)/.test(t) ||
     /`[^`\n]+`/.test(t) ||
+    /\+\+[^+\n]+\+\+/.test(t) ||
     /~~[^~\n]+~~/.test(t) ||
     /\|\|[^|\n]+\|\|/.test(t) ||
     /\[[^\]]+\]\([^)]+\)/.test(t)

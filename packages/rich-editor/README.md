@@ -61,6 +61,7 @@ Keyboard shortcuts (when `keyboardShortcuts` is enabled):
 |----------|--------|
 | Ctrl/Cmd+B | Bold |
 | Ctrl/Cmd+I | Italic |
+| Ctrl/Cmd+U | Underline |
 | Ctrl/Cmd+E | Inline code |
 | Ctrl/Cmd+Shift+X | Strikethrough |
 
@@ -142,6 +143,7 @@ import {
 |----------|--------|
 | Ctrl/Cmd+B | Bold |
 | Ctrl/Cmd+I | Italic |
+| Ctrl/Cmd+U | Underline |
 | Ctrl/Cmd+E | Inline code |
 | Ctrl/Cmd+Shift+X | Strikethrough |
 | Enter | New line (default) |
@@ -150,7 +152,7 @@ import {
 | ↑ / ↓ | Navigate mentions |
 | Esc | Close mentions menu |
 
-Markdown typing shortcuts (`**bold**`, `` `code` ``, `> quote`, …) work when `features.markdownShortcuts` is enabled.
+Markdown typing shortcuts (`**bold**`, `++underline++`, `` `code` ``, `> quote`, …) work when `features.markdownShortcuts` is enabled.
 
 ### Enter key bindings
 

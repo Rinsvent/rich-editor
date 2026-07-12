@@ -1,6 +1,7 @@
 export type SelectionMenuItem =
   | "bold"
   | "italic"
+  | "underline"
   | "strikethrough"
   | "code"
   | "quote"
@@ -15,6 +16,7 @@ export type SelectionMenuItem =
 export const defaultSelectionMenuItems: SelectionMenuItem[] = [
   "bold",
   "italic",
+  "underline",
   "strikethrough",
   "code",
   "link",
@@ -24,6 +26,7 @@ export const defaultSelectionMenuItems: SelectionMenuItem[] = [
 export const allSelectionMenuItems: SelectionMenuItem[] = [
   "bold",
   "italic",
+  "underline",
   "strikethrough",
   "code",
   "quote",

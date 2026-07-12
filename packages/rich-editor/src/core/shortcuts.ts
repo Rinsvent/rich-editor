@@ -35,6 +35,12 @@ export const formatKeyboardShortcuts: KeyboardShortcut[] = [
     action: "Inline code",
   },
   {
+    id: "format.underline",
+    keys: "Ctrl+U",
+    ariaKeyshortcuts: "Control+u",
+    action: "Underline",
+  },
+  {
     id: "format.strikethrough",
     keys: "Ctrl+Shift+X",
     ariaKeyshortcuts: "Control+Shift+x",
@@ -72,6 +78,7 @@ export const mentionKeyboardShortcuts: KeyboardShortcut[] = [
 export const markdownShortcuts: MarkdownShortcut[] = [
   { pattern: "**text** or __text__", action: "Bold" },
   { pattern: "*text* or _text_", action: "Italic" },
+  { pattern: "++text++", action: "Underline" },
   { pattern: "~~text~~", action: "Strikethrough" },
   { pattern: "`code`", action: "Inline code" },
   { pattern: "> quote", action: "Block quote" },
@@ -109,7 +116,7 @@ const legacyEnterBehaviorShortcuts: Record<
 export function getActiveFormatShortcuts(
   features: Pick<
     EditorFeatures,
-    "bold" | "italic" | "code" | "strikethrough" | "keyboardShortcuts"
+    "bold" | "italic" | "underline" | "code" | "strikethrough" | "keyboardShortcuts"
   >,
 ): KeyboardShortcut[] {
   if (!features.keyboardShortcuts) return [];
@@ -120,6 +127,8 @@ export function getActiveFormatShortcuts(
         return features.bold;
       case "format.italic":
         return features.italic;
+      case "format.underline":
+        return features.underline;
       case "format.code":
         return features.code;
       case "format.strikethrough":

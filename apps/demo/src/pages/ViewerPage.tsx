@@ -119,6 +119,10 @@ npm run build && npm test`,
     content: "<p><s>deleted text</s> and <b><s>bold strike</s></b></p>",
   },
   {
+    title: "Underline",
+    content: "<p><u>подчёркнутый текст</u> и <b><u>bold underline</u></b></p>",
+  },
+  {
     title: "Mention",
     content:
       '<p>Hey <span class="re-mention" data-mention-id="1" data-mention-label="alice">@alice</span>, check this</p>',
