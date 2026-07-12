@@ -12,22 +12,18 @@ docs/DESIGN.md          # design doc
 
 ## Development
 
+From the repo root (recommended — uses npm workspaces):
+
 ```bash
-# Install library deps
-cd packages/rich-editor && npm install
-
-# Build library
-npm run build
-
-# Demo
-cd apps/demo && npm install && npm run dev
+npm ci
+npm run dev
 ```
 
-Or from root (after installing in both packages):
+Or install packages separately:
 
 ```bash
-npm run build:lib
-npm run dev
+cd packages/rich-editor && npm install && npm run build
+cd apps/demo && npm install && npm run dev
 ```
 
 ## Live demo (GitHub Pages)
