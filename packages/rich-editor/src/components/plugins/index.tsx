@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $createParagraphNode, $getRoot } from "lexical";
+import { $clearStickyTextFormats } from "../../core/selectionFormat";
 
 export function InitialHtmlPlugin({ html }: { html?: string }) {
   const [editor] = useLexicalComposerContext();
@@ -19,6 +20,7 @@ export function InitialHtmlPlugin({ html }: { html?: string }) {
           const paragraph = $createParagraphNode();
           root.append(paragraph);
           paragraph.select();
+          $clearStickyTextFormats();
           lastApplied.current = html;
           return;
         }
@@ -94,6 +96,7 @@ export function SetHtmlPlugin({
           const paragraph = $createParagraphNode();
           root.append(paragraph);
           paragraph.select();
+          $clearStickyTextFormats();
           return;
         }
         const parser = new DOMParser();
@@ -112,12 +115,20 @@ export function SetHtmlPlugin({
 
 export function ClearPlugin({
   clearRef,
+  resetFormatsRef,
 }: {
   clearRef: React.MutableRefObject<(() => void) | null>;
+  resetFormatsRef?: React.MutableRefObject<(() => void) | null>;
 }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
+    const resetFormats = () => {
+      editor.update(() => {
+        $clearStickyTextFormats();
+      });
+    };
+
     clearRef.current = () => {
       editor.update(() => {
         const root = $getRoot();
@@ -125,13 +136,22 @@ export function ClearPlugin({
         const paragraph = $createParagraphNode();
         root.append(paragraph);
         paragraph.select();
+        $clearStickyTextFormats();
       });
       editor.focus();
     };
+
+    if (resetFormatsRef) {
+      resetFormatsRef.current = resetFormats;
+    }
+
     return () => {
       clearRef.current = null;
+      if (resetFormatsRef) {
+        resetFormatsRef.current = null;
+      }
     };
-  }, [editor, clearRef]);
+  }, [editor, clearRef, resetFormatsRef]);
 
   return null;
 }

@@ -336,6 +336,7 @@ function RichTextEditorInner(
   const getHtmlRef = useRef<(() => string) | null>(null);
   const setHtmlRef = useRef<((html: string) => void) | null>(null);
   const clearRef = useRef<(() => void) | null>(null);
+  const resetFormatsRef = useRef<(() => void) | null>(null);
   const focusRef = useRef<(() => void) | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [sending, setSending] = useState(false);
@@ -405,6 +406,8 @@ function RichTextEditorInner(
       if (clearOnSubmit) {
         clearRef.current?.();
         uploads.clearAttachments();
+      } else {
+        resetFormatsRef.current?.();
       }
     } finally {
       setSending(false);
@@ -445,7 +448,7 @@ function RichTextEditorInner(
     <LexicalComposer initialConfig={initialConfig}>
       <EditorRefPlugin getHtmlRef={getHtmlRef} useTrim={useTrim} />
       <SetHtmlPlugin setHtmlRef={setHtmlRef} />
-      <ClearPlugin clearRef={clearRef} />
+      <ClearPlugin clearRef={clearRef} resetFormatsRef={resetFormatsRef} />
       <FocusPlugin focusRef={focusRef} />
       <EmptyStatePlugin onEmptyChange={setIsEmpty} />
       <LinkUiPlugin labels={labels} containerRef={bodyRef} enabled={features.links}>
