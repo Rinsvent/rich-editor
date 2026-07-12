@@ -6,7 +6,11 @@ import react from "@vitejs/plugin-react";
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const richEditorRoot = path.resolve(rootDir, "../../packages/rich-editor");
 
+/** GitHub Pages project site: https://rinsvent.github.io/rich-editor/ */
+const pagesBase = process.env.GITHUB_PAGES === "true" ? "/rich-editor/" : "/";
+
 export default defineConfig({
+  base: pagesBase,
   plugins: [react()],
   server: { port: 3000 },
   resolve: {

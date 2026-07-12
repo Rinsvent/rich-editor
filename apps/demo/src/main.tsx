@@ -5,9 +5,11 @@ import "@rinsvent/rich-editor/styles.css";
 import { App } from "./App";
 import "./demo.css";
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename || undefined}>
       <App />
     </BrowserRouter>
   </StrictMode>,

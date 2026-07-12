@@ -1,13 +1,15 @@
 import type { EditorAttachmentPayload } from "@rinsvent/rich-editor";
 
-/** Local demo assets served from /apps/demo/public/demo */
+/** Local demo assets from apps/demo/public/demo (respects Vite base URL on GitHub Pages). */
+const demoAsset = (name: string) => `${import.meta.env.BASE_URL}demo/${name}`;
+
 export const DEMO_IMAGES = {
-  landscapeA: "/demo/landscape-a.svg",
-  landscapeB: "/demo/landscape-b.svg",
-  landscapeC: "/demo/landscape-c.svg",
-  uiMock: "/demo/ui-mock.svg",
-  screenshot: "/demo/screenshot.svg",
-  screenshotThumb: "/demo/screenshot-thumb.svg",
+  landscapeA: demoAsset("landscape-a.svg"),
+  landscapeB: demoAsset("landscape-b.svg"),
+  landscapeC: demoAsset("landscape-c.svg"),
+  uiMock: demoAsset("ui-mock.svg"),
+  screenshot: demoAsset("screenshot.svg"),
+  screenshotThumb: demoAsset("screenshot-thumb.svg"),
 } as const;
 
 export function demoInlineImageHtml({
