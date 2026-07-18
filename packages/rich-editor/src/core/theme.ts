@@ -53,6 +53,7 @@ export const editorTheme = {
     italic: "re-text-italic",
     strikethrough: "re-text-strike",
     underline: "re-text-underline",
+    underlineStrikethrough: "re-text-underline-strike",
     code: "re-text-code",
   },
   code: "re-block-code",

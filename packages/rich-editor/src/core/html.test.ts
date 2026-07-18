@@ -22,6 +22,12 @@ describe("sanitizeHtml", () => {
     expect(sanitizeHtml("<p><u>text</u></p>")).toBe("<p><u>text</u></p>");
   });
 
+  it("keeps re-spoiler custom tags", () => {
+    expect(sanitizeHtml("<re-spoiler>hidden</re-spoiler>")).toBe(
+      "<re-spoiler>hidden</re-spoiler>",
+    );
+  });
+
   it("keeps inline images with blob src and width style", () => {
     const html =
       '<p>text<img class="re-image" src="blob:http://localhost/abc" alt="shot" width="240" style="width: 240px; max-width: 100%; height: auto;" data-file-id="1"></p>';
@@ -44,6 +50,14 @@ describe("normalizeHtml", () => {
     expect(normalizeHtml("<p><del>x</del> <strike>y</strike></p>")).toBe(
       "<p><s>x</s> <s>y</s></p>",
     );
+  });
+
+  it("converts combined underline and line-through styles to u+s", () => {
+    expect(
+      normalizeHtml(
+        '<p><span style="text-decoration: underline line-through">x</span></p>',
+      ),
+    ).toBe("<p><u><s>x</s></u></p>");
   });
 
   it("merges adjacent blockquotes", () => {
@@ -80,6 +94,12 @@ describe("trimEditorHtml", () => {
   it("returns empty string for whitespace-only content", () => {
     expect(trimEditorHtml("<p><br></p>")).toBe("");
     expect(trimEditorHtml("<p><br><br></p>")).toBe("");
+  });
+
+  it("does not treat image-only paragraphs as empty", () => {
+    const html =
+      '<p><img src="https://cdn.example/a.png" width="200" data-file-id="1"></p>';
+    expect(trimEditorHtml(html)).toBe(html);
   });
 
   it("trims empty blocks inside leading and trailing blockquotes", () => {

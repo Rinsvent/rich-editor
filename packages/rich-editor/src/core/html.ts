@@ -33,7 +33,7 @@ const ALLOWED_URI_REGEXP =
 
 export function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS,
+    ALLOWED_TAGS: [...ALLOWED_TAGS, "re-spoiler"],
     ALLOWED_ATTR: [
       "href",
       "class",
@@ -54,6 +54,7 @@ export function sanitizeHtml(html: string): string {
       "data-language",
     ],
     ALLOWED_URI_REGEXP,
+    ADD_TAGS: ["re-spoiler"],
   });
 }
 
@@ -123,21 +124,39 @@ export function normalizeHtml(html: string): string {
     });
   }
 
-  container.querySelectorAll('[style*="line-through"]').forEach((node) => {
-    if (!(node instanceof HTMLElement)) return;
-    const s = document.createElement("s");
-    s.innerHTML = node.innerHTML;
-    node.replaceWith(s);
-  });
+  container.querySelectorAll('[style*="line-through"], [style*="underline"]').forEach(
+    (node) => {
+      if (!(node instanceof HTMLElement)) return;
+      const decoration =
+        node.style.textDecorationLine || node.style.textDecoration || "";
+      const hasStrike =
+        decoration.includes("line-through") ||
+        (node.getAttribute("style") ?? "").includes("line-through");
+      const hasUnderline =
+        decoration.includes("underline") ||
+        (node.getAttribute("style") ?? "").includes("underline");
 
-  container.querySelectorAll('[style*="underline"]').forEach((node) => {
-    if (!(node instanceof HTMLElement)) return;
-    if (node.style.textDecorationLine?.includes("line-through")) return;
-    if (node.style.textDecoration?.includes("line-through")) return;
-    const u = document.createElement("u");
-    u.innerHTML = node.innerHTML;
-    node.replaceWith(u);
-  });
+      if (hasStrike && hasUnderline) {
+        const u = document.createElement("u");
+        const s = document.createElement("s");
+        s.innerHTML = node.innerHTML;
+        u.appendChild(s);
+        node.replaceWith(u);
+        return;
+      }
+      if (hasStrike) {
+        const s = document.createElement("s");
+        s.innerHTML = node.innerHTML;
+        node.replaceWith(s);
+        return;
+      }
+      if (hasUnderline) {
+        const u = document.createElement("u");
+        u.innerHTML = node.innerHTML;
+        node.replaceWith(u);
+      }
+    },
+  );
 
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
@@ -206,6 +225,10 @@ function isExportNodeEmpty(node: Node): boolean {
   const el = node as Element;
   const tag = el.tagName.toLowerCase();
   if (tag === "br") return true;
+  if (tag === "img" || tag === "video" || tag === "hr" || tag === "re-spoiler") {
+    return false;
+  }
+  if (el.hasAttribute("data-file-id")) return false;
 
   const text = el.textContent?.replace(/\u00a0/g, " ").trim() ?? "";
   if (text) return false;

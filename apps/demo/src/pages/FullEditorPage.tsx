@@ -3,6 +3,7 @@ import {
   RichTextEditor,
   RichTextViewer,
   allSelectionMenuItems,
+  type RichTextSubmitPayload,
 } from "@rinsvent/rich-editor";
 import { mockUploadFile } from "../mockUpload";
 
@@ -13,7 +14,7 @@ const DEMO_USERS = [
 ];
 
 export function FullEditorPage() {
-  const [last, setLast] = useState("");
+  const [last, setLast] = useState<RichTextSubmitPayload | null>(null);
 
   return (
     <>
@@ -57,7 +58,7 @@ export function FullEditorPage() {
             submit: "Отправить",
           }}
           placeholder="Markdown shortcuts, toolbar icons, ||spoiler||…"
-          onSubmit={(payload) => setLast(payload.html)}
+          onSubmit={(payload) => setLast(payload)}
           clearOnSubmit
           minRows={3}
           maxRows={12}
@@ -66,7 +67,13 @@ export function FullEditorPage() {
       {last && (
         <div className="demo-card">
           <h2>Viewer</h2>
-          <RichTextViewer content={last} />
+          <p style={{ opacity: 0.65, fontSize: "0.8rem" }}>
+            Inline HTML + attachments strip (оба слоя).
+          </p>
+          <RichTextViewer
+            content={last.html}
+            attachments={last.attachments}
+          />
         </div>
       )}
     </>

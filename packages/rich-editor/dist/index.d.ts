@@ -242,7 +242,10 @@ type RichTextViewerProps = {
     theme?: EditorTheme;
     onMentionClick?: (mention: MentionOption) => void;
     attachments?: EditorAttachmentPayload[];
-    /** Show attachment previews below content. Default: false */
+    /**
+     * Show attachment previews below content.
+     * Default: true when `attachments` is non-empty.
+     */
     showAttachments?: boolean;
 };
 declare function RichTextViewer({ content, features: featuresProp, labels: labelsProp, className, theme, onMentionClick, attachments, showAttachments, }: RichTextViewerProps): react.JSX.Element;
@@ -305,6 +308,25 @@ declare function normalizeHtml(html: string): string;
 /** Remove leading/trailing empty blocks and line breaks from exported editor HTML. */
 declare function trimEditorHtml(html: string): string;
 
+/**
+ * Minimal HTML for DB storage (Telegram-inspired).
+ * Browser display classes are stripped on export and re-applied in the viewer.
+ */
+/**
+ * Compact HTML for persistence: no theme classes, paragraphs → &lt;br&gt;,
+ * spoilers as &lt;re-spoiler&gt;, keep only semantic tags + needed data attrs.
+ */
+declare function minimizeStorageHtml(html: string): string;
+/**
+ * Expand compact storage HTML back into Lexical-friendly markup
+ * (&lt;p&gt; blocks, span.re-spoiler). Accepts legacy classful HTML unchanged.
+ */
+declare function expandStorageHtml(html: string): string;
+/**
+ * Re-apply presentation classes for the viewer without changing storage format.
+ */
+declare function decorateViewerHtml(html: string): string;
+
 type PreparedViewerContent = {
     kind: "plain";
     text: string;
@@ -343,4 +365,4 @@ declare function getEnterBehaviorDescription(behavior?: EnterBehavior): {
 };
 declare function shortcutById(id: string): KeyboardShortcut | undefined;
 
-export { type EditorAttachment, type EditorAttachmentPayload, type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type EnterKeyAction, type EnterKeyBinding, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, type RichTextSubmitPayload, RichTextViewer, type RichTextViewerProps, type UploadFileFn, type UploadedFile, type ViewerFeatures, type ViewerLabels, allSelectionMenuItems, applyLinkTargetToHtml, buildMarkdownTransformers, defaultEditorTheme, defaultEnterKeyBindings, defaultFeatures, defaultLabels, defaultSelectionMenuItems, defaultViewerFeatures, defaultViewerLabels, describeEnterKeyBindings, editorCssVariables, editorThemePresets, enterBehaviorToBindings, exportEditorHtml, formatEnterKeyBinding, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, matchEnterKeyAction, mentionKeyboardShortcuts, normalizeHtml, plainTextFromHtml, prepareViewerContent, resolveEnterKeyBindings, sanitizeHtml, shortcutById, shouldPluginHandleEnterAction, trimEditorHtml, useRichTextEditor };
+export { type EditorAttachment, type EditorAttachmentPayload, type EditorCssVariable, type EditorFeatures, type EditorLabels, type EditorTheme, type EditorThemePreset, type EnterBehavior, type EnterKeyAction, type EnterKeyBinding, type KeyboardShortcut, type MarkdownShortcut, type MentionOption, type MentionSearchFn, type PreparedViewerContent, RichTextEditor, type RichTextEditorHandle, type RichTextEditorProps, type RichTextSubmitPayload, RichTextViewer, type RichTextViewerProps, type UploadFileFn, type UploadedFile, type ViewerFeatures, type ViewerLabels, allSelectionMenuItems, applyLinkTargetToHtml, buildMarkdownTransformers, decorateViewerHtml, defaultEditorTheme, defaultEnterKeyBindings, defaultFeatures, defaultLabels, defaultSelectionMenuItems, defaultViewerFeatures, defaultViewerLabels, describeEnterKeyBindings, editorCssVariables, editorThemePresets, enterBehaviorToBindings, expandStorageHtml, exportEditorHtml, formatEnterKeyBinding, formatKeyboardShortcuts, getActiveFormatShortcuts, getEnterBehaviorDescription, isEditorThemePreset, isHtmlContent, looksLikeMarkdown, markdownShortcuts, markdownToHtml, matchEnterKeyAction, mentionKeyboardShortcuts, minimizeStorageHtml, normalizeHtml, plainTextFromHtml, prepareViewerContent, resolveEnterKeyBindings, sanitizeHtml, shortcutById, shouldPluginHandleEnterAction, trimEditorHtml, useRichTextEditor };

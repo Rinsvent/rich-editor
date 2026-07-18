@@ -29,7 +29,10 @@ export type RichTextViewerProps = {
   theme?: EditorTheme;
   onMentionClick?: (mention: MentionOption) => void;
   attachments?: EditorAttachmentPayload[];
-  /** Show attachment previews below content. Default: false */
+  /**
+   * Show attachment previews below content.
+   * Default: true when `attachments` is non-empty.
+   */
   showAttachments?: boolean;
 };
 
@@ -55,7 +58,7 @@ export function RichTextViewer({
   theme = defaultEditorTheme,
   onMentionClick,
   attachments = [],
-  showAttachments = false,
+  showAttachments,
 }: RichTextViewerProps) {
   const features = useMemo(
     () => resolveViewerFeatures(featuresProp),
@@ -79,10 +82,12 @@ export function RichTextViewer({
     setDisplayHtml(null);
   }, [content, features.codeHighlight]);
 
-  const attachmentStrip =
-    showAttachments && attachments.length > 0 ? (
-      <ViewerAttachments attachments={attachments} labels={labels} />
-    ) : null;
+  const shouldShowAttachments =
+    (showAttachments ?? attachments.length > 0) && attachments.length > 0;
+
+  const attachmentStrip = shouldShowAttachments ? (
+    <ViewerAttachments attachments={attachments} labels={labels} />
+  ) : null;
 
   useLayoutEffect(() => {
     if (prepared.kind !== "html") return;
@@ -125,7 +130,9 @@ export function RichTextViewer({
     if (!root) return;
 
     const onSpoilerClick = (event: MouseEvent) => {
-      const target = (event.target as HTMLElement).closest(".re-spoiler");
+      const target = (event.target as HTMLElement).closest(
+        ".re-spoiler, re-spoiler",
+      );
       if (!target || !root.contains(target)) return;
       target.classList.add("re-spoiler-revealed");
     };

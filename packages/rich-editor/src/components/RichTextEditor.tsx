@@ -59,6 +59,7 @@ import {
   type EditorAttachment,
 } from "../core/attachments";
 import { normalizeHtml, trimEditorHtml } from "../core/html";
+import { minimizeStorageHtml } from "../core/storageHtml";
 import { buildMarkdownTransformers } from "../core/markdown";
 import { editorTheme } from "../core/theme";
 import { cn } from "../core/cn";
@@ -149,7 +150,7 @@ export function exportEditorHtml(
   if (options?.useTrim) {
     html = trimEditorHtml(html);
   }
-  return html;
+  return minimizeStorageHtml(html);
 }
 
 function EditorRefPlugin({

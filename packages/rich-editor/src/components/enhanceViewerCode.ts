@@ -14,7 +14,7 @@ function collectCodeBlocks(root: HTMLElement): Element[] {
 
 function collectInlineCodeElements(root: HTMLElement): HTMLElement[] {
   const elements: HTMLElement[] = [];
-  root.querySelectorAll("p code, .re-paragraph code").forEach((code) => {
+  root.querySelectorAll("code").forEach((code) => {
     if (!(code instanceof HTMLElement)) return;
     if (code.classList.contains("re-block-code")) return;
     if (code.closest("pre")) return;

@@ -51,6 +51,12 @@ export {
   applyLinkTargetToHtml,
 } from "./core/html";
 
+export {
+  minimizeStorageHtml,
+  expandStorageHtml,
+  decorateViewerHtml,
+} from "./core/storageHtml";
+
 export { prepareViewerContent } from "./core/viewerHtml";
 export type { PreparedViewerContent } from "./core/viewerHtml";
 

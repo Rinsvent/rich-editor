@@ -6,7 +6,6 @@ export function ChatMessagePreview({ message }: { message: RichTextSubmitPayload
       <RichTextViewer
         content={message.html}
         attachments={message.attachments}
-        showAttachments={message.attachments.length > 0}
       />
     </div>
   );

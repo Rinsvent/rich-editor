@@ -120,7 +120,6 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
 
   exportDOM(): DOMExportOutput {
     const element = document.createElement("img");
-    element.className = "re-image";
     element.src = this.__src;
     element.alt = this.__alt;
     element.setAttribute(FILE_ID_ATTR, this.__fileId);
@@ -128,8 +127,6 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     element.height = Math.max(1, Math.round(this.__width / this.__aspectRatio));
     element.setAttribute(IMAGE_ASPECT_ATTR, String(this.__aspectRatio));
     element.style.width = `${this.__width}px`;
-    element.style.maxWidth = "100%";
-    element.style.height = "auto";
     return { element };
   }
 

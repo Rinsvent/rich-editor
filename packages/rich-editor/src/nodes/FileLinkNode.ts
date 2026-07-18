@@ -127,7 +127,6 @@ export class FileLinkNode extends ElementNode {
 
   exportDOM(): DOMExportOutput {
     const element = document.createElement("a");
-    element.className = "re-file-link";
     element.href = this.__fileUrl;
     element.setAttribute(FILE_ID_ATTR, this.__fileId);
     element.setAttribute(FILE_NAME_ATTR, this.__fileName);

@@ -5,6 +5,18 @@ import { $generateNodesFromDOM } from "@lexical/html";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $createParagraphNode, $getRoot } from "lexical";
 import { $clearStickyTextFormats } from "../../core/selectionFormat";
+import { expandStorageHtml } from "../../core/storageHtml";
+
+function parseHtmlIntoEditor(
+  editor: ReturnType<typeof useLexicalComposerContext>[0],
+  html: string,
+): void {
+  const expanded = expandStorageHtml(html);
+  const parser = new DOMParser();
+  const dom = parser.parseFromString(expanded, "text/html");
+  const nodes = $generateNodesFromDOM(editor, dom.body);
+  $getRoot().append(...nodes);
+}
 
 export function InitialHtmlPlugin({ html }: { html?: string }) {
   const [editor] = useLexicalComposerContext();
@@ -13,21 +25,18 @@ export function InitialHtmlPlugin({ html }: { html?: string }) {
   useEffect(() => {
     if (html === lastApplied.current) return;
 
-      editor.update(() => {
-        const root = $getRoot();
-        root.clear();
-        if (!html?.trim()) {
-          const paragraph = $createParagraphNode();
-          root.append(paragraph);
-          paragraph.select();
-          $clearStickyTextFormats();
-          lastApplied.current = html;
-          return;
-        }
-      const parser = new DOMParser();
-      const dom = parser.parseFromString(html, "text/html");
-      const nodes = $generateNodesFromDOM(editor, dom.body);
-      root.append(...nodes);
+    editor.update(() => {
+      const root = $getRoot();
+      root.clear();
+      if (!html?.trim()) {
+        const paragraph = $createParagraphNode();
+        root.append(paragraph);
+        paragraph.select();
+        $clearStickyTextFormats();
+        lastApplied.current = html;
+        return;
+      }
+      parseHtmlIntoEditor(editor, html);
       lastApplied.current = html;
     });
   }, [editor, html]);
@@ -99,10 +108,7 @@ export function SetHtmlPlugin({
           $clearStickyTextFormats();
           return;
         }
-        const parser = new DOMParser();
-        const dom = parser.parseFromString(html, "text/html");
-        const nodes = $generateNodesFromDOM(editor, dom.body);
-        root.append(...nodes);
+        parseHtmlIntoEditor(editor, html);
       });
     };
     return () => {

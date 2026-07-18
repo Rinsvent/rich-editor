@@ -36,6 +36,7 @@ __export(index_exports, {
   allSelectionMenuItems: () => allSelectionMenuItems,
   applyLinkTargetToHtml: () => applyLinkTargetToHtml,
   buildMarkdownTransformers: () => buildMarkdownTransformers,
+  decorateViewerHtml: () => decorateViewerHtml,
   defaultEditorTheme: () => defaultEditorTheme,
   defaultEnterKeyBindings: () => defaultEnterKeyBindings,
   defaultFeatures: () => defaultFeatures,
@@ -47,6 +48,7 @@ __export(index_exports, {
   editorCssVariables: () => editorCssVariables,
   editorThemePresets: () => editorThemePresets,
   enterBehaviorToBindings: () => enterBehaviorToBindings,
+  expandStorageHtml: () => expandStorageHtml,
   exportEditorHtml: () => exportEditorHtml,
   formatEnterKeyBinding: () => formatEnterKeyBinding,
   formatKeyboardShortcuts: () => formatKeyboardShortcuts,
@@ -59,6 +61,7 @@ __export(index_exports, {
   markdownToHtml: () => markdownToHtml,
   matchEnterKeyAction: () => matchEnterKeyAction,
   mentionKeyboardShortcuts: () => mentionKeyboardShortcuts,
+  minimizeStorageHtml: () => minimizeStorageHtml,
   normalizeHtml: () => normalizeHtml,
   plainTextFromHtml: () => plainTextFromHtml,
   prepareViewerContent: () => prepareViewerContent,
@@ -398,7 +401,6 @@ var MentionNode = class _MentionNode extends import_lexical.TextNode {
   }
   exportDOM() {
     const element = document.createElement("span");
-    element.className = "re-mention";
     element.setAttribute(MENTION_ID_ATTR, this.__mentionId);
     element.setAttribute(MENTION_LABEL_ATTR, this.__mentionLabel);
     element.textContent = this.getTextContent();
@@ -444,8 +446,14 @@ var SpoilerNode = class _SpoilerNode extends import_lexical2.ElementNode {
   }
   static importDOM() {
     return {
+      "re-spoiler": () => ({
+        conversion: () => ({ node: $createSpoilerNode() }),
+        priority: 2
+      }),
       span: (domNode) => {
-        if (!domNode.classList.contains("re-spoiler")) return null;
+        if (!domNode.classList.contains("re-spoiler") && !domNode.hasAttribute("data-re-spoiler")) {
+          return null;
+        }
         return {
           conversion: () => ({ node: $createSpoilerNode() }),
           priority: 2
@@ -482,9 +490,7 @@ var SpoilerNode = class _SpoilerNode extends import_lexical2.ElementNode {
     return false;
   }
   exportDOM() {
-    const element = document.createElement("span");
-    element.className = "re-spoiler";
-    element.setAttribute("data-re-spoiler", "");
+    const element = document.createElement("re-spoiler");
     return { element };
   }
   exportJSON() {
@@ -663,7 +669,6 @@ var FileLinkNode = class _FileLinkNode extends import_lexical3.ElementNode {
   }
   exportDOM() {
     const element = document.createElement("a");
-    element.className = "re-file-link";
     element.href = this.__fileUrl;
     element.setAttribute(FILE_ID_ATTR, this.__fileId);
     element.setAttribute(FILE_NAME_ATTR, this.__fileName);
@@ -992,7 +997,6 @@ var ImageNode = class _ImageNode extends import_lexical6.DecoratorNode {
   }
   exportDOM() {
     const element = document.createElement("img");
-    element.className = "re-image";
     element.src = this.__src;
     element.alt = this.__alt;
     element.setAttribute(FILE_ID_ATTR, this.__fileId);
@@ -1000,8 +1004,6 @@ var ImageNode = class _ImageNode extends import_lexical6.DecoratorNode {
     element.height = Math.max(1, Math.round(this.__width / this.__aspectRatio));
     element.setAttribute(IMAGE_ASPECT_ATTR, String(this.__aspectRatio));
     element.style.width = `${this.__width}px`;
-    element.style.maxWidth = "100%";
-    element.style.height = "auto";
     return { element };
   }
   createDOM() {
@@ -1105,7 +1107,7 @@ var ALLOWED_TAGS = [
 var ALLOWED_URI_REGEXP = /^(?:(?:https?|mailto|tel|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 function sanitizeHtml(html) {
   return import_isomorphic_dompurify.default.sanitize(html, {
-    ALLOWED_TAGS,
+    ALLOWED_TAGS: [...ALLOWED_TAGS, "re-spoiler"],
     ALLOWED_ATTR: [
       "href",
       "class",
@@ -1125,7 +1127,8 @@ function sanitizeHtml(html) {
       "data-aspect-ratio",
       "data-language"
     ],
-    ALLOWED_URI_REGEXP
+    ALLOWED_URI_REGEXP,
+    ADD_TAGS: ["re-spoiler"]
   });
 }
 function isHtmlContent(content) {
@@ -1184,20 +1187,33 @@ function normalizeHtml(html) {
       node.replaceWith(s);
     });
   }
-  container.querySelectorAll('[style*="line-through"]').forEach((node) => {
-    if (!(node instanceof HTMLElement)) return;
-    const s = document.createElement("s");
-    s.innerHTML = node.innerHTML;
-    node.replaceWith(s);
-  });
-  container.querySelectorAll('[style*="underline"]').forEach((node) => {
-    if (!(node instanceof HTMLElement)) return;
-    if (node.style.textDecorationLine?.includes("line-through")) return;
-    if (node.style.textDecoration?.includes("line-through")) return;
-    const u = document.createElement("u");
-    u.innerHTML = node.innerHTML;
-    node.replaceWith(u);
-  });
+  container.querySelectorAll('[style*="line-through"], [style*="underline"]').forEach(
+    (node) => {
+      if (!(node instanceof HTMLElement)) return;
+      const decoration = node.style.textDecorationLine || node.style.textDecoration || "";
+      const hasStrike = decoration.includes("line-through") || (node.getAttribute("style") ?? "").includes("line-through");
+      const hasUnderline = decoration.includes("underline") || (node.getAttribute("style") ?? "").includes("underline");
+      if (hasStrike && hasUnderline) {
+        const u = document.createElement("u");
+        const s = document.createElement("s");
+        s.innerHTML = node.innerHTML;
+        u.appendChild(s);
+        node.replaceWith(u);
+        return;
+      }
+      if (hasStrike) {
+        const s = document.createElement("s");
+        s.innerHTML = node.innerHTML;
+        node.replaceWith(s);
+        return;
+      }
+      if (hasUnderline) {
+        const u = document.createElement("u");
+        u.innerHTML = node.innerHTML;
+        node.replaceWith(u);
+      }
+    }
+  );
   container.querySelectorAll("code span").forEach((span) => {
     const code = span.parentElement;
     if (!code) return;
@@ -1257,6 +1273,10 @@ function isExportNodeEmpty(node) {
   const el = node;
   const tag = el.tagName.toLowerCase();
   if (tag === "br") return true;
+  if (tag === "img" || tag === "video" || tag === "hr" || tag === "re-spoiler") {
+    return false;
+  }
+  if (el.hasAttribute("data-file-id")) return false;
   const text = el.textContent?.replace(/\u00a0/g, " ").trim() ?? "";
   if (text) return false;
   const children = Array.from(el.childNodes);
@@ -1347,6 +1367,254 @@ function flattenTag(container, tagName) {
       }
     }
   }
+}
+
+// src/core/storageHtml.ts
+var BLOCK_TAGS = /* @__PURE__ */ new Set([
+  "blockquote",
+  "pre",
+  "ul",
+  "ol",
+  "li",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6"
+]);
+var KEEP_ATTRS_GLOBAL = /* @__PURE__ */ new Set([
+  "href",
+  "src",
+  "alt",
+  "width",
+  "height",
+  "target",
+  "rel",
+  "data-mention-id",
+  "data-mention-label",
+  "data-file-id",
+  "data-file-name",
+  "data-file-mime",
+  "data-aspect-ratio",
+  "data-language"
+]);
+function isElement(node) {
+  return node.nodeType === Node.ELEMENT_NODE;
+}
+function unwrapElementKeepChildren(el) {
+  const parent = el.parentNode;
+  if (!parent) return;
+  while (el.firstChild) {
+    parent.insertBefore(el.firstChild, el);
+  }
+  el.remove();
+}
+function stripHighlightMarkup(container) {
+  container.querySelectorAll("pre, code").forEach((block) => {
+    const spans = block.querySelectorAll("span");
+    spans.forEach((span) => {
+      unwrapElementKeepChildren(span);
+    });
+  });
+}
+function convertSpoilersToCustomTag(container) {
+  container.querySelectorAll("span.re-spoiler, span[data-re-spoiler]").forEach((span) => {
+    const spoiler = document.createElement("re-spoiler");
+    while (span.firstChild) {
+      spoiler.appendChild(span.firstChild);
+    }
+    span.replaceWith(spoiler);
+  });
+}
+function convertCustomSpoilersToSpans(container) {
+  container.querySelectorAll("re-spoiler").forEach((el) => {
+    const span = document.createElement("span");
+    span.className = "re-spoiler";
+    span.setAttribute("data-re-spoiler", "");
+    while (el.firstChild) {
+      span.appendChild(el.firstChild);
+    }
+    el.replaceWith(span);
+  });
+}
+function stripDecorativeAttributes(container) {
+  container.querySelectorAll("*").forEach((el) => {
+    const tag = el.tagName.toLowerCase();
+    for (const attr of Array.from(el.attributes)) {
+      const name = attr.name.toLowerCase();
+      if (KEEP_ATTRS_GLOBAL.has(name)) continue;
+      if (name === "style" && tag === "img") {
+        const width = el.getAttribute("width");
+        if (width) {
+          el.setAttribute("style", `width: ${width}px`);
+        } else {
+          el.removeAttribute("style");
+        }
+        continue;
+      }
+      el.removeAttribute(attr.name);
+    }
+  });
+}
+function paragraphIsBlank(p) {
+  const text = p.textContent?.replace(/\u00a0/g, " ").trim() ?? "";
+  if (text) return false;
+  if (p.querySelector("img, video, [data-file-id], re-spoiler")) return false;
+  return true;
+}
+function flattenParagraphs(parent) {
+  for (const child of Array.from(parent.children)) {
+    const tag = child.tagName.toLowerCase();
+    if (tag === "blockquote" || tag === "li") {
+      flattenParagraphs(child);
+    }
+  }
+  const out = [];
+  let afterParagraph = false;
+  for (const child of Array.from(parent.childNodes)) {
+    if (isElement(child) && child.tagName.toLowerCase() === "p") {
+      if (paragraphIsBlank(child)) {
+        if (out.length > 0) {
+          out.push(document.createElement("br"));
+        }
+        afterParagraph = true;
+        continue;
+      }
+      if (afterParagraph && out.length > 0) {
+        out.push(document.createElement("br"));
+      }
+      while (child.firstChild) {
+        out.push(child.removeChild(child.firstChild));
+      }
+      afterParagraph = true;
+      continue;
+    }
+    if (isElement(child) && BLOCK_TAGS.has(child.tagName.toLowerCase())) {
+      out.push(child);
+      afterParagraph = true;
+      continue;
+    }
+    out.push(child);
+    afterParagraph = false;
+  }
+  while (parent.firstChild) {
+    parent.removeChild(parent.firstChild);
+  }
+  for (const node of out) {
+    parent.appendChild(node);
+  }
+}
+function isBlockElement(el) {
+  return BLOCK_TAGS.has(el.tagName.toLowerCase());
+}
+function expandBreaksToParagraphs(parent) {
+  for (const child of Array.from(parent.children)) {
+    const tag = child.tagName.toLowerCase();
+    if (tag === "blockquote" || tag === "li") {
+      if (!child.querySelector(":scope > p")) {
+        expandBreaksToParagraphs(child);
+      }
+    }
+  }
+  if (parent.querySelector(":scope > p")) return;
+  const snapshot = Array.from(parent.childNodes);
+  const rebuilt = [];
+  let currentP = null;
+  const flushP = () => {
+    if (currentP) {
+      rebuilt.push(currentP);
+      currentP = null;
+    }
+  };
+  const ensureP = () => {
+    if (!currentP) {
+      currentP = document.createElement("p");
+    }
+    return currentP;
+  };
+  for (const child of snapshot) {
+    if (isElement(child) && child.tagName.toLowerCase() === "br") {
+      flushP();
+      continue;
+    }
+    if (isElement(child) && isBlockElement(child)) {
+      flushP();
+      rebuilt.push(child);
+      continue;
+    }
+    ensureP().appendChild(child);
+  }
+  flushP();
+  if (rebuilt.length === 0) {
+    rebuilt.push(document.createElement("p"));
+  }
+  while (parent.firstChild) {
+    parent.removeChild(parent.firstChild);
+  }
+  for (const node of rebuilt) {
+    parent.appendChild(node);
+  }
+}
+function minimizeStorageHtml(html) {
+  const trimmed = html.trim();
+  if (!trimmed) return "";
+  if (typeof document === "undefined") {
+    return trimmed.replace(/\s+class="[^"]*"/gi, "").replace(/\s+spellcheck="[^"]*"/gi, "").replace(/\s+contenteditable="[^"]*"/gi, "").replace(
+      /<span([^>]*\bre-spoiler\b[^>]*)>([\s\S]*?)<\/span>/gi,
+      "<re-spoiler>$2</re-spoiler>"
+    );
+  }
+  const container = document.createElement("div");
+  container.innerHTML = trimmed;
+  stripHighlightMarkup(container);
+  convertSpoilersToCustomTag(container);
+  stripDecorativeAttributes(container);
+  flattenParagraphs(container);
+  return container.innerHTML.trim();
+}
+function expandStorageHtml(html) {
+  const trimmed = html.trim();
+  if (!trimmed) return "";
+  if (typeof document === "undefined") {
+    return trimmed.replace(
+      /<re-spoiler>([\s\S]*?)<\/re-spoiler>/gi,
+      '<span class="re-spoiler" data-re-spoiler="">$1</span>'
+    );
+  }
+  const container = document.createElement("div");
+  container.innerHTML = trimmed;
+  convertCustomSpoilersToSpans(container);
+  expandBreaksToParagraphs(container);
+  return container.innerHTML.trim();
+}
+function decorateViewerHtml(html) {
+  const trimmed = html.trim();
+  if (!trimmed || typeof document === "undefined") return trimmed;
+  const container = document.createElement("div");
+  container.innerHTML = trimmed;
+  container.querySelectorAll("re-spoiler").forEach((el) => {
+    el.classList.add("re-spoiler");
+    if (!el.hasAttribute("data-re-spoiler")) {
+      el.setAttribute("data-re-spoiler", "");
+    }
+  });
+  container.querySelectorAll("span[data-re-spoiler]").forEach((el) => {
+    el.classList.add("re-spoiler");
+  });
+  container.querySelectorAll("img[data-file-id], img").forEach((el) => {
+    el.classList.add("re-image");
+  });
+  container.querySelectorAll("pre").forEach((el) => {
+    el.classList.add("re-block-code");
+  });
+  container.querySelectorAll("[data-mention-id]").forEach((el) => {
+    el.classList.add("re-mention");
+  });
+  container.querySelectorAll(`a[${"data-file-id"}]`).forEach((el) => {
+    el.classList.add("re-file-link");
+  });
+  return container.innerHTML;
 }
 
 // src/core/markdown.ts
@@ -1507,6 +1775,7 @@ var editorTheme = {
     italic: "re-text-italic",
     strikethrough: "re-text-strike",
     underline: "re-text-underline",
+    underlineStrikethrough: "re-text-underline-strike",
     code: "re-text-code"
   },
   code: "re-block-code",
@@ -3906,6 +4175,13 @@ async function handleInsertAttachment(editor, attachments, localId) {
 }
 
 // src/components/plugins/index.tsx
+function parseHtmlIntoEditor(editor, html) {
+  const expanded = expandStorageHtml(html);
+  const parser = new DOMParser();
+  const dom = parser.parseFromString(expanded, "text/html");
+  const nodes = (0, import_html4.$generateNodesFromDOM)(editor, dom.body);
+  (0, import_lexical24.$getRoot)().append(...nodes);
+}
 function InitialHtmlPlugin({ html }) {
   const [editor] = (0, import_LexicalComposerContext15.useLexicalComposerContext)();
   const lastApplied = (0, import_react17.useRef)(void 0);
@@ -3922,10 +4198,7 @@ function InitialHtmlPlugin({ html }) {
         lastApplied.current = html;
         return;
       }
-      const parser = new DOMParser();
-      const dom = parser.parseFromString(html, "text/html");
-      const nodes = (0, import_html4.$generateNodesFromDOM)(editor, dom.body);
-      root.append(...nodes);
+      parseHtmlIntoEditor(editor, html);
       lastApplied.current = html;
     });
   }, [editor, html]);
@@ -3979,10 +4252,7 @@ function SetHtmlPlugin({
           $clearStickyTextFormats();
           return;
         }
-        const parser = new DOMParser();
-        const dom = parser.parseFromString(html, "text/html");
-        const nodes = (0, import_html4.$generateNodesFromDOM)(editor, dom.body);
-        root.append(...nodes);
+        parseHtmlIntoEditor(editor, html);
       });
     };
     return () => {
@@ -4733,7 +5003,7 @@ function exportEditorHtml(editor, options) {
   if (options?.useTrim) {
     html = trimEditorHtml(html);
   }
-  return html;
+  return minimizeStorageHtml(html);
 }
 function EditorRefPlugin({
   getHtmlRef,
@@ -5149,6 +5419,7 @@ function prepareViewerContent(content, features) {
     return { kind: "plain", text: content };
   }
   let html = sanitizeHtml(content);
+  html = decorateViewerHtml(html);
   if (features.linkTarget) {
     html = applyLinkTargetToHtml(html, features.linkTarget);
   }
@@ -5431,12 +5702,23 @@ function detectLanguage(element) {
   if (languageClass) return languageClass.slice("language-".length);
   return "plaintext";
 }
+function collectHighlightTargets(root) {
+  const result = [];
+  root.querySelectorAll("pre").forEach((pre) => {
+    const code = pre.querySelector("code");
+    result.push(code instanceof HTMLElement ? code : pre);
+  });
+  root.querySelectorAll("code.re-block-code").forEach((code) => {
+    if (!(code instanceof HTMLElement)) return;
+    if (code.closest("pre")) return;
+    result.push(code);
+  });
+  return result;
+}
 async function highlightViewerCodeBlocks(root) {
   if (!root) return;
-  const blocks = root.querySelectorAll(
-    "pre code, code.re-block-code, .re-block-code"
-  );
-  const needsHighlight = [...blocks].filter((el) => !isAlreadyHighlighted(el));
+  const blocks = collectHighlightTargets(root);
+  const needsHighlight = blocks.filter((el) => !isAlreadyHighlighted(el));
   if (needsHighlight.length === 0) return;
   const languages = needsHighlight.map((el) => detectLanguage(el));
   await ensureHljsLanguages(languages);
@@ -5454,9 +5736,7 @@ async function highlightViewerCodeBlocks(root) {
 }
 function storeViewerCodeText(root) {
   if (!root) return;
-  root.querySelectorAll(
-    "pre code, code.re-block-code, .re-block-code"
-  ).forEach((el) => {
+  collectHighlightTargets(root).forEach((el) => {
     if (!el.dataset.code) {
       el.dataset.code = el.textContent ?? "";
     }
@@ -5498,7 +5778,7 @@ function collectCodeBlocks(root) {
 }
 function collectInlineCodeElements(root) {
   const elements = [];
-  root.querySelectorAll("p code, .re-paragraph code").forEach((code) => {
+  root.querySelectorAll("code").forEach((code) => {
     if (!(code instanceof HTMLElement)) return;
     if (code.classList.contains("re-block-code")) return;
     if (code.closest("pre")) return;
@@ -5669,7 +5949,7 @@ function RichTextViewer({
   theme = defaultEditorTheme,
   onMentionClick,
   attachments = [],
-  showAttachments = false
+  showAttachments
 }) {
   const features = (0, import_react22.useMemo)(
     () => resolveViewerFeatures(featuresProp),
@@ -5689,7 +5969,8 @@ function RichTextViewer({
   (0, import_react22.useEffect)(() => {
     setDisplayHtml(null);
   }, [content, features.codeHighlight]);
-  const attachmentStrip = showAttachments && attachments.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(ViewerAttachments, { attachments, labels }) : null;
+  const shouldShowAttachments = (showAttachments ?? attachments.length > 0) && attachments.length > 0;
+  const attachmentStrip = shouldShowAttachments ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(ViewerAttachments, { attachments, labels }) : null;
   (0, import_react22.useLayoutEffect)(() => {
     if (prepared.kind !== "html") return;
     let cancelled = false;
@@ -5725,7 +6006,9 @@ function RichTextViewer({
     const root = ref.current;
     if (!root) return;
     const onSpoilerClick = (event) => {
-      const target = event.target.closest(".re-spoiler");
+      const target = event.target.closest(
+        ".re-spoiler, re-spoiler"
+      );
       if (!target || !root.contains(target)) return;
       target.classList.add("re-spoiler-revealed");
     };
@@ -5815,6 +6098,7 @@ function RichTextViewer({
   allSelectionMenuItems,
   applyLinkTargetToHtml,
   buildMarkdownTransformers,
+  decorateViewerHtml,
   defaultEditorTheme,
   defaultEnterKeyBindings,
   defaultFeatures,
@@ -5826,6 +6110,7 @@ function RichTextViewer({
   editorCssVariables,
   editorThemePresets,
   enterBehaviorToBindings,
+  expandStorageHtml,
   exportEditorHtml,
   formatEnterKeyBinding,
   formatKeyboardShortcuts,
@@ -5838,6 +6123,7 @@ function RichTextViewer({
   markdownToHtml,
   matchEnterKeyAction,
   mentionKeyboardShortcuts,
+  minimizeStorageHtml,
   normalizeHtml,
   plainTextFromHtml,
   prepareViewerContent,

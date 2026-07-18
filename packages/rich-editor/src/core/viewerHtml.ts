@@ -1,5 +1,6 @@
 import type { ViewerFeatures } from "./features";
 import { applyLinkTargetToHtml, isHtmlContent, sanitizeHtml } from "./html";
+import { decorateViewerHtml } from "./storageHtml";
 
 export type PreparedViewerContent =
   | { kind: "plain"; text: string }
@@ -15,6 +16,7 @@ export function prepareViewerContent(
   }
 
   let html = sanitizeHtml(content);
+  html = decorateViewerHtml(html);
   if (features.linkTarget) {
     html = applyLinkTargetToHtml(html, features.linkTarget);
   }

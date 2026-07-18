@@ -32,8 +32,17 @@ export class SpoilerNode extends ElementNode {
 
   static importDOM(): DOMConversionMap | null {
     return {
+      "re-spoiler": () => ({
+        conversion: () => ({ node: $createSpoilerNode() }),
+        priority: 2,
+      }),
       span: (domNode: HTMLElement) => {
-        if (!domNode.classList.contains("re-spoiler")) return null;
+        if (
+          !domNode.classList.contains("re-spoiler") &&
+          !domNode.hasAttribute("data-re-spoiler")
+        ) {
+          return null;
+        }
         return {
           conversion: () => ({ node: $createSpoilerNode() }),
           priority: 2,
@@ -79,9 +88,7 @@ export class SpoilerNode extends ElementNode {
   }
 
   exportDOM(): DOMExportOutput {
-    const element = document.createElement("span");
-    element.className = "re-spoiler";
-    element.setAttribute("data-re-spoiler", "");
+    const element = document.createElement("re-spoiler");
     return { element };
   }
 

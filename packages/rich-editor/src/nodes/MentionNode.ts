@@ -98,7 +98,6 @@ export class MentionNode extends TextNode {
 
   exportDOM(): DOMExportOutput {
     const element = document.createElement("span");
-    element.className = "re-mention";
     element.setAttribute(MENTION_ID_ATTR, this.__mentionId);
     element.setAttribute(MENTION_LABEL_ATTR, this.__mentionLabel);
     element.textContent = this.getTextContent();
