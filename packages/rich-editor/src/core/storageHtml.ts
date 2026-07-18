@@ -101,6 +101,23 @@ function stripDecorativeAttributes(container: Element): void {
   });
 }
 
+/** Drop Lexical wrapper spans left empty after attribute stripping (keep mentions). */
+function unwrapUselessSpans(container: Element): void {
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const span of Array.from(container.querySelectorAll("span"))) {
+      if (span.hasAttribute("data-mention-id")) continue;
+      const hasKeptAttr = Array.from(span.attributes).some((attr) =>
+        KEEP_ATTRS_GLOBAL.has(attr.name.toLowerCase()),
+      );
+      if (hasKeptAttr) continue;
+      unwrapElementKeepChildren(span);
+      changed = true;
+    }
+  }
+}
+
 function paragraphIsBlank(p: Element): boolean {
   const text = p.textContent?.replace(/\u00a0/g, " ").trim() ?? "";
   if (text) return false;
@@ -243,6 +260,7 @@ export function minimizeStorageHtml(html: string): string {
   stripHighlightMarkup(container);
   convertSpoilersToCustomTag(container);
   stripDecorativeAttributes(container);
+  unwrapUselessSpans(container);
   flattenParagraphs(container);
 
   return container.innerHTML.trim();

@@ -43,6 +43,20 @@ describe("minimizeStorageHtml", () => {
     expect(out).not.toContain("re-image");
     expect(out).not.toContain("class=");
   });
+
+  it("unwraps empty Lexical wrapper spans", () => {
+    const input =
+      '<p class="re-paragraph"><span class="re-text-bold"><b>bold</b></span> plain <span style="white-space: pre-wrap;">x</span></p>';
+    expect(minimizeStorageHtml(input)).toBe("<b>bold</b> plain x");
+  });
+
+  it("keeps mention spans with data attributes", () => {
+    const input =
+      '<p><span class="re-mention" data-mention-id="u1" data-mention-label="Alice">@Alice</span></p>';
+    expect(minimizeStorageHtml(input)).toBe(
+      '<span data-mention-id="u1" data-mention-label="Alice">@Alice</span>',
+    );
+  });
 });
 
 describe("expandStorageHtml", () => {
