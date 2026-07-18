@@ -14,19 +14,37 @@ const DEMO_USERS = [
   { id: "charlie", label: "Charlie" },
 ];
 
+const SAMPLE_HTML =
+  "<b>bold</b> <i>italic</i> <u>under</u> <s>strike</s><br>" +
+  "<code>inline</code><br>" +
+  "<blockquote>quote</blockquote>" +
+  '<pre data-language="javascript">const x = 1;</pre><br>' +
+  "<re-spoiler>spoiler</re-spoiler> " +
+  '<span data-mention-id="alice" data-mention-label="Alice">@Alice</span>';
+
 export function PlaygroundPage() {
   const ref = useRef<RichTextEditorHandle>(null);
   const [html, setHtml] = useState("");
+  const [htmlInput, setHtmlInput] = useState(SAMPLE_HTML);
   const [last, setLast] = useState<RichTextSubmitPayload | null>(null);
+
+  const applyHtml = (source: string) => {
+    const next = source.trim();
+    ref.current?.setHtml(next);
+    // Re-export so the right panel shows what the editor actually stored
+    const exported = ref.current?.getHtml() ?? next;
+    setHtml(exported);
+    setHtmlInput(exported);
+    setLast(null);
+  };
 
   return (
     <div className="demo-split">
       <div className="demo-card">
         <h2>Editor</h2>
         <p style={{ opacity: 0.75, fontSize: "0.875rem" }}>
-          Все форматы включены: bold/italic/underline/strike, code, quote,
-          lists, links, headings, spoiler, mentions, attachments, selection
-          menu.
+          Все форматы включены. Вставь storage HTML ниже → Apply to editor —
+          проверь round-trip форматирования.
         </p>
         <RichTextEditor
           ref={ref}
@@ -67,44 +85,96 @@ export function PlaygroundPage() {
           onSubmit={(payload) => {
             setLast(payload);
             setHtml(payload.html);
+            setHtmlInput(payload.html);
           }}
           clearOnSubmit
           useTrim
           minRows={6}
           maxRows={20}
         />
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
-          <button type="button" onClick={() => setHtml(ref.current?.getHtml() ?? "")}>
+        <div
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            marginTop: "0.75rem",
+            flexWrap: "wrap",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              const next = ref.current?.getHtml() ?? "";
+              setHtml(next);
+              setHtmlInput(next);
+            }}
+          >
             Sync HTML
           </button>
           <button type="button" onClick={() => ref.current?.clear()}>
             Clear
           </button>
+          <button type="button" onClick={() => applyHtml(SAMPLE_HTML)}>
+            Insert sample
+          </button>
+        </div>
+
+        <h2 style={{ marginTop: "1.25rem" }}>Set HTML</h2>
+        <p style={{ opacity: 0.7, fontSize: "0.8rem", marginTop: 0 }}>
+          Вставь произвольный storage HTML и нажми Apply — редактор и viewer
+          должны показать то же форматирование.
+        </p>
+        <textarea
+          className="demo-output"
+          value={htmlInput}
+          onChange={(e) => setHtmlInput(e.target.value)}
+          rows={8}
+          spellCheck={false}
+          style={{
+            width: "100%",
+            resize: "vertical",
+            fontFamily: "ui-monospace, monospace",
+            fontSize: "0.8rem",
+            boxSizing: "border-box",
+          }}
+          aria-label="HTML input"
+        />
+        <div
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            marginTop: "0.5rem",
+            flexWrap: "wrap",
+          }}
+        >
+          <button type="button" onClick={() => applyHtml(htmlInput)}>
+            Apply to editor
+          </button>
           <button
             type="button"
             onClick={() => {
-              const sample =
-                "<b>bold</b> <i>italic</i> <u>under</u> <s>strike</s><br>" +
-                "<code>inline</code><br>" +
-                "<blockquote>quote</blockquote>" +
-                '<pre data-language="javascript">const x = 1;</pre>' +
-                '<re-spoiler>spoiler</re-spoiler> ' +
-                '<span data-mention-id="alice" data-mention-label="Alice">@Alice</span>';
-              ref.current?.setHtml(sample);
-              setHtml(ref.current?.getHtml() ?? sample);
+              setHtmlInput(SAMPLE_HTML);
             }}
           >
-            Insert sample
+            Load sample into field
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setHtmlInput(html);
+            }}
+            disabled={!html}
+          >
+            Copy export → field
           </button>
         </div>
       </div>
       <div className="demo-card">
         <h2>Live viewer</h2>
         <RichTextViewer
-          content={html || "<span style='opacity:0.5'>…</span>"}
+          content={html || "…"}
           attachments={last?.attachments}
         />
-        <h2 style={{ marginTop: "1rem" }}>HTML (storage)</h2>
+        <h2 style={{ marginTop: "1rem" }}>HTML (storage export)</h2>
         <pre className="demo-output">{html || "(empty)"}</pre>
         {last && last.attachments.length > 0 && (
           <>
